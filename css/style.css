@@ -1,0 +1,908 @@
+/* =====================================================================
+   omni-schema — styles
+   Identité de l'Omni-système (relevée sur le portfolio) :
+   fond nuit #14121e, cartes #1e1928, violet #a777ff avec texte sombre
+   sur les boutons, petites étiquettes en MAJUSCULES espacées, chiffres
+   en police à chasse fixe, texte de lecture à empattements.
+   Trois thèmes (clair, sombre, sombre violet), réglés par l'attribut
+   data-theme de <html>. Tailles en rem : le réglage « Taille du texte »
+   agrandit toute l'interface. Aucune animation.
+   Contrastes vérifiés : texte ≥ 4,5:1, bordures de champs ≥ 3:1.
+   ===================================================================== */
+
+/* ---------- Polices (déjà présentes sur l'appareil, rien n'est téléchargé) ---------- */
+:root {
+  --police-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Ubuntu, Cantarell, sans-serif;
+  --police-lecture: "Iowan Old Style", "Palatino Linotype", Charter, "Source Serif Pro", "Noto Serif", "DejaVu Serif", Georgia, serif;
+  --police-chiffres: ui-monospace, "Cascadia Mono", "Roboto Mono", "JetBrains Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace;
+  --rayon: 12px;
+  --rayon-carte: 18px;
+}
+
+/* ---------- Thèmes ---------- */
+:root,
+[data-theme="violet"] {
+  color-scheme: dark;
+  --fond: #14121e;          /* fond nuit du portfolio */
+  --barre: #14121e;         /* barres : même fond, séparées par un filet */
+  --surface: #1e1928;       /* cartes, fenêtres, menus */
+  --surface-2: #2a2338;     /* survol */
+  --filet: #262435;         /* bordures décoratives */
+  --bord: #6e6589;          /* bordures des champs (≥ 3:1) */
+  --texte: #ece8f5;
+  --texte-doux: #aaa6c0;
+  --accent: #a777ff;        /* violet de l'Omni-système */
+  --accent-fond: #a777ff;
+  --accent-texte: #16052b;  /* texte sombre sur violet, comme « Lancer le d20 » */
+  --chiffres: #dfcaff;
+  --danger: #ff8a9b;
+  --danger-fond: #ff8a9b;
+  --danger-texte: #2b0410;
+  --focus: #ffd166;
+  --voile: rgb(6 4 14 / 0.72);
+  --ombre: 0 10px 30px rgb(0 0 0 / 0.45);
+}
+
+[data-theme="sombre"] {
+  color-scheme: dark;
+  --fond: #111014;
+  --barre: #111014;
+  --surface: #1b1a20;
+  --surface-2: #27252e;
+  --filet: #2a2831;
+  --bord: #6b6878;
+  --texte: #eeedf2;
+  --texte-doux: #b0adba;
+  --accent: #a777ff;
+  --accent-fond: #a777ff;
+  --accent-texte: #16052b;
+  --chiffres: #dfcaff;
+  --danger: #ff8a9b;
+  --danger-fond: #ff8a9b;
+  --danger-texte: #2b0410;
+  --focus: #ffd166;
+  --voile: rgb(0 0 0 / 0.72);
+  --ombre: 0 10px 30px rgb(0 0 0 / 0.5);
+}
+
+[data-theme="clair"] {
+  color-scheme: light;
+  --fond: #f5f3fa;
+  --barre: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #efe9fc;
+  --filet: #e2ddec;
+  --bord: #7d7594;
+  --texte: #16121f;
+  --texte-doux: #4f4a5e;
+  --accent: #6a3fd6;        /* violet foncé : lisible sur fond clair */
+  --accent-fond: #6a3fd6;
+  --accent-texte: #ffffff;
+  --chiffres: #4b2a9c;
+  --danger: #b3261e;
+  --danger-fond: #b3261e;
+  --danger-texte: #ffffff;
+  --focus: #b35c00;
+  --voile: rgb(20 12 40 / 0.45);
+  --ombre: 0 10px 30px rgb(40 20 80 / 0.18);
+}
+
+/* ---------- Base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--fond);
+  color: var(--texte);
+  font-family: var(--police-ui);
+  font-size: 1rem;
+  line-height: 1.45;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Aucune animation, aucune transition, nulle part. */
+*, *::before, *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+
+[hidden] { display: none !important; }
+
+.sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+.icone {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.icone.petite { width: 1rem; height: 1rem; opacity: 0.75; }
+
+button, input, select, textarea { font: inherit; color: inherit; }
+
+button {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+button:disabled { cursor: default; opacity: 0.4; }
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+a { color: var(--accent); text-underline-offset: 0.18em; }
+
+/* Petite étiquette en majuscules espacées (« ESSAYEZ LE DÉ » sur le portfolio). */
+.etiquette-section {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--texte-doux);
+}
+
+.chiffres { font-family: var(--police-chiffres); color: var(--chiffres); }
+
+/* ---------- Boutons ---------- */
+.bouton-icone {
+  display: inline-grid;
+  place-items: center;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0.5rem;
+  border: 0;
+  border-radius: var(--rayon);
+  background: transparent;
+  color: var(--texte);
+}
+.bouton-icone:hover:not(:disabled) { background: var(--surface-2); }
+.bouton-icone.danger { color: var(--danger); }
+
+.bouton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 48px;
+  padding: 0.6rem 1.2rem;
+  border: 1px solid var(--bord);
+  border-radius: var(--rayon);
+  background: transparent;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+.bouton:hover { background: var(--surface-2); }
+.bouton.principal { background: var(--accent-fond); border-color: var(--accent-fond); color: var(--accent-texte); }
+.bouton.principal:hover { filter: brightness(1.08); }
+.bouton.danger { background: var(--danger-fond); border-color: var(--danger-fond); color: var(--danger-texte); }
+.pleine-largeur { width: 100%; }
+
+/* ---------- Barre du haut ---------- */
+.barre-haut {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  padding-top: max(0.25rem, env(safe-area-inset-top));
+  padding-left: max(0.5rem, env(safe-area-inset-left));
+  padding-right: max(0.5rem, env(safe-area-inset-right));
+  background: var(--barre);
+  border-bottom: 1px solid var(--filet);
+  min-width: 0;
+}
+
+.titre-schema {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  min-height: 48px;
+  padding: 0 0.6rem;
+  border: 0;
+  border-radius: var(--rayon);
+  background: transparent;
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-align: left;
+}
+.titre-schema span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.titre-schema:hover { background: var(--surface-2); }
+
+.bouton-presenter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 48px;
+  min-height: 44px;
+  padding: 0.4rem 0.85rem 0.4rem 0.65rem;
+  border: 0;
+  border-radius: var(--rayon);
+  background: var(--accent-fond);
+  color: var(--accent-texte);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.bouton-presenter .icone { width: 1.25rem; height: 1.25rem; fill: currentColor; }
+.bouton-presenter:hover { filter: brightness(1.08); }
+@media (max-width: 440px) {
+  .bouton-presenter { padding: 0.4rem 0.75rem; }
+  .bouton-presenter span { display: none; }
+}
+
+.bouton-maj {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  padding: 0.4rem 0.9rem;
+  border: 0;
+  border-radius: var(--rayon);
+  background: var(--accent-fond);
+  color: var(--accent-texte);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.bouton-maj .icone { width: 1.2rem; height: 1.2rem; }
+
+/* ---------- Zone de dessin ---------- */
+.zone {
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+  touch-action: none;           /* les gestes sont gérés par l'application */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.toile {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+.toile:focus-visible { outline-offset: -4px; }
+
+.toile .bloc { cursor: grab; }
+.toile .fleche { cursor: pointer; }
+.toile .decor { pointer-events: none; }
+.toile .poignee-redim { cursor: nwse-resize; }
+.toile .poignee-relier { cursor: crosshair; }
+.toile text { pointer-events: none; }
+
+.editeur-texte {
+  position: absolute;
+  z-index: 2;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  outline: 3px solid var(--focus);
+  resize: none;
+  overflow: auto;
+  text-align: center;
+  line-height: 1.25;
+  box-sizing: border-box;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.aide-vide {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  transform: translate(-50%, -50%);
+  width: min(90%, 28rem);
+  margin: 0;
+  padding: 1.1rem 1.3rem;
+  border: 1px solid var(--filet);
+  border-radius: var(--rayon-carte);
+  background: var(--surface);
+  color: var(--texte-doux);
+  font-family: var(--police-lecture);
+  font-size: 1.05rem;
+  text-align: center;
+  pointer-events: none;
+}
+.aide-vide strong { font-family: var(--police-ui); color: var(--texte); }
+
+.annonce {
+  position: absolute;
+  left: 50%;
+  bottom: 0.75rem;
+  transform: translateX(-50%);
+  z-index: 5;
+  max-width: calc(100% - 2rem);
+  padding: 0.65rem 1.1rem;
+  border: 1px solid var(--accent);
+  border-radius: var(--rayon);
+  background: var(--surface);
+  color: var(--texte);
+  box-shadow: var(--ombre);
+  font-weight: 600;
+  text-align: center;
+  pointer-events: none;
+  visibility: hidden;
+}
+.annonce.visible { visibility: visible; }
+
+/* ---------- Barre du bas ---------- */
+.barre-bas {
+  background: var(--barre);
+  border-top: 1px solid var(--filet);
+  padding: 0.3rem 0.25rem;
+  padding-bottom: max(0.3rem, env(safe-area-inset-bottom));
+  padding-left: max(0.25rem, env(safe-area-inset-left));
+  padding-right: max(0.25rem, env(safe-area-inset-right));
+}
+
+.groupe-outils {
+  display: flex;
+  justify-content: center;
+  gap: 0.2rem;
+  max-width: 40rem;
+  margin: 0 auto;
+}
+
+.outil {
+  flex: 1 1 0;
+  min-width: 48px;
+  max-width: 6.5rem;
+  min-height: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  padding: 0.3rem 0.1rem;
+  border: 0;
+  border-radius: var(--rayon);
+  background: transparent;
+  color: var(--texte);
+  font-size: 0.75rem;
+  font-weight: 650;
+  line-height: 1.1;
+}
+.outil span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.outil:hover { background: var(--surface-2); }
+/* Outil actif : pastille violette pleine, comme le choix « Normal » du portfolio. */
+.outil[aria-pressed="true"], .outil[aria-expanded="true"] { background: var(--accent-fond); color: var(--accent-texte); }
+.outil.danger { color: var(--danger); }
+
+/* ---------- Panneaux Forme / Couleur ---------- */
+.choix {
+  position: fixed;
+  left: 50%;
+  bottom: calc(66px + env(safe-area-inset-bottom) + 0.5rem);
+  transform: translateX(-50%);
+  z-index: 10;
+  width: max-content;
+  max-width: calc(100% - 1rem);
+  max-height: calc(100dvh - 160px);
+  overflow-y: auto;
+  padding: 0.6rem 0.75rem 0.75rem;
+  border: 1px solid var(--filet);
+  border-radius: var(--rayon-carte);
+  background: var(--surface);
+  box-shadow: var(--ombre);
+}
+
+.choix > .etiquette-section { margin: 0.25rem 0.25rem 0.4rem; }
+.options-choix {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Réglage de l'étape d'un élément : − Étape 3 + */
+.reglage-etape {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.bouton-pas {
+  min-width: 56px;
+  min-height: 56px;
+  border: 1px solid var(--bord);
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.valeur-etape {
+  min-width: 10rem;
+  text-align: center;
+  font-family: var(--police-chiffres);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--chiffres);
+}
+.boutons-etape { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; margin-top: 0.6rem; }
+#choix-etape .aide-reglage { max-width: 22rem; margin: 0.6rem auto 0; text-align: center; }
+
+.option-choix {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  min-width: 64px;
+  min-height: 64px;
+  padding: 0.4rem;
+  border: 2px solid transparent;
+  border-radius: var(--rayon);
+  background: transparent;
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+.option-choix:hover { background: var(--surface-2); }
+.option-choix[aria-pressed="true"] { border-color: var(--accent); background: var(--surface-2); }
+.apercu-forme { width: 40px; height: 28px; }
+.pastille {
+  width: 32px;
+  height: 26px;
+  border: 3px solid;
+  border-radius: 8px;
+}
+
+/* ---------- Fenêtres (dialogues) ---------- */
+dialog {
+  border: 1px solid var(--filet);
+  border-radius: var(--rayon-carte);
+  padding: 0;
+  background: var(--surface);
+  color: var(--texte);
+  box-shadow: var(--ombre);
+  max-height: calc(100dvh - 2rem);
+}
+dialog::backdrop { background: var(--voile); }
+
+.fenetre {
+  width: min(32rem, calc(100vw - 1.5rem));
+  padding: 0.75rem 1.25rem 1.25rem;
+  overflow-y: auto;
+}
+.fenetre.petite { width: min(26rem, calc(100vw - 1.5rem)); padding-top: 1.25rem; }
+.fenetre h2 { margin: 0; font-size: 1.3rem; font-weight: 800; letter-spacing: -0.01em; }
+
+.fenetre-entete, .tiroir-entete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+#confirmer-message { font-family: var(--police-lecture); font-size: 1.08rem; margin: 0; }
+
+.boutons-fenetre {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+}
+
+.etiquette-champ { display: block; margin-bottom: 0.6rem; }
+.fenetre input[type="text"] {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--bord);
+  border-radius: var(--rayon);
+  background: var(--fond);
+}
+.fenetre input[type="text"]:focus { border-color: var(--accent); outline: 2px solid var(--accent); outline-offset: 0; }
+
+/* Menu : tiroir collé à gauche */
+.tiroir {
+  margin: 0;
+  width: min(22rem, 88vw);
+  height: 100%;
+  max-height: none;
+  border-radius: 0 var(--rayon-carte) var(--rayon-carte) 0;
+  border-width: 0 1px 0 0;
+  padding: max(0.5rem, env(safe-area-inset-top)) 0.75rem 1rem max(0.75rem, env(safe-area-inset-left));
+  overflow-y: auto;
+}
+
+/* Marque en tête du menu, comme « OMNI-SYSTÈME » sur le portfolio. */
+.marque {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0 0 0 0.4rem;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.marque img { width: 34px; height: 34px; border-radius: 9px; object-fit: contain; }
+
+.liste-menu { list-style: none; margin: 0; padding: 0; }
+.liste-menu .etiquette-section { padding: 1rem 0.75rem 0.35rem; }
+.liste-menu .etiquette-section:first-child { padding-top: 0.25rem; }
+.liste-menu button {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  min-height: 52px;
+  padding: 0.5rem 0.75rem;
+  border: 0;
+  border-radius: var(--rayon);
+  background: transparent;
+  font-weight: 600;
+  text-align: left;
+}
+.liste-menu button:hover { background: var(--surface-2); }
+.liste-menu .icone { color: var(--accent); }
+
+/* Liste des schémas */
+.liste-schemas { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; gap: 0.6rem; }
+.carte-schema {
+  display: flex;
+  align-items: stretch;
+  gap: 0.25rem;
+  border: 1px solid var(--filet);
+  border-radius: 14px;
+  background: var(--fond);
+}
+.carte-schema.courant { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.ouvrir-schema {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.15rem;
+  min-height: 56px;
+  padding: 0.55rem 0.8rem;
+  border: 0;
+  border-radius: 13px;
+  background: transparent;
+  text-align: left;
+}
+.ouvrir-schema:hover { background: var(--surface-2); }
+.titre-carte { font-weight: 700; overflow-wrap: anywhere; }
+.details-carte { font-size: 0.85rem; color: var(--texte-doux); }
+.actions-carte { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+
+/* Réglages : choix en « pilules », comme Normal / Avantage / Désavantage */
+.groupe-choix {
+  margin: 0 0 1.25rem;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.groupe-choix legend { padding: 0; margin-bottom: 0.6rem; }
+
+.pilules {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr)); /* 2 × 2 sur téléphone, 4 côte à côte sinon */
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border: 1px solid var(--filet);
+  border-radius: 16px;
+  background: var(--fond);
+}
+.pilules label {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  padding: 0.35rem 0.85rem;
+  border-radius: var(--rayon);
+  font-weight: 650;
+  text-align: center;
+  color: var(--texte-doux);
+  cursor: pointer;
+}
+.pilules label:hover { background: var(--surface-2); color: var(--texte); }
+/* Le vrai bouton radio reste présent (clavier, lecteur d'écran) mais invisible. */
+.pilules input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+}
+.pilules label:has(input:checked) { background: var(--accent-fond); color: var(--accent-texte); }
+.pilules label:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+.aide-reglage { margin: 0.5rem 0.25rem 0; font-size: 0.85rem; color: var(--texte-doux); }
+.aide-reglage.aide-haut { margin: 0 0.25rem 0.5rem; }
+
+.cases label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 48px;
+  cursor: pointer;
+}
+.cases input { width: 1.4rem; height: 1.4rem; flex: none; accent-color: var(--accent-fond); }
+
+/* À propos */
+.apropos { text-align: center; }
+.apropos .fenetre-entete { margin-bottom: 0; }
+.apropos .logo { display: block; width: 112px; height: 112px; margin: 0 auto 0.9rem; border-radius: 24px; object-fit: contain; }
+.apropos h2 { font-size: 1.7rem; font-weight: 800; letter-spacing: -0.01em; }
+.apropos .version { margin-top: 0.3rem; font-size: 0.9rem; }
+.apropos .texte-lecture p { margin: 0.8rem 0; font-family: var(--police-lecture); font-size: 1.05rem; line-height: 1.6; }
+/* Liens : zone de toucher agrandie (padding) sans les isoler sur leur ligne. */
+.apropos a { padding: 0.7rem 0.15rem; overflow-wrap: anywhere; }
+.apropos .lien-omni { font-family: var(--police-ui); font-weight: 650; }
+.apropos a[href^="mailto:"] { font-family: var(--police-ui); font-size: 0.92rem; }
+/* Signature en italique discrète, comme « Conçu et réalisé par Ferrus Dantioch ». */
+.apropos .signature { margin-top: 1.25rem; font-family: var(--police-lecture); font-style: italic; color: var(--texte-doux); }
+
+/* Texte réservé aux lecteurs d'écran (invisible à l'écran) */
+.lecteur-seul {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Aide et raccourcis */
+.aide h3 { margin: 1.1rem 0 0.4rem; }
+.aide h3:first-of-type { margin-top: 0.25rem; }
+.liste-aide { display: grid; grid-template-columns: minmax(8rem, auto) 1fr; gap: 0.35rem 1rem; margin: 0; }
+.liste-aide dt { font-weight: 650; }
+.liste-aide dd { margin: 0; color: var(--texte-doux); }
+@media (max-width: 480px) {
+  .liste-aide { grid-template-columns: 1fr; gap: 0.1rem; }
+  .liste-aide dd { margin-bottom: 0.5rem; }
+}
+kbd {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 0.05em 0.4em;
+  border: 1px solid var(--bord);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: var(--fond);
+  font-family: var(--police-chiffres);
+  font-size: 0.85em;
+  text-align: center;
+}
+
+/* Textes d'explication dans les fenêtres (police de lecture) */
+.texte-explication { margin: 0 0 1rem; font-family: var(--police-lecture); font-size: 1.02rem; color: var(--texte-doux); }
+
+.fenetre textarea {
+  width: 100%;
+  min-height: 8rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--bord);
+  border-radius: var(--rayon);
+  background: var(--fond);
+  font-family: var(--police-lecture);
+  font-size: 1.05rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+.fenetre textarea:focus { border-color: var(--accent); outline: 2px solid var(--accent); outline-offset: 0; }
+
+/* Panneau Étapes */
+.liste-etapes { display: grid; gap: 0.75rem; margin-bottom: 1rem; }
+.groupe-etape {
+  padding: 0.5rem 0.5rem 0.4rem;
+  border: 1px solid var(--filet);
+  border-radius: 14px;
+  background: var(--fond);
+}
+.entete-etape { display: flex; align-items: center; gap: 0.25rem; padding-left: 0.35rem; }
+.entete-etape h3 { flex: 1 1 auto; color: var(--accent); }
+.elements-etape { list-style: none; margin: 0; padding: 0; }
+.elements-etape li { display: flex; align-items: center; gap: 0.15rem; }
+.nom-element {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0.35rem 0.5rem;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.nom-element:hover { background: var(--surface-2); }
+.info-etape { font-size: 0.85rem; color: var(--texte-doux); }
+.etape-vide { padding: 0.4rem 0.5rem; color: var(--texte-doux); font-style: italic; }
+.petit-bouton { min-width: 44px; min-height: 44px; font-size: 1.25rem; font-weight: 700; line-height: 1; }
+.actions-etapes { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.25rem; }
+.actions-etapes .bouton { flex: 1 1 12rem; }
+
+/* Nouveau schéma : cartes des modèles */
+#nouveau-titre { margin-bottom: 1.25rem; }
+.liste-modeles { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 0.5rem; }
+.carte-modele {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-height: 64px;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--filet);
+  border-radius: 14px;
+  background: var(--fond);
+  cursor: pointer;
+}
+.carte-modele:hover { background: var(--surface-2); }
+.carte-modele input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.carte-modele:has(input:checked) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.carte-modele:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 2px; }
+.nom-modele { font-weight: 700; }
+.desc-modele { font-size: 0.88rem; color: var(--texte-doux); }
+
+/* Export */
+.boutons-export { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.boutons-export .bouton { flex: 1 1 10rem; }
+#dlg-export .cases .bouton { margin-top: 0.5rem; }
+
+/* ---------- Mode présentation ---------- */
+.presentation {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: var(--fond);
+  color: var(--texte);
+  outline: none;
+}
+.pres-scene {
+  position: absolute;
+  inset: 0;
+  padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(4.5rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: pointer;
+}
+.pres-scene svg { display: block; width: 100%; height: 100%; pointer-events: none; }
+
+/* Boutons discrets : visibles, mais en retrait pour ne pas gêner le public. */
+.pres-bouton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0.4rem 0.6rem;
+  border: 0;
+  border-radius: var(--rayon);
+  background: transparent;
+  color: var(--texte);
+  opacity: 0.55;
+  font-weight: 650;
+}
+.pres-bouton:hover, .pres-bouton:focus-visible, .pres-bouton[aria-expanded="true"] { opacity: 1; background: var(--surface-2); }
+.pres-bouton:disabled { opacity: 0.2; }
+.pres-quitter { position: absolute; top: max(0.5rem, env(safe-area-inset-top)); right: max(0.5rem, env(safe-area-inset-right)); }
+.pres-ouvrir-notes { position: absolute; left: max(0.5rem, env(safe-area-inset-left)); bottom: max(0.5rem, env(safe-area-inset-bottom)); }
+.pres-navigation {
+  position: absolute;
+  right: max(0.5rem, env(safe-area-inset-right));
+  bottom: max(0.5rem, env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+.pres-compteur {
+  min-width: 4.5rem;
+  text-align: center;
+  font-family: var(--police-chiffres);
+  font-size: 0.95rem;
+  color: var(--texte-doux);
+}
+.pres-aide {
+  position: absolute;
+  left: 50%;
+  bottom: max(0.9rem, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  margin: 0;
+  max-width: calc(100% - 20rem);
+  font-size: 0.9rem;
+  text-align: center;
+  color: var(--texte-doux);
+  pointer-events: none;
+}
+@media (max-width: 640px) { .pres-aide { display: none; } }
+
+.pres-panneau-notes {
+  position: absolute;
+  left: max(0.5rem, env(safe-area-inset-left));
+  bottom: calc(max(0.5rem, env(safe-area-inset-bottom)) + 56px);
+  width: min(34rem, calc(100% - 1rem));
+  max-height: 45vh;
+  overflow-y: auto;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--filet);
+  border-radius: var(--rayon-carte);
+  background: var(--surface);
+  box-shadow: var(--ombre);
+}
+.pres-panneau-notes h2 { margin-bottom: 0.5rem; }
+.pres-note + .pres-note { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--filet); }
+.pres-note p { margin: 0; }
+.pres-note-bloc { font-weight: 700; color: var(--accent); }
+.pres-note-texte { font-family: var(--police-lecture); font-size: 1.08rem; line-height: 1.55; white-space: pre-wrap; }
+.pres-sans-note { margin: 0; color: var(--texte-doux); font-style: italic; }
+
+/* Fondu très léger (option) : seule animation de l'application,
+   jamais si l'appareil demande de réduire les animations. */
+@keyframes apparition { from { opacity: 0; } to { opacity: 1; } }
+.presentation.avec-fondu .apparait { animation: apparition 280ms ease-out both !important; }
+@media (prefers-reduced-motion: reduce) {
+  .presentation.avec-fondu .apparait { animation: none !important; }
+}
+
+/* ---------- Impression / PDF : une page par étape ---------- */
+.impression { display: none; }
+
+@media print {
+  @page { size: A4 landscape; margin: 10mm; }
+  html, body { height: auto !important; overflow: visible !important; background: #fff !important; }
+  body { display: block !important; }
+  body > *:not(#impression) { display: none !important; }
+  .impression { display: block !important; }
+  .page-impression {
+    display: flex;
+    flex-direction: column;
+    height: 188mm;              /* hauteur utile d'une page A4 paysage */
+    padding: 6mm;
+    break-after: page;
+    page-break-after: always;
+    break-inside: avoid;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .page-impression:last-child { break-after: auto; page-break-after: auto; }
+  .entete-impression { margin: 0 0 3mm; font: 600 11pt var(--police-ui); opacity: 0.8; }
+  .dessin-impression { flex: 1 1 auto; min-height: 0; }
+  .dessin-impression svg { display: block; width: 100%; height: 100%; }
+  .notes-impression { margin-top: 3mm; font: 10.5pt/1.4 var(--police-lecture); }
+  .notes-impression p { margin: 0 0 1.5mm; }
+}
+
+/* ---------- Petits écrans ---------- */
+@media (max-width: 380px) {
+  .outil { font-size: 0.68rem; }
+  .bouton-maj span { display: none; }
+}
+
+/* ---------- Contraste renforcé demandé par l'appareil ---------- */
+@media (prefers-contrast: more) {
+  :root { --filet: var(--bord); }
+}

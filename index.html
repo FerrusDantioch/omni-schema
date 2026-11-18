@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="fr" data-theme="violet">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <!-- Sécurité : interdit tout chargement depuis internet. Seuls les fichiers de l'application sont autorisés. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <title>omni-schema</title>
+  <meta name="description" content="Construis des schémas de blocs reliés par des flèches, puis présente-les étape par étape. Hors ligne, sans compte.">
+  <meta name="theme-color" content="#14121e">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="css/style.css">
+  <!-- Applique le thème et la taille du texte AVANT l'affichage (évite un flash de mauvaise couleur). -->
+  <script src="js/theme-init.js"></script>
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <!-- Bibliothèque d'icônes (réutilisées avec <use href="#i-...">) -->
+  <svg class="sprite" aria-hidden="true" focusable="false">
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+    <symbol id="i-annuler" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></symbol>
+    <symbol id="i-retablir" viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-bloc" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="3"/><path d="M12 9v6M9 12h6"/></symbol>
+    <symbol id="i-grille" viewBox="0 0 24 24"><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/><rect x="3" y="3" width="18" height="18" rx="2"/></symbol>
+    <symbol id="i-recentrer" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/><circle cx="12" cy="12" r="2.5"/></symbol>
+    <symbol id="i-zoom-plus" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4M11 8v6M8 11h6"/></symbol>
+    <symbol id="i-zoom-moins" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4M8 11h6"/></symbol>
+    <symbol id="i-texte" viewBox="0 0 24 24"><path d="M5 6V4h14v2M12 4v16M9 20h6"/></symbol>
+    <symbol id="i-forme" viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1"/><circle cx="17" cy="7" r="4"/><path d="m7 14 4 4-4 4-4-4z"/><rect x="13" y="14" width="8" height="7" rx="3"/></symbol>
+    <symbol id="i-couleur" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18c1.5 0 2-1 2-2s-1-1.5-1-2.5 1-1.5 2-1.5h2a4 4 0 0 0 4-4c0-4.4-4-8-9-8z"/><circle cx="7.5" cy="11" r="1.3"/><circle cx="10.5" cy="7" r="1.3"/><circle cx="15" cy="7.5" r="1.3"/></symbol>
+    <symbol id="i-dupliquer" viewBox="0 0 24 24"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+    <symbol id="i-supprimer" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+    <symbol id="i-fermer" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+    <symbol id="i-etiquette" viewBox="0 0 24 24"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.5"/></symbol>
+    <symbol id="i-style" viewBox="0 0 24 24"><path d="M4 20 20 4"/><path d="M4 14h8v-8h8" opacity=".55"/></symbol>
+    <symbol id="i-inverser" viewBox="0 0 24 24"><path d="M4 8h14l-3-3M20 16H6l3 3"/></symbol>
+    <symbol id="i-schemas" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><path d="M10 6.5h4a3 3 0 0 1 3 3V14"/></symbol>
+    <symbol id="i-nouveau" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M12 12v6M9 15h6"/></symbol>
+    <symbol id="i-exporter" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 17v3h16v-3"/></symbol>
+    <symbol id="i-importer" viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5M4 17v3h16v-3"/></symbol>
+    <symbol id="i-sauvegarde" viewBox="0 0 24 24"><path d="M5 3h11l5 5v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M7 3v6h8V3M7 21v-7h10v7"/></symbol>
+    <symbol id="i-reglages" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></symbol>
+    <symbol id="i-crayon" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></symbol>
+    <symbol id="i-presenter" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z"/></symbol>
+    <symbol id="i-etapes" viewBox="0 0 24 24"><path d="M10 6h10M10 12h10M10 18h10"/><path d="M4 5l1.5-1V8M3.8 14.2a1.4 1.4 0 0 1 2.4 1L4 18h2.5"/></symbol>
+    <symbol id="i-note" viewBox="0 0 24 24"><path d="M5 3h10l4 4v14H5z"/><path d="M14 3v5h5M8 12h8M8 16h6"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></symbol>
+    <symbol id="i-precedent" viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></symbol>
+    <symbol id="i-suivant" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+    <symbol id="i-aide" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17.5v.01"/></symbol>
+    <symbol id="i-maj" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5"/></symbol>
+  </svg>
+
+  <!-- ===== Barre du haut ===== -->
+  <header class="barre-haut">
+    <button type="button" class="bouton-icone" id="btn-menu" aria-label="Ouvrir le menu" aria-haspopup="dialog">
+      <svg class="icone" aria-hidden="true"><use href="#i-menu"/></svg>
+    </button>
+    <button type="button" class="titre-schema" id="btn-titre" title="Renommer le schéma">
+      <span id="titre-schema">omni-schema</span>
+      <svg class="icone petite" aria-hidden="true"><use href="#i-crayon"/></svg>
+    </button>
+    <button type="button" class="bouton-maj" id="btn-maj" aria-label="Mettre à jour l'application" hidden>
+      <svg class="icone" aria-hidden="true"><use href="#i-maj"/></svg>
+      <span>Mettre à jour</span>
+    </button>
+    <button type="button" class="bouton-presenter" id="btn-presenter" title="Présenter (plein écran)">
+      <svg class="icone" aria-hidden="true"><use href="#i-presenter"/></svg>
+      <span>Présenter</span>
+    </button>
+    <button type="button" class="bouton-icone" id="btn-annuler" aria-label="Annuler" title="Annuler (Ctrl+Z)" disabled>
+      <svg class="icone" aria-hidden="true"><use href="#i-annuler"/></svg>
+    </button>
+    <button type="button" class="bouton-icone" id="btn-retablir" aria-label="Rétablir" title="Rétablir (Ctrl+Y)" disabled>
+      <svg class="icone" aria-hidden="true"><use href="#i-retablir"/></svg>
+    </button>
+  </header>
+
+  <!-- ===== Zone de dessin ===== -->
+  <main class="zone" id="zone">
+    <svg id="toile" class="toile" role="application" aria-label="Zone du schéma" aria-describedby="aide-toile" tabindex="0">
+      <g id="monde">
+        <g id="calque-fleches"></g>
+        <g id="calque-blocs"></g>
+        <g id="calque-guides"></g>
+        <g id="calque-poignees"></g>
+      </g>
+    </svg>
+    <!-- Champ de saisie posé par-dessus un bloc pendant l'édition de son texte -->
+    <textarea id="editeur-texte" class="editeur-texte" hidden aria-label="Texte du bloc" spellcheck="true"></textarea>
+    <p class="aide-vide" id="aide-vide" hidden>
+      Touche deux fois le fond (ou le bouton <strong>Bloc</strong>) pour ajouter un bloc.<br>
+      Tire le rond <strong>+</strong> d'un bloc pour créer une flèche.
+    </p>
+    <div class="annonce" id="annonce" role="status" aria-live="polite"></div>
+    <!-- Textes lus seulement par les lecteurs d'écran -->
+    <p class="lecteur-seul" id="aide-toile">Tab pour passer d'un élément à l'autre, Entrée pour écrire, flèches pour déplacer, N pour un nouveau bloc, R pour un bloc relié, L pour relier deux blocs, point d'interrogation pour l'aide.</p>
+    <div class="lecteur-seul" id="annonce-lecteur" aria-live="polite"></div>
+  </main>
+
+  <!-- ===== Choix de forme et de couleur (s'ouvrent au-dessus de la barre du bas) ===== -->
+  <div class="choix" id="choix-style" hidden role="group" aria-label="Style du bloc">
+    <p class="etiquette-section">Forme</p>
+    <div class="options-choix" id="options-forme"></div>
+    <p class="etiquette-section">Couleur</p>
+    <div class="options-choix" id="options-couleur"></div>
+  </div>
+  <div class="choix" id="choix-etape" hidden role="group" aria-labelledby="titre-choix-etape">
+    <p class="etiquette-section" id="titre-choix-etape">Apparition en présentation</p>
+    <div class="reglage-etape">
+      <button type="button" class="bouton-icone bouton-pas" id="etape-moins" aria-label="Apparaître plus tôt">−</button>
+      <output class="valeur-etape" id="etape-valeur" aria-live="polite">Toujours visible</output>
+      <button type="button" class="bouton-icone bouton-pas" id="etape-plus" aria-label="Apparaître plus tard">+</button>
+    </div>
+    <div class="boutons-etape">
+      <button type="button" class="bouton" id="etape-zero">Toujours visible</button>
+      <button type="button" class="bouton" id="etape-nouvelle">Nouvelle étape</button>
+    </div>
+    <p class="aide-reglage" id="etape-info"></p>
+  </div>
+
+  <!-- ===== Barre du bas : les boutons changent selon ce qui est sélectionné ===== -->
+  <nav class="barre-bas" aria-label="Outils">
+    <div class="groupe-outils" data-pour="aucun">
+      <button type="button" class="outil" id="btn-ajouter"><svg class="icone" aria-hidden="true"><use href="#i-bloc"/></svg><span>Bloc</span></button>
+      <button type="button" class="outil" id="btn-etapes"><svg class="icone" aria-hidden="true"><use href="#i-etapes"/></svg><span>Étapes</span></button>
+      <button type="button" class="outil" id="btn-grille" aria-pressed="false"><svg class="icone" aria-hidden="true"><use href="#i-grille"/></svg><span>Grille</span></button>
+      <button type="button" class="outil" id="btn-recentrer"><svg class="icone" aria-hidden="true"><use href="#i-recentrer"/></svg><span>Recentrer</span></button>
+      <button type="button" class="outil" id="btn-zoom-moins" aria-label="Dézoomer"><svg class="icone" aria-hidden="true"><use href="#i-zoom-moins"/></svg><span>Zoom −</span></button>
+      <button type="button" class="outil" id="btn-zoom-plus" aria-label="Zoomer"><svg class="icone" aria-hidden="true"><use href="#i-zoom-plus"/></svg><span>Zoom +</span></button>
+    </div>
+    <div class="groupe-outils" data-pour="bloc" hidden>
+      <button type="button" class="outil" id="btn-texte"><svg class="icone" aria-hidden="true"><use href="#i-texte"/></svg><span>Texte</span></button>
+      <button type="button" class="outil" id="btn-style" aria-expanded="false" aria-controls="choix-style"><svg class="icone" aria-hidden="true"><use href="#i-couleur"/></svg><span>Style</span></button>
+      <button type="button" class="outil" data-bouton-etape aria-expanded="false" aria-controls="choix-etape"><svg class="icone" aria-hidden="true"><use href="#i-etapes"/></svg><span>Étape</span></button>
+      <button type="button" class="outil" id="btn-note"><svg class="icone" aria-hidden="true"><use href="#i-note"/></svg><span>Note</span></button>
+      <button type="button" class="outil" id="btn-dupliquer"><svg class="icone" aria-hidden="true"><use href="#i-dupliquer"/></svg><span>Dupliquer</span></button>
+      <button type="button" class="outil danger" id="btn-supprimer-bloc"><svg class="icone" aria-hidden="true"><use href="#i-supprimer"/></svg><span>Supprimer</span></button>
+    </div>
+    <div class="groupe-outils" data-pour="fleche" hidden>
+      <button type="button" class="outil" id="btn-etiquette"><svg class="icone" aria-hidden="true"><use href="#i-etiquette"/></svg><span>Étiquette</span></button>
+      <button type="button" class="outil" id="btn-trace"><svg class="icone" aria-hidden="true"><use href="#i-style"/></svg><span id="libelle-trace">Angle droit</span></button>
+      <button type="button" class="outil" id="btn-inverser"><svg class="icone" aria-hidden="true"><use href="#i-inverser"/></svg><span>Inverser</span></button>
+      <button type="button" class="outil" data-bouton-etape aria-expanded="false" aria-controls="choix-etape"><svg class="icone" aria-hidden="true"><use href="#i-etapes"/></svg><span>Étape</span></button>
+      <button type="button" class="outil danger" id="btn-supprimer-fleche"><svg class="icone" aria-hidden="true"><use href="#i-supprimer"/></svg><span>Supprimer</span></button>
+    </div>
+  </nav>
+
+  <!-- ===== Menu principal ===== -->
+  <dialog class="tiroir" id="dlg-menu" aria-labelledby="titre-menu">
+    <div class="tiroir-entete">
+      <h2 id="titre-menu" class="marque"><img src="assets/logo-omni-systeme.webp" alt="" width="34" height="34">omni-schema</h2>
+      <button type="button" class="bouton-icone" data-fermer aria-label="Fermer le menu"><svg class="icone" aria-hidden="true"><use href="#i-fermer"/></svg></button>
+    </div>
+    <ul class="liste-menu">
+      <li class="etiquette-section">Schémas</li>
+      <li><button type="button" data-menu="schemas"><svg class="icone" aria-hidden="true"><use href="#i-schemas"/></svg>Mes schémas</button></li>
+      <li><button type="button" data-menu="nouveau"><svg class="icone" aria-hidden="true"><use href="#i-nouveau"/></svg>Nouveau schéma</button></li>
+      <li class="etiquette-section">Fichiers</li>
+      <li><button type="button" data-menu="exporter"><svg class="icone" aria-hidden="true"><use href="#i-exporter"/></svg>Exporter ce schéma (.json)</button></li>
+      <li><button type="button" data-menu="exporter-image"><svg class="icone" aria-hidden="true"><use href="#i-image"/></svg>Exporter (image, PDF, page HTML)</button></li>
+      <li><button type="button" data-menu="sauvegarder-tout"><svg class="icone" aria-hidden="true"><use href="#i-sauvegarde"/></svg>Sauvegarder tous mes schémas (.json)</button></li>
+      <li><button type="button" data-menu="importer"><svg class="icone" aria-hidden="true"><use href="#i-importer"/></svg>Importer un fichier .json</button></li>
+      <li class="etiquette-section">Application</li>
+      <li><button type="button" data-menu="reglages"><svg class="icone" aria-hidden="true"><use href="#i-reglages"/></svg>Réglages</button></li>
+      <li><button type="button" data-menu="aide"><svg class="icone" aria-hidden="true"><use href="#i-aide"/></svg>Aide et raccourcis</button></li>
+      <li><button type="button" data-menu="apropos"><svg class="icone" aria-hidden="true"><use href="#i-info"/></svg>À propos</button></li>
+    </ul>
+    <input type="file" id="fichier-import" accept=".json,application/json" hidden>
+  </dialog>
+
+  <!-- ===== Mes schémas ===== -->
+  <dialog class="fenetre" id="dlg-schemas" aria-labelledby="titre-schemas">
+    <div class="fenetre-entete">
+      <h2 id="titre-schemas">Mes schémas</h2>
+      <button type="button" class="bouton-icone" data-fermer aria-label="Fermer"><svg class="icone" aria-hidden="true"><use href="#i-fermer"/></svg></button>
+    </div>
+    <button type="button" class="bouton principal pleine-largeur" id="btn-nouveau-liste">
+      <svg class="icone" aria-hidden="true"><use href="#i-plus"/></svg>Nouveau schéma
+    </button>
+    <ul class="liste-schemas" id="liste-schemas"></ul>
+  </dialog>
+
+  <!-- ===== Réglages ===== -->
+  <dialog class="fenetre" id="dlg-reglages" aria-labelledby="titre-reglages">
+    <div class="fenetre-entete">
+      <h2 id="titre-reglages">Réglages</h2>
+      <button type="button" class="bouton-icone" data-fermer aria-label="Fermer"><svg class="icone" aria-hidden="true"><use href="#i-fermer"/></svg></button>
+    </div>
+    <fieldset class="groupe-choix">
+      <legend class="etiquette-section">Thème</legend>
+      <div class="pilules">
+        <label><input type="radio" name="theme" value="auto">Automatique</label>
+        <label><input type="radio" name="theme" value="clair">Clair</label>
+        <label><input type="radio" name="theme" value="sombre">Sombre</label>
+        <label><input type="radio" name="theme" value="violet">Sombre violet</label>
+      </div>
+      <p class="aide-reglage">« Automatique » suit ton appareil : clair le jour, sombre violet sinon.</p>
+    </fieldset>
+    <fieldset class="groupe-choix">
+      <legend class="etiquette-section">Taille du texte de l'interface</legend>
+      <div class="pilules">
+        <label><input type="radio" name="taille" value="90">Petite</label>
+        <label><input type="radio" name="taille" value="100">Normale</label>
+        <label><input type="radio" name="taille" value="115">Grande</label>
+        <label><input type="radio" name="taille" value="130">Très grande</label>
+      </div>
+    </fieldset>
+    <fieldset class="groupe-choix cases">
+      <legend class="etiquette-section">Édition</legend>
+      <label><input type="checkbox" name="grille"> Grille magnétique (les blocs s'alignent sur une grille)</label>
+      <label><input type="checkbox" name="guides"> Guides d'alignement (les blocs s'alignent entre eux)</label>
+      <label><input type="checkbox" name="pastilles"> Numéros d'étape sur le schéma</label>
+    </fieldset>
+    <fieldset class="groupe-choix cases">
+      <legend class="etiquette-section">Présentation</legend>
+      <label><input type="checkbox" name="fondu"> Fondu très léger quand une étape apparaît</label>
+      <p class="aide-reglage" id="aide-fondu">Désactivé automatiquement si ton appareil demande de réduire les animations.</p>
+    </fieldset>
+  </dialog>
+
+  <!-- ===== À propos ===== -->
+  <dialog class="fenetre apropos" id="dlg-apropos" aria-labelledby="titre-apropos">
+    <div class="fenetre-entete">
+      <span></span>
+      <button type="button" class="bouton-icone" data-fermer aria-label="Fermer"><svg class="icone" aria-hidden="true"><use href="#i-fermer"/></svg></button>
+    </div>
+    <img class="logo" src="assets/logo-omni-systeme.webp" alt="Logo de l'Omni-système" width="112" height="112">
+    <h2 id="titre-apropos">omni-schema</h2>
+    <p class="version etiquette-section">Version <span class="chiffres" id="version-app"></span></p>
+    <div class="texte-lecture">
+    <p>Application réalisée par Ferrus Dantioch, avec l'aide de l'intelligence artificielle.</p>
+    <p>© 2026 Ferrus Dantioch — <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.fr" target="_blank" rel="noopener noreferrer">Creative Commons BY-NC-ND 4.0</a> : partage autorisé en citant l'auteur, sans usage commercial ni modification.</p>
+    <p>Tes documents restent sur cet appareil. Aucun compte, aucune donnée envoyée.</p>
+    <p>Une idée, une remarque, un souci ? Tes retours sont les bienvenus<br>
+      <a href="mailto:omni-systeme.choking513@passmail.net">omni-systeme.choking513@passmail.net</a></p>
+    <p><a class="lien-omni" href="https://ferrusdantioch.github.io/omni-systeme/" target="_blank" rel="noopener noreferrer">Découvrir l'Omni-système</a></p>
+    <p class="signature">Ferrus Dantioch</p>
+    </div>
+  </dialog>
+
+  <!-- ===== Nouveau schéma (avec modèles de départ) ===== -->
+  <dialog class="fenetre" id="dlg-nouveau" aria-labelledby="titre-nouveau">
+    <form method="dialog">
+      <div class="fenetre-entete">
+        <h2 id="titre-nouveau">Nouveau schéma</h2>
+        <button type="button" class="bouton-icone" data-fermer aria-label="Fermer"><svg class="icone" aria-hidden="true"><use href="#i-fermer"/></svg></button>
+      </div>
+      <label for="nouveau-titre" class="etiquette-section etiquette-champ">Nom</label>
+      <input type="text" id="nouveau-titre" maxlength="200" autocomplete="off" value="Nouveau schéma">
+      <fieldset class="groupe-choix modeles">
+        <legend class="etiquette-section">Point de départ</legend>
+        <div class="liste-modeles" id="liste-modeles"></div>
+      </fieldset>
+      <div class="boutons-fenetre">
+        <button type="submit" class="bouton" value="non" formnovalidate>Annuler</button>
+        <button type="submit" class="bouton principal" value="oui">Créer</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ===== Étapes ===== -->
+  <dialog class="fenetre" id="dlg-etapes" aria-labelledby="titre-etapes">
+    <div class="fenetre-entete">
+      <h2 id="titre-etapes">Étapes</h2>
+      <button type="button" class="bouton-icone" data-fermer aria-label="Fermer"><svg class="icone" aria-hidden="true"><use href="#i-fermer"/></svg></button>
+    </div>
+    <p class="texte-explication">En présentation, chaque étape fait apparaître de nouveaux blocs. Ce qui est « toujours visible » s'affiche dès le début. Les flèches apparaissent d'elles-mêmes avec leurs blocs.</p>
+    <div id="liste-etapes" class="liste-etapes"></div>
+    <div class="actions-etapes">
+      <button type="button" class="bouton" id="btn-numeroter">Numéroter automatiquement</button>
+      <button type="button" class="bouton" id="btn-retirer-etapes">Retirer toutes les étapes</button>
+    </div>
+    <fieldset class="groupe-choix">
+      <legend class="etiquette-section">Thème de la présentation</legend>
+      <div class="pilules">
+        <label><input type="radio" name="theme-presentation" value="auto">Comme l'app</label>
+        <label><input type="radio" name="theme-presentation" value="clair">Clair</label>
+        <label><input type="radio" name="theme-presentation" value="sombre">Sombre</label>
+        <label><input type="radio" name="theme-presentation" value="violet">Sombre violet</label>
+      </div>
+      <p class="aide-reglage">Sur un vidéoprojecteur, le thème clair est souvent le plus lisible.</p>
+    </fieldset>
+    <button type="button" class="bouton principal pleine-largeur" id="btn-presenter-etapes">
+      <svg class="icone" aria-hidden="true"><use href="#i-presenter"/></svg>Présenter
+    </button>
+  </dialog>
+
+  <!-- ===== Note du présentateur ===== -->
+  <dialog class="fenetre" id="dlg-note" aria-labelledby="titre-note">
+    <form method="dialog">
+      <div class="fenetre-entete">
+        <h2 id="titre-note">Note du présentateur</h2>
+        <button type="button" class="bouton-icone" data-fermer aria-label="Fermer"><svg class="icone" aria-hidden="true"><use href="#i-fermer"/></svg></button>
+      </div>
+      <p class="texte-explication">Visible seulement en présentation, dans le panneau « Notes » (fermé par défaut).</p>
+      <label for="note-champ" class="etiquette-section etiquette-champ" id="note-bloc"></label>
+      <textarea id="note-champ" rows="6" maxlength="5000"></textarea>
+      <div class="boutons-fenetre">
+        <button type="submit" class="bouton" value="non" formnovalidate>Annuler</button>
+        <button type="submit" class="bouton principal" value="oui">Enregistrer</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ===== Export en image ou PDF ===== -->
+  <dialog class="fenetre" id="dlg-export" aria-labelledby="titre-export">
+    <div class="fenetre-entete">
+      <h2 id="titre-export">Exporter</h2>
+      <button type="button" class="bouton-icone" data-fermer aria-label="Fermer"><svg class="icone" aria-hidden="true"><use href="#i-fermer"/></svg></button>
+    </div>
+    <fieldset class="groupe-choix">
+      <legend class="etiquette-section">Couleurs</legend>
+      <div class="pilules">
+        <label><input type="radio" name="theme-export" value="clair">Clair</label>
+        <label><input type="radio" name="theme-export" value="sombre">Sombre</label>
+        <label><input type="radio" name="theme-export" value="violet">Sombre violet</label>
+      </div>
+    </fieldset>
+    <fieldset class="groupe-choix">
+      <legend class="etiquette-section">Image du schéma complet</legend>
+      <div class="boutons-export">
+        <button type="button" class="bouton" id="btn-export-png"><svg class="icone" aria-hidden="true"><use href="#i-image"/></svg>Image PNG</button>
+        <button type="button" class="bouton" id="btn-export-svg"><svg class="icone" aria-hidden="true"><use href="#i-image"/></svg>Image SVG</button>
+      </div>
+      <p class="aide-reglage">PNG : pour partager ou insérer partout. SVG : reste net même très agrandi.</p>
+    </fieldset>
+    <fieldset class="groupe-choix cases">
+      <legend class="etiquette-section">PDF : une page par étape</legend>
+      <label><input type="checkbox" id="export-surligner" checked> Surligner ce qui apparaît à chaque page</label>
+      <label><input type="checkbox" id="export-notes"> Ajouter les notes du présentateur</label>
+      <button type="button" class="bouton principal pleine-largeur" id="btn-export-pdf"><svg class="icone" aria-hidden="true"><use href="#i-exporter"/></svg>Préparer le PDF</button>
+      <p class="aide-reglage">La fenêtre d'impression de ton navigateur s'ouvre : choisis « Enregistrer en PDF » comme imprimante.</p>
+    </fieldset>
+    <fieldset class="groupe-choix cases">
+      <legend class="etiquette-section">Page HTML autonome</legend>
+      <p class="aide-reglage aide-haut">Un seul fichier .html à envoyer : il s'ouvre dans n'importe quel navigateur, même hors ligne, et présente le schéma étape par étape. Il ne permet pas de le modifier.</p>
+      <label><input type="checkbox" id="export-html-notes"> Inclure les notes du présentateur</label>
+      <button type="button" class="bouton principal pleine-largeur" id="btn-export-html"><svg class="icone" aria-hidden="true"><use href="#i-presenter"/></svg>Créer la page HTML</button>
+    </fieldset>
+  </dialog>
+
+  <!-- ===== Mode présentation (plein écran, interface masquée) ===== -->
+  <div class="presentation" id="presentation" hidden role="region" aria-label="Présentation" tabindex="-1">
+    <div class="pres-scene" id="pres-scene"></div>
+    <button type="button" class="pres-bouton pres-quitter" id="pres-quitter" aria-label="Quitter la présentation" title="Quitter (Échap)">
+      <svg class="icone" aria-hidden="true"><use href="#i-fermer"/></svg>
+    </button>
+    <button type="button" class="pres-bouton pres-ouvrir-notes" id="pres-notes" aria-expanded="false" aria-controls="pres-panneau-notes" title="Notes du présentateur (N)">
+      <svg class="icone" aria-hidden="true"><use href="#i-note"/></svg><span>Notes</span>
+    </button>
+    <div class="pres-navigation">
+      <button type="button" class="pres-bouton" id="pres-precedent" aria-label="Étape précédente"><svg class="icone" aria-hidden="true"><use href="#i-precedent"/></svg></button>
+      <span class="pres-compteur" id="pres-compteur" role="status">1 / 1</span>
+      <button type="button" class="pres-bouton" id="pres-suivant" aria-label="Étape suivante"><svg class="icone" aria-hidden="true"><use href="#i-suivant"/></svg></button>
+    </div>
+    <p class="pres-aide" id="pres-aide">Touche à droite pour avancer, à gauche pour revenir.</p>
+    <section class="pres-panneau-notes" id="pres-panneau-notes" hidden aria-labelledby="pres-notes-titre">
+      <h2 class="etiquette-section" id="pres-notes-titre">Notes</h2>
+      <div id="pres-notes-contenu"></div>
+    </section>
+  </div>
+
+  <!-- Pages préparées pour l'impression / le PDF (invisibles à l'écran) -->
+  <div id="impression" class="impression" aria-hidden="true"></div>
+
+  <!-- ===== Aide et raccourcis ===== -->
+  <dialog class="fenetre aide" id="dlg-aide" aria-labelledby="titre-aide">
+    <div class="fenetre-entete">
+      <h2 id="titre-aide">Aide et raccourcis</h2>
+      <button type="button" class="bouton-icone" data-fermer aria-label="Fermer"><svg class="icone" aria-hidden="true"><use href="#i-fermer"/></svg></button>
+    </div>
+    <h3 class="etiquette-section">Au doigt</h3>
+    <dl class="liste-aide">
+      <dt>Toucher un bloc</dt><dd>le choisir ; le toucher encore pour écrire</dd>
+      <dt>Glisser un bloc</dt><dd>le déplacer</dd>
+      <dt>Glisser le fond</dt><dd>se déplacer dans le schéma</dd>
+      <dt>Pincer à deux doigts</dt><dd>zoomer</dd>
+      <dt>Toucher deux fois le fond</dt><dd>nouveau bloc</dd>
+      <dt>Tirer le rond +</dt><dd>vers un bloc : le relier ; vers le vide : nouveau bloc relié</dd>
+      <dt>Petit carré du bloc</dt><dd>changer sa taille</dd>
+    </dl>
+    <h3 class="etiquette-section">Au clavier</h3>
+    <dl class="liste-aide">
+      <dt><kbd>Tab</kbd> / <kbd>Maj</kbd>+<kbd>Tab</kbd></dt><dd>élément suivant / précédent</dd>
+      <dt><kbd>Entrée</kbd> ou <kbd>F2</kbd></dt><dd>écrire dans le bloc (ou l'étiquette de la flèche)</dd>
+      <dt><kbd>Échap</kbd></dt><dd>terminer l'écriture, fermer, désélectionner</dd>
+      <dt><kbd>N</kbd></dt><dd>nouveau bloc</dd>
+      <dt><kbd>R</kbd> / <kbd>Maj</kbd>+<kbd>R</kbd></dt><dd>nouveau bloc relié à droite / en dessous</dd>
+      <dt><kbd>L</kbd></dt><dd>relier à un autre bloc : <kbd>Tab</kbd> pour viser, <kbd>Entrée</kbd> pour valider</dd>
+      <dt>Flèches</dt><dd>déplacer le bloc (<kbd>Maj</kbd> : finement)</dd>
+      <dt><kbd>Alt</kbd>+flèches</dt><dd>changer la taille du bloc</dd>
+      <dt><kbd>E</kbd></dt><dd>étape de l'élément choisi</dd>
+      <dt><kbd>Suppr</kbd> · <kbd>Ctrl</kbd>+<kbd>D</kbd></dt><dd>supprimer · dupliquer</dd>
+      <dt><kbd>Ctrl</kbd>+<kbd>Z</kbd> · <kbd>Ctrl</kbd>+<kbd>Y</kbd></dt><dd>annuler · rétablir</dd>
+      <dt><kbd>+</kbd> <kbd>−</kbd> · <kbd>0</kbd></dt><dd>zoomer, dézoomer · recentrer</dd>
+      <dt><kbd>P</kbd></dt><dd>présenter</dd>
+      <dt><kbd>?</kbd></dt><dd>cette aide</dd>
+    </dl>
+    <h3 class="etiquette-section">En présentation</h3>
+    <dl class="liste-aide">
+      <dt>Toucher à droite · <kbd>→</kbd> <kbd>Espace</kbd> <kbd>Page suiv.</kbd></dt><dd>étape suivante</dd>
+      <dt>Toucher à gauche · <kbd>←</kbd> <kbd>Page préc.</kbd></dt><dd>étape précédente</dd>
+      <dt><kbd>Début</kbd> · <kbd>Fin</kbd></dt><dd>première · dernière étape</dd>
+      <dt><kbd>N</kbd></dt><dd>notes du présentateur</dd>
+      <dt><kbd>Échap</kbd> ou geste « retour »</dt><dd>quitter</dd>
+    </dl>
+  </dialog>
+
+  <!-- ===== Fenêtres génériques : confirmation et saisie ===== -->
+  <dialog class="fenetre petite" id="dlg-confirmer" aria-labelledby="confirmer-message">
+    <form method="dialog">
+      <p id="confirmer-message"></p>
+      <div class="boutons-fenetre">
+        <button type="submit" class="bouton" value="non">Annuler</button>
+        <button type="submit" class="bouton danger" value="oui" id="confirmer-ok">Confirmer</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="fenetre petite" id="dlg-saisie" aria-labelledby="saisie-titre">
+    <form method="dialog">
+      <label for="saisie-champ" id="saisie-titre" class="etiquette-champ"></label>
+      <input type="text" id="saisie-champ" maxlength="200" autocomplete="off">
+      <div class="boutons-fenetre">
+        <button type="submit" class="bouton" value="non" formnovalidate>Annuler</button>
+        <button type="submit" class="bouton principal" value="oui">Valider</button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>
