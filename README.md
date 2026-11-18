@@ -17,7 +17,10 @@ Adresse prévue : <https://ferrusdantioch.github.io/omni-schema/>
 |---|---|---|
 | 1 — Édition de base | PWA hors ligne, thèmes, À propos, bouton « Mettre à jour », blocs, flèches, zoom/déplacement, grille, annuler/rétablir, plusieurs schémas, export/import JSON | ✅ livré |
 | 2 — Présentation | étapes, navigation, surlignage, notes, modèles de départ, export PNG/SVG/PDF | ✅ livré |
-| 3 — HTML autonome et finitions | lecteur HTML en un seul fichier, accessibilité clavier, petits écrans | ✅ livré, en test |
+| 3 — HTML autonome et finitions | lecteur HTML en un seul fichier, accessibilité clavier, petits écrans | ✅ livré |
+
+**Version 1.0.0** : les trois jalons sont livrés et validés sur appareils réels (téléphone, tablette,
+ordinateur), avec les polices et le logo de l'Omni-système.
 
 ## Utilisation rapide
 
@@ -134,7 +137,7 @@ js/
   theme-init.js        applique le thème avant l'affichage
 icons/                 icônes de l'application
 polices/               polices embarquées (Oxanium, Literata, JetBrains Mono) et leurs licences
-assets/logo-omni-systeme.webp   logo de l'Omni-système (espace réservé à remplacer)
+assets/logo-omni-systeme.webp   logo de l'Omni-système (le même que sur le portfolio)
 ```
 
 ## Format des données
