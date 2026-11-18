@@ -8,7 +8,7 @@ import { COULEURS, couleurBloc, couleursToile } from './couleurs.js';
 import { FORMES, trouver, creerSchema, migrer, nouvelId } from './modele.js';
 import {
   etat, notifier, surChangement, demanderRendu, annuler, retablir, peutAnnuler, peutRetablir,
-  ajouterBloc, dupliquerSelection, supprimerSelection, modifierSelection,
+  ajouterBloc, dupliquerSelection, supprimerSelection, modifierSelection, modifierChaque, blocsSelectionnes, selectionner,
   recentrer, zoomerCentre, renommer, ouvrirSchema, sauvegarderMaintenant, enregistrerReglages, annoncer,
 } from './noyau.js';
 import { listerSchemas, chargerSchema, enregistrerSchema, supprimerSchema } from './stockage.js';
@@ -18,6 +18,7 @@ import { MODELES, creerDepuisModele } from './modeles.js';
 import { exporterPng, exporterSvg, imprimerEtapes } from './exports.js';
 import { exporterHtml } from './export-html.js';
 import { themePresentation } from './presentation.js';
+import { preparerImage } from './images.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -130,7 +131,13 @@ export function installerInterface({ editeur, presentation, panneauEtapes }) {
 
   // --- Barre du bas : bloc choisi ---
   $('btn-texte').addEventListener('click', () => editeur.ouvrir(etat.selection));
-  $('btn-style').addEventListener('click', (e) => basculerChoix('choix-style', e.currentTarget));
+  for (const b of document.querySelectorAll('[data-bouton-style]')) {
+    b.addEventListener('click', (e) => basculerChoix('choix-style', e.currentTarget));
+  }
+  // --- Barre du bas : sélection multiple ---
+  $('btn-dupliquer-groupe').addEventListener('click', dupliquerSelection);
+  $('btn-supprimer-groupe').addEventListener('click', supprimerSelection);
+  $('btn-fermer-groupe').addEventListener('click', () => selectionner(null));
   $('btn-note').addEventListener('click', () => editerNote(etat.selection));
   for (const b of document.querySelectorAll('[data-bouton-etape]')) {
     b.addEventListener('click', (e) => basculerChoix('choix-etape', e.currentTarget));
@@ -150,15 +157,43 @@ export function installerInterface({ editeur, presentation, panneauEtapes }) {
   });
   $('btn-supprimer-fleche').addEventListener('click', supprimerSelection);
   // --- Panneau « Étape » de l'élément choisi ---
-  const changerEtape = (valeur) => {
+  // (en sélection multiple, chaque bloc du groupe est modifié, en une seule action)
+  const changerEtape = (calcul) => {
+    if (etat.groupe) { modifierChaque((b) => { b.etape = Math.max(0, calcul(b.etape)); }); return; }
     const e = trouver(etat.schema, etat.selection);
-    if (!e) return;
-    modifierSelection({ etape: Math.max(0, valeur) });
+    if (e) modifierSelection({ etape: Math.max(0, calcul(e.etape)) });
   };
-  $('etape-moins').addEventListener('click', () => { const e = trouver(etat.schema, etat.selection); if (e) changerEtape(e.etape - 1); });
-  $('etape-plus').addEventListener('click', () => { const e = trouver(etat.schema, etat.selection); if (e) changerEtape(e.etape + 1); });
-  $('etape-zero').addEventListener('click', () => changerEtape(0));
-  $('etape-nouvelle').addEventListener('click', () => changerEtape(etapeMax(etat.schema) + 1));
+  $('etape-moins').addEventListener('click', () => changerEtape((n) => n - 1));
+  $('etape-plus').addEventListener('click', () => changerEtape((n) => n + 1));
+  $('etape-zero').addEventListener('click', () => changerEtape(() => 0));
+  $('etape-nouvelle').addEventListener('click', () => { const n = etapeMax(etat.schema) + 1; changerEtape(() => n); });
+
+  // --- Image du bloc (panneau Style) ---
+  $('btn-image-ajouter').addEventListener('click', () => $('fichier-image').click());
+  $('btn-image-retirer').addEventListener('click', () => {
+    modifierSelection({ image: '' });
+    annoncer('Image retirée (Annuler pour la récupérer)');
+  });
+  $('fichier-image').addEventListener('change', async () => {
+    const fichier = $('fichier-image').files[0];
+    $('fichier-image').value = '';
+    const b = trouver(etat.schema, etat.selection);
+    if (!fichier || !b || b.type !== 'bloc') return;
+    try {
+      annoncer('Préparation de l\'image…', 10000);
+      const donnees = await preparerImage(fichier);
+      const id = nouvelId('i');
+      etat.schema.images = etat.schema.images || {};
+      etat.schema.images[id] = donnees;
+      // Un bloc trop petit pour une image est agrandi un peu.
+      const taille = b.hauteur < 140 ? { hauteur: 160, largeur: Math.max(b.largeur, 180) } : {};
+      etat.selection = b.id;
+      modifierSelection({ image: id, ...taille });
+      annoncer('Image ajoutée.');
+    } catch (erreur) {
+      annoncer(erreur.message, 6000);
+    }
+  });
 
   // --- Note du présentateur : Entrée = retour à la ligne, Ctrl+Entrée = enregistrer ---
   $('note-champ').addEventListener('keydown', (e) => {
@@ -289,14 +324,36 @@ function mettreAJourInterface() {
   $('btn-grille').setAttribute('aria-pressed', String(!!etat.reglages.grille));
 
   const sel = trouver(etat.schema, etat.selection);
-  const type = sel ? sel.type : 'aucun';
+  const type = etat.groupe ? 'groupe' : (sel ? sel.type : 'aucun');
   for (const groupe of document.querySelectorAll('.groupe-outils')) {
     groupe.hidden = groupe.dataset.pour !== type;
   }
   if (type === 'aucun') fermerChoix();
   else if (type === 'fleche') $('choix-style').hidden = true;
 
+  if (etat.groupe) {
+    const blocs = blocsSelectionnes();
+    $('compte-groupe').textContent = `${blocs.length} bloc${blocs.length > 1 ? 's' : ''}`;
+    $('section-image').hidden = true; // une image se met bloc par bloc
+    const commun = (cle) => (blocs.length && blocs.every((b) => b[cle] === blocs[0][cle]) ? blocs[0][cle] : null);
+    for (const b of document.querySelectorAll('[data-forme]')) b.setAttribute('aria-pressed', String(b.dataset.forme === commun('forme')));
+    for (const b of document.querySelectorAll('[data-couleur]')) {
+      b.setAttribute('aria-pressed', String(b.dataset.couleur === commun('couleur')));
+      const c = couleurBloc(etat.themeResolu, b.dataset.couleur);
+      b.querySelector('.pastille').style.background = c.fond;
+      b.querySelector('.pastille').style.borderColor = c.bord;
+    }
+    const etape = commun('etape');
+    $('etape-valeur').textContent = etape === null ? 'Étapes variées' : etape > 0 ? `Étape ${etape}` : 'Toujours visible';
+    $('etape-moins').disabled = blocs.every((b) => b.etape <= 0);
+    $('etape-zero').disabled = blocs.every((b) => b.etape <= 0);
+    $('etape-info').textContent = 'Le réglage s\'applique à tous les blocs choisis. « Nouvelle étape » les fait apparaître ensemble.';
+  } else {
+    $('section-image').hidden = false;
+  }
   if (sel && sel.type === 'bloc') {
+    $('libelle-image-ajouter').textContent = sel.image ? 'Remplacer l\'image' : 'Ajouter une image';
+    $('btn-image-retirer').hidden = !sel.image;
     for (const b of document.querySelectorAll('[data-forme]')) b.setAttribute('aria-pressed', String(b.dataset.forme === sel.forme));
     for (const b of document.querySelectorAll('[data-couleur]')) {
       b.setAttribute('aria-pressed', String(b.dataset.couleur === sel.couleur));

@@ -34,8 +34,16 @@ export function telecharger(nom, contenu, type) {
   setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
 
+/** Copie du schéma sans les images qui ne servent plus (retirées ou remplacées). */
+export function sansImagesInutiles(schema) {
+  const utilisees = new Set(schema.elements.filter((e) => e.type === 'bloc' && e.image).map((e) => e.image));
+  const images = {};
+  for (const [id, donnees] of Object.entries(schema.images || {})) if (utilisees.has(id)) images[id] = donnees;
+  return { ...schema, images };
+}
+
 export function exporterSchema(schema) {
-  const contenu = JSON.stringify(schema, null, 2);
+  const contenu = JSON.stringify(sansImagesInutiles(schema), null, 2);
   telecharger(nomFichier(schema.titre, 'json'), contenu, 'application/json');
 }
 

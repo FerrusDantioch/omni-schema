@@ -18,6 +18,30 @@ import { listeBlocs } from './modele.js';
 
 const $ = (id) => document.getElementById(id);
 
+// ---------------------------------------------------------------------
+// Reprise : on retient, pour chaque schéma, l'étape atteinte (sur cet
+// appareil seulement), pour proposer de reprendre là où on s'était arrêté.
+// ---------------------------------------------------------------------
+const CLE_REPRISE = 'omni-schema.reprise';
+
+export function lireReprise(idSchema) {
+  try {
+    const table = JSON.parse(localStorage.getItem(CLE_REPRISE) || '{}') || {};
+    return Number.isInteger(table[idSchema]) ? table[idSchema] : 0;
+  } catch { return 0; }
+}
+
+export function ecrireReprise(idSchema, index) {
+  try {
+    const table = JSON.parse(localStorage.getItem(CLE_REPRISE) || '{}') || {};
+    table[idSchema] = index;
+    localStorage.setItem(CLE_REPRISE, JSON.stringify(table));
+  } catch { /* stockage indisponible : tant pis pour la reprise */ }
+}
+
+/** Faut-il proposer de reprendre ? (pas au début, pas si on avait fini) */
+export const repriseUtile = (index, nombre) => index > 0 && index < nombre - 1;
+
 /** Thème utilisé pour présenter ce schéma (« auto » = celui de l'application). */
 export function themePresentation(schema) {
   return schema.theme && schema.theme !== 'auto' ? schema.theme : etat.themeResolu;
@@ -32,6 +56,7 @@ export function creerPresentation({ apresFermeture }) {
   const boutonNotes = $('pres-notes');
   const panneauNotes = $('pres-panneau-notes');
   const aide = $('pres-aide');
+  const bandeauReprise = $('pres-reprise');
 
   let rendu = null;
   let liste = [];
@@ -56,6 +81,12 @@ export function creerPresentation({ apresFermeture }) {
     racine.classList.toggle('avec-fondu', !!etat.reglages.fondu);
     liste = arrets(schema);
     index = 0;
+    // Reprise proposée si on s'était arrêté en cours de route.
+    const reprise = lireReprise(schema.id);
+    bandeauReprise.hidden = !repriseUtile(reprise, liste.length);
+    $('pres-reprise-texte').textContent = `La dernière fois, tu en étais à l'étape ${reprise + 1} sur ${liste.length}.`;
+    $('pres-reprendre').onclick = () => { bandeauReprise.hidden = true; aide.hidden = true; allerA(reprise); racine.focus({ preventScroll: true }); };
+    $('pres-debut').onclick = () => { bandeauReprise.hidden = true; racine.focus({ preventScroll: true }); };
     panneauNotes.hidden = true;
     boutonNotes.setAttribute('aria-expanded', 'false');
     aide.hidden = liste.length <= 1;
@@ -77,7 +108,7 @@ export function creerPresentation({ apresFermeture }) {
   }
 
   function fermer() {
-    if (!etat.presentation) return;
+    if (!etat.presentation || racine.hidden) return;
     etat.presentation = false;
     racine.hidden = true;
     scene.replaceChildren();
@@ -112,9 +143,11 @@ export function creerPresentation({ apresFermeture }) {
     boutonPrecedent.disabled = index === 0;
     boutonSuivant.disabled = index === liste.length - 1;
     remplirNotes(arret);
+    ecrireReprise(etat.schema.id, index);
   }
 
   function suivant() {
+    bandeauReprise.hidden = true;
     if (index >= liste.length - 1) return;
     const avant = liste[index];
     index++;
@@ -123,6 +156,7 @@ export function creerPresentation({ apresFermeture }) {
   }
 
   function precedent() {
+    bandeauReprise.hidden = true;
     if (index <= 0) return;
     index--;
     aide.hidden = true;
@@ -198,7 +232,7 @@ export function creerPresentation({ apresFermeture }) {
 
   // Clavier (prioritaire pendant la présentation).
   document.addEventListener('keydown', (e) => {
-    if (!etat.presentation) return;
+    if (!etat.presentation || racine.hidden) return; // (la vue présentateur a ses propres touches)
     const surBouton = e.target.closest && e.target.closest('button');
     let geree = true;
     switch (e.key) {

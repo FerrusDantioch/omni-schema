@@ -61,7 +61,7 @@ export function construireSvg(schema, theme, { css = '' } = {}) {
   }
   for (const b of blocs) {
     const g = el('g', { 'data-id': b.id, 'data-etape': effectives.get(b.id), transform: `translate(${b.x} ${b.y})` }, calqueBlocs);
-    dessinerBloc(g, b, theme);
+    dessinerBloc(g, b, theme, { images: schema.images });
     elements.push({ id: b.id, type: 'bloc', donnees: b, g, etape: effectives.get(b.id) });
   }
   return { svg, elements, calqueSurlignage, theme, cadre: vb };

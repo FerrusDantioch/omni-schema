@@ -13,7 +13,7 @@
 // =====================================================================
 
 import {
-  etat, annuler, retablir, supprimerSelection, dupliquerSelection, selectionner, ajouterBloc, relier,
+  etat, annuler, retablir, supprimerSelection, dupliquerSelection, selectionner, ajouterBloc, relier, toutSelectionner,
   decalerSelection, agrandirSelection, valider, zoomerCentre, recentrer, rendreVisible, demanderRendu,
 } from './noyau.js';
 import { trouver, listeBlocs, listeFleches } from './modele.js';
@@ -36,7 +36,7 @@ function decrire(e) {
   return `${nomElement(etat.schema, e, 80)}${etape}.`;
 }
 
-export function installerClavier({ editeur, editerEtiquette, fermerChoix, ouvrirAide, presenter }) {
+export function installerClavier({ editeur, editerEtiquette, fermerChoix, ouvrirAide, presenter, presenterDeuxEcrans }) {
   let minuterieDeplacement = null;
   let liaison = null; // { de } pendant « L » : on choisit le bloc d'arrivée
 
@@ -106,7 +106,12 @@ export function installerClavier({ editeur, editerEtiquette, fermerChoix, ouvrir
     if (ctrl) {
       if (touche === 'z' && !e.shiftKey) { e.preventDefault(); annuler(); }
       else if (touche === 'y' || (touche === 'z' && e.shiftKey)) { e.preventDefault(); retablir(); }
-      else if (touche === 'd' && sel) { e.preventDefault(); dupliquerSelection(); }
+      else if (touche === 'd' && (sel || etat.groupe)) { e.preventDefault(); dupliquerSelection(); }
+      else if (touche === 'a') {
+        e.preventDefault();
+        toutSelectionner();
+        annoncerLecteur(`${(etat.groupe || []).length} blocs sélectionnés.`);
+      }
       return;
     }
 
@@ -133,6 +138,7 @@ export function installerClavier({ editeur, editerEtiquette, fermerChoix, ouvrir
     switch (touche) {
       case 'Delete':
       case 'Backspace':
+        if (etat.groupe && !surBouton) { e.preventDefault(); supprimerSelection(); annoncerLecteur('Blocs supprimés. Ctrl+Z pour annuler.'); break; }
         if (sel && !surBouton) { e.preventDefault(); supprimerSelection(); annoncerLecteur('Élément supprimé. Ctrl+Z pour annuler.'); }
         break;
       case 'Enter':
@@ -143,6 +149,7 @@ export function installerClavier({ editeur, editerEtiquette, fermerChoix, ouvrir
         break;
       case 'Escape':
         fermerChoix();
+        if (etat.groupe) { e.preventDefault(); selectionner(null); annoncerLecteur('Sélection multiple terminée.'); break; }
         if (sel) { e.preventDefault(); selectionner(null); annoncerLecteur('Sélection retirée.'); }
         break;
       case 'Tab': {
@@ -170,14 +177,14 @@ export function installerClavier({ editeur, editerEtiquette, fermerChoix, ouvrir
       case 'ArrowRight':
       case 'ArrowUp':
       case 'ArrowDown': {
-        if (!sel || sel.type !== 'bloc' || surBouton) return;
+        if ((!etat.groupe && (!sel || sel.type !== 'bloc')) || surBouton) return;
         e.preventDefault();
         const pas = e.shiftKey ? 1 : (etat.reglages.grille ? GRILLE : 10);
         const dx = touche === 'ArrowLeft' ? -pas : touche === 'ArrowRight' ? pas : 0;
         const dy = touche === 'ArrowUp' ? -pas : touche === 'ArrowDown' ? pas : 0;
-        if (e.altKey) agrandirSelection(dx, dy);
+        if (e.altKey && !etat.groupe) agrandirSelection(dx, dy);
         else decalerSelection(dx, dy);
-        rendreVisible(sel.id);
+        if (sel) rendreVisible(sel.id);
         // Plusieurs appuis rapprochés = une seule action dans l'historique.
         clearTimeout(minuterieDeplacement);
         minuterieDeplacement = setTimeout(valider, 600);
@@ -201,14 +208,14 @@ export function installerClavier({ editeur, editerEtiquette, fermerChoix, ouvrir
         annoncerLecteur('Relier : appuie sur Tab pour choisir le bloc d\'arrivée, puis Entrée. Échap pour annuler.');
         break;
       case 'e': {
-        if (!sel) return;
-        const bouton = document.querySelector(`.groupe-outils[data-pour="${sel.type}"] [data-bouton-etape]`);
+        if (!sel && !etat.groupe) return;
+        const bouton = document.querySelector(`.groupe-outils[data-pour="${etat.groupe ? 'groupe' : sel.type}"] [data-bouton-etape]`);
         if (bouton) { e.preventDefault(); bouton.click(); }
         break;
       }
       case 'p':
         e.preventDefault();
-        presenter();
+        if (e.shiftKey) presenterDeuxEcrans(); else presenter();
         break;
       case '?':
         e.preventDefault();

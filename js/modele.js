@@ -8,9 +8,11 @@
 //   version_format: 1,          // version de la structure (voir migrer)
 //   id, titre, cree_le, modifie_le,
 //   theme: 'auto',              // thème de présentation (auto = celui de l'app)
-//   elements: [ blocs et flèches ]
+//   elements: [ blocs et flèches ],
+//   images: { id: 'data:image/…' } // images des blocs (format 2)
 // }
-// Bloc   : { type:'bloc', id, x, y, largeur, hauteur, texte, forme, couleur, etape, note }
+// Bloc   : { type:'bloc', id, x, y, largeur, hauteur, texte, forme, couleur, etape, note, image }
+//          (image = identifiant dans « images », ou '' s'il n'y en a pas)
 // Flèche : { type:'fleche', id, de, vers, style, etiquette, etape }
 // etape = 0 : toujours visible ; sinon numéro d'apparition en présentation.
 // =====================================================================
@@ -58,6 +60,7 @@ export function creerSchema(titre = 'Nouveau schéma') {
     modifie_le: date,
     theme: 'auto',
     elements: [],
+    images: {},
   };
 }
 
@@ -75,6 +78,7 @@ export function creerBloc(proprietes = {}) {
     couleur: 'neutre',
     etape: 0,
     note: '',
+    image: '',
     ...proprietes,
   };
 }
@@ -117,7 +121,19 @@ export function creerSchemaAccueil() {
 // Exemple pour plus tard :
 //   1: (doc) => { doc.elements.forEach(...); doc.version_format = 2; return doc; },
 // ---------------------------------------------------------------------
-const MIGRATIONS = {};
+const MIGRATIONS = {
+  // 1 → 2 : les blocs peuvent porter une image (rangée dans schema.images).
+  1: (doc) => {
+    doc.images = {};
+    for (const e of doc.elements) if (e && e.type === 'bloc') e.image = '';
+    doc.version_format = 2;
+    return doc;
+  },
+};
+
+// Une image valide : une adresse « data: » d'image, de taille raisonnable.
+const MAX_IMAGE = 6 * 1024 * 1024;
+const imageValide = (v) => typeof v === 'string' && /^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(v) && v.length < MAX_IMAGE;
 
 /**
  * Prend un objet lu depuis un fichier ou la base, le convertit à la
@@ -166,7 +182,9 @@ export function normaliser(doc) {
     modifie_le: dateValide(doc.modifie_le),
     theme: ['auto', 'clair', 'sombre', 'violet'].includes(doc.theme) ? doc.theme : 'auto',
     elements: [],
+    images: {},
   };
+  const imagesSource = doc.images && typeof doc.images === 'object' ? doc.images : {};
 
   const vus = new Set();
   const idUnique = (id, prefixe) => {
@@ -194,7 +212,14 @@ export function normaliser(doc) {
       couleur: parmi(e.couleur, COULEURS, 'neutre'),
       etape: entierPositif(e.etape),
       note: texte(e.note, MAX_NOTE),
+      image: '',
     });
+    // Image : gardée seulement si elle existe et qu'elle est valide.
+    const idImage = typeof e.image === 'string' ? e.image : '';
+    if (idImage && imageValide(imagesSource[idImage])) {
+      propre.images[idImage] = imagesSource[idImage];
+      propre.elements[propre.elements.length - 1].image = idImage;
+    }
   }
   // …puis les flèches, seulement si leurs deux blocs existent.
   for (const e of doc.elements) {
