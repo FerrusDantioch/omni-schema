@@ -16,8 +16,8 @@ Adresse prévue : <https://ferrusdantioch.github.io/omni-schema/>
 | Jalon | Contenu | État |
 |---|---|---|
 | 1 — Édition de base | PWA hors ligne, thèmes, À propos, bouton « Mettre à jour », blocs, flèches, zoom/déplacement, grille, annuler/rétablir, plusieurs schémas, export/import JSON | ✅ livré |
-| 2 — Présentation | étapes, navigation, surlignage, notes, modèles de départ, export PNG/SVG/PDF | ✅ livré, en test |
-| 3 — HTML autonome et finitions | lecteur HTML en un seul fichier, accessibilité clavier, petits écrans | à venir |
+| 2 — Présentation | étapes, navigation, surlignage, notes, modèles de départ, export PNG/SVG/PDF | ✅ livré |
+| 3 — HTML autonome et finitions | lecteur HTML en un seul fichier, accessibilité clavier, petits écrans | ✅ livré, en test |
 
 ## Utilisation rapide
 
@@ -35,6 +35,9 @@ Adresse prévue : <https://ferrusdantioch.github.io/omni-schema/>
 | Zoomer | pincer à deux doigts | molette, ou **+** / **−** ; **0** pour recentrer |
 | Annuler / rétablir | flèches en haut à droite | **Ctrl+Z** / **Ctrl+Y** (ou Ctrl+Maj+Z) |
 | Dupliquer / supprimer | barre du bas | **Ctrl+D** / **Suppr** |
+| Créer un bloc relié | tirer le rond **+** vers le vide | **R** (à droite) / **Maj+R** (en dessous) |
+| Relier deux blocs existants | tirer le rond **+** vers l'autre bloc | **L**, puis **Tab** pour viser, **Entrée** |
+| Voir tous les raccourcis | Menu → Aide et raccourcis | **?** |
 | Choisir l'étape d'un élément | bouton **Étape** de la barre du bas | idem |
 | Voir / réordonner toutes les étapes | bouton **Étapes** (rien de sélectionné) | idem |
 | Écrire une note de présentateur | bouton **Note** sur un bloc | idem |
@@ -60,6 +63,29 @@ en MAJUSCULES espacées, chiffres en police à chasse fixe, texte de lecture à 
 choix en « pilules ». Polices déjà présentes sur l'appareil : rien n'est téléchargé.
 En thème clair, le violet est assombri (`#6a3fd6`) pour rester lisible.
 
+## Page HTML autonome
+
+Menu → *Exporter* → *Page HTML autonome* crée **un seul fichier .html** (souvent moins de 50 Ko)
+que tu peux envoyer par e-mail ou mettre sur une clé USB :
+
+- il s'ouvre dans n'importe quel navigateur récent, **hors ligne**, sans installer l'application ;
+- il présente le schéma étape par étape (mêmes gestes et touches que l'application, plus **F** pour le plein écran) ;
+- il garde les couleurs du thème choisi et affiche discrètement « Fait avec omni-schema — Ferrus Dantioch » ;
+- il ne contient **aucun code d'édition** : le schéma y est déjà dessiné, seul un petit lecteur l'accompagne ;
+- une règle de sécurité intégrée lui interdit tout accès à internet ;
+- les notes du présentateur n'y sont incluses que si tu le demandes ;
+- sans JavaScript, il affiche quand même le schéma complet.
+
+Comme le texte est mis en page au moment de l'export, un appareil qui n'a pas la même police système
+peut afficher un texte très légèrement plus large ou plus étroit.
+
+## Accessibilité
+
+- Tout se fait aussi au clavier (voir *Aide et raccourcis*, touche **?**).
+- Les lecteurs d'écran annoncent l'élément choisi, les liaisons créées et l'étape en cours.
+- Cibles tactiles d'au moins 44 px, contrastes vérifiés (texte ≥ 4,5:1), aucune animation par défaut,
+  réglage de la taille du texte, respect de « réduire les animations ».
+
 ## Structure des fichiers
 
 ```
@@ -79,6 +105,7 @@ js/
   presentation.js      mode présentation plein écran
   schema-svg.js        SVG autonome du schéma (présentation, exports)
   exports.js           exports PNG, SVG et PDF (une page par étape)
+  export-html.js       page HTML autonome (avec son petit lecteur)
   modeles.js           modèles de départ
   geometrie.js         calculs : bords, flèches, aimantation
   texte.js             retour à la ligne et taille du texte

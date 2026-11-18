@@ -52,6 +52,7 @@
     <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></symbol>
     <symbol id="i-precedent" viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></symbol>
     <symbol id="i-suivant" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+    <symbol id="i-aide" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17.5v.01"/></symbol>
     <symbol id="i-maj" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5"/></symbol>
   </svg>
 
@@ -82,7 +83,7 @@
 
   <!-- ===== Zone de dessin ===== -->
   <main class="zone" id="zone">
-    <svg id="toile" class="toile" role="application" aria-label="Zone du schéma" tabindex="0">
+    <svg id="toile" class="toile" role="application" aria-label="Zone du schéma" aria-describedby="aide-toile" tabindex="0">
       <g id="monde">
         <g id="calque-fleches"></g>
         <g id="calque-blocs"></g>
@@ -97,6 +98,9 @@
       Tire le rond <strong>+</strong> d'un bloc pour créer une flèche.
     </p>
     <div class="annonce" id="annonce" role="status" aria-live="polite"></div>
+    <!-- Textes lus seulement par les lecteurs d'écran -->
+    <p class="lecteur-seul" id="aide-toile">Tab pour passer d'un élément à l'autre, Entrée pour écrire, flèches pour déplacer, N pour un nouveau bloc, R pour un bloc relié, L pour relier deux blocs, point d'interrogation pour l'aide.</p>
+    <div class="lecteur-seul" id="annonce-lecteur" aria-live="polite"></div>
   </main>
 
   <!-- ===== Choix de forme et de couleur (s'ouvrent au-dessus de la barre du bas) ===== -->
@@ -159,11 +163,12 @@
       <li><button type="button" data-menu="nouveau"><svg class="icone" aria-hidden="true"><use href="#i-nouveau"/></svg>Nouveau schéma</button></li>
       <li class="etiquette-section">Fichiers</li>
       <li><button type="button" data-menu="exporter"><svg class="icone" aria-hidden="true"><use href="#i-exporter"/></svg>Exporter ce schéma (.json)</button></li>
-      <li><button type="button" data-menu="exporter-image"><svg class="icone" aria-hidden="true"><use href="#i-image"/></svg>Exporter en image ou PDF</button></li>
+      <li><button type="button" data-menu="exporter-image"><svg class="icone" aria-hidden="true"><use href="#i-image"/></svg>Exporter (image, PDF, page HTML)</button></li>
       <li><button type="button" data-menu="sauvegarder-tout"><svg class="icone" aria-hidden="true"><use href="#i-sauvegarde"/></svg>Sauvegarder tous mes schémas (.json)</button></li>
       <li><button type="button" data-menu="importer"><svg class="icone" aria-hidden="true"><use href="#i-importer"/></svg>Importer un fichier .json</button></li>
       <li class="etiquette-section">Application</li>
       <li><button type="button" data-menu="reglages"><svg class="icone" aria-hidden="true"><use href="#i-reglages"/></svg>Réglages</button></li>
+      <li><button type="button" data-menu="aide"><svg class="icone" aria-hidden="true"><use href="#i-aide"/></svg>Aide et raccourcis</button></li>
       <li><button type="button" data-menu="apropos"><svg class="icone" aria-hidden="true"><use href="#i-info"/></svg>À propos</button></li>
     </ul>
     <input type="file" id="fichier-import" accept=".json,application/json" hidden>
@@ -306,7 +311,7 @@
   <!-- ===== Export en image ou PDF ===== -->
   <dialog class="fenetre" id="dlg-export" aria-labelledby="titre-export">
     <div class="fenetre-entete">
-      <h2 id="titre-export">Exporter en image ou PDF</h2>
+      <h2 id="titre-export">Exporter</h2>
       <button type="button" class="bouton-icone" data-fermer aria-label="Fermer"><svg class="icone" aria-hidden="true"><use href="#i-fermer"/></svg></button>
     </div>
     <fieldset class="groupe-choix">
@@ -332,6 +337,12 @@
       <button type="button" class="bouton principal pleine-largeur" id="btn-export-pdf"><svg class="icone" aria-hidden="true"><use href="#i-exporter"/></svg>Préparer le PDF</button>
       <p class="aide-reglage">La fenêtre d'impression de ton navigateur s'ouvre : choisis « Enregistrer en PDF » comme imprimante.</p>
     </fieldset>
+    <fieldset class="groupe-choix cases">
+      <legend class="etiquette-section">Page HTML autonome</legend>
+      <p class="aide-reglage aide-haut">Un seul fichier .html à envoyer : il s'ouvre dans n'importe quel navigateur, même hors ligne, et présente le schéma étape par étape. Il ne permet pas de le modifier.</p>
+      <label><input type="checkbox" id="export-html-notes"> Inclure les notes du présentateur</label>
+      <button type="button" class="bouton principal pleine-largeur" id="btn-export-html"><svg class="icone" aria-hidden="true"><use href="#i-presenter"/></svg>Créer la page HTML</button>
+    </fieldset>
   </dialog>
 
   <!-- ===== Mode présentation (plein écran, interface masquée) ===== -->
@@ -345,7 +356,7 @@
     </button>
     <div class="pres-navigation">
       <button type="button" class="pres-bouton" id="pres-precedent" aria-label="Étape précédente"><svg class="icone" aria-hidden="true"><use href="#i-precedent"/></svg></button>
-      <span class="pres-compteur" id="pres-compteur">1 / 1</span>
+      <span class="pres-compteur" id="pres-compteur" role="status">1 / 1</span>
       <button type="button" class="pres-bouton" id="pres-suivant" aria-label="Étape suivante"><svg class="icone" aria-hidden="true"><use href="#i-suivant"/></svg></button>
     </div>
     <p class="pres-aide" id="pres-aide">Touche à droite pour avancer, à gauche pour revenir.</p>
@@ -357,6 +368,49 @@
 
   <!-- Pages préparées pour l'impression / le PDF (invisibles à l'écran) -->
   <div id="impression" class="impression" aria-hidden="true"></div>
+
+  <!-- ===== Aide et raccourcis ===== -->
+  <dialog class="fenetre aide" id="dlg-aide" aria-labelledby="titre-aide">
+    <div class="fenetre-entete">
+      <h2 id="titre-aide">Aide et raccourcis</h2>
+      <button type="button" class="bouton-icone" data-fermer aria-label="Fermer"><svg class="icone" aria-hidden="true"><use href="#i-fermer"/></svg></button>
+    </div>
+    <h3 class="etiquette-section">Au doigt</h3>
+    <dl class="liste-aide">
+      <dt>Toucher un bloc</dt><dd>le choisir ; le toucher encore pour écrire</dd>
+      <dt>Glisser un bloc</dt><dd>le déplacer</dd>
+      <dt>Glisser le fond</dt><dd>se déplacer dans le schéma</dd>
+      <dt>Pincer à deux doigts</dt><dd>zoomer</dd>
+      <dt>Toucher deux fois le fond</dt><dd>nouveau bloc</dd>
+      <dt>Tirer le rond +</dt><dd>vers un bloc : le relier ; vers le vide : nouveau bloc relié</dd>
+      <dt>Petit carré du bloc</dt><dd>changer sa taille</dd>
+    </dl>
+    <h3 class="etiquette-section">Au clavier</h3>
+    <dl class="liste-aide">
+      <dt><kbd>Tab</kbd> / <kbd>Maj</kbd>+<kbd>Tab</kbd></dt><dd>élément suivant / précédent</dd>
+      <dt><kbd>Entrée</kbd> ou <kbd>F2</kbd></dt><dd>écrire dans le bloc (ou l'étiquette de la flèche)</dd>
+      <dt><kbd>Échap</kbd></dt><dd>terminer l'écriture, fermer, désélectionner</dd>
+      <dt><kbd>N</kbd></dt><dd>nouveau bloc</dd>
+      <dt><kbd>R</kbd> / <kbd>Maj</kbd>+<kbd>R</kbd></dt><dd>nouveau bloc relié à droite / en dessous</dd>
+      <dt><kbd>L</kbd></dt><dd>relier à un autre bloc : <kbd>Tab</kbd> pour viser, <kbd>Entrée</kbd> pour valider</dd>
+      <dt>Flèches</dt><dd>déplacer le bloc (<kbd>Maj</kbd> : finement)</dd>
+      <dt><kbd>Alt</kbd>+flèches</dt><dd>changer la taille du bloc</dd>
+      <dt><kbd>E</kbd></dt><dd>étape de l'élément choisi</dd>
+      <dt><kbd>Suppr</kbd> · <kbd>Ctrl</kbd>+<kbd>D</kbd></dt><dd>supprimer · dupliquer</dd>
+      <dt><kbd>Ctrl</kbd>+<kbd>Z</kbd> · <kbd>Ctrl</kbd>+<kbd>Y</kbd></dt><dd>annuler · rétablir</dd>
+      <dt><kbd>+</kbd> <kbd>−</kbd> · <kbd>0</kbd></dt><dd>zoomer, dézoomer · recentrer</dd>
+      <dt><kbd>P</kbd></dt><dd>présenter</dd>
+      <dt><kbd>?</kbd></dt><dd>cette aide</dd>
+    </dl>
+    <h3 class="etiquette-section">En présentation</h3>
+    <dl class="liste-aide">
+      <dt>Toucher à droite · <kbd>→</kbd> <kbd>Espace</kbd> <kbd>Page suiv.</kbd></dt><dd>étape suivante</dd>
+      <dt>Toucher à gauche · <kbd>←</kbd> <kbd>Page préc.</kbd></dt><dd>étape précédente</dd>
+      <dt><kbd>Début</kbd> · <kbd>Fin</kbd></dt><dd>première · dernière étape</dd>
+      <dt><kbd>N</kbd></dt><dd>notes du présentateur</dd>
+      <dt><kbd>Échap</kbd> ou geste « retour »</dt><dd>quitter</dd>
+    </dl>
+  </dialog>
 
   <!-- ===== Fenêtres génériques : confirmation et saisie ===== -->
   <dialog class="fenetre petite" id="dlg-confirmer" aria-labelledby="confirmer-message">

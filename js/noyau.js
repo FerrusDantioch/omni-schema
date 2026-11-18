@@ -273,25 +273,28 @@ export function selectionner(id) {
 }
 
 /** Trouve une place libre près de (x, y) pour ne pas empiler les blocs. */
-function placeLibre(x, y, largeur, hauteur) {
+function placeLibre(x, y, largeur, hauteur, decalage) {
   const blocs = listeBlocs(etat.schema);
-  for (let essai = 0; essai < 50; essai++) {
-    const occupe = blocs.some((b) => Math.abs(b.x - x) < 10 && Math.abs(b.y - y) < 10);
-    if (!occupe) break;
-    x += GRILLE;
-    y += GRILLE;
+  const marge = 12; // espace minimal entre deux blocs
+  const chevauche = (px, py) => blocs.some((b) => px < b.x + b.largeur + marge && px + largeur + marge > b.x
+    && py < b.y + b.hauteur + marge && py + hauteur + marge > b.y);
+  // Pas de déplacement : par défaut en diagonale ; sinon la direction demandée.
+  const pas = decalage || { x: GRILLE * 2, y: GRILLE * 2 };
+  for (let essai = 0; essai < 60 && chevauche(x, y); essai++) {
+    x += pas.x;
+    y += pas.y;
   }
   return { x, y, largeur, hauteur };
 }
 
 /** Ajoute un bloc centré sur le point (x, y) du schéma (par défaut : centre de l'écran). */
-export function ajouterBloc(point = centreVue(), proprietes = {}, { sansValider = false } = {}) {
+export function ajouterBloc(point = centreVue(), proprietes = {}, { sansValider = false, decalage = null } = {}) {
   const largeur = proprietes.largeur || BLOC_DEFAUT.largeur;
   const hauteur = proprietes.hauteur || BLOC_DEFAUT.hauteur;
   let x = point.x - largeur / 2;
   let y = point.y - hauteur / 2;
   if (etat.reglages.grille) { x = surGrille(x); y = surGrille(y); }
-  const place = placeLibre(x, y, largeur, hauteur);
+  const place = placeLibre(x, y, largeur, hauteur, decalage);
   const bloc = creerBloc({ ...proprietes, ...place });
   etat.schema.elements.push(bloc);
   etat.selection = bloc.id;

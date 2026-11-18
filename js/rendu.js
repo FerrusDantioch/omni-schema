@@ -284,7 +284,7 @@ export function creerRendu(svg) {
     if (liaison) {
       const source = parId.get(liaison.de);
       const cible = liaison.cible ? parId.get(liaison.cible) : null;
-      if (source) {
+      if (source && (cible || liaison.x !== null)) {
         const bout = cible ? pointBord(cible, centre(source)) : { x: liaison.x, y: liaison.y };
         const depart = pointBord(source, bout);
         el('line', { x1: depart.x, y1: depart.y, x2: bout.x, y2: bout.y, stroke: T.selection, 'stroke-width': 2 / k, 'stroke-dasharray': `${6 / k} ${4 / k}`, class: 'decor' }, calquePoignees);

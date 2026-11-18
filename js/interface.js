@@ -16,6 +16,7 @@ import { exporterSchema, exporterTout, importerFichier } from './fichiers.js';
 import { etapeMax, etapesEffectives } from './etapes.js';
 import { MODELES, creerDepuisModele } from './modeles.js';
 import { exporterPng, exporterSvg, imprimerEtapes } from './exports.js';
+import { exporterHtml } from './export-html.js';
 import { themePresentation } from './presentation.js';
 
 const $ = (id) => document.getElementById(id);
@@ -190,6 +191,11 @@ export async function editerEtiquette(id) {
   modifierSelection({ etiquette: texte.slice(0, 200) });
 }
 
+/** Fenêtre « Aide et raccourcis ». */
+export function ouvrirAide() {
+  ouvrirFenetre($('dlg-aide'));
+}
+
 /** Modifier la note du présentateur d'un bloc. */
 export function editerNote(id) {
   const b = trouver(etat.schema, id);
@@ -349,6 +355,7 @@ function installerMenu() {
       case 'importer': champFichier.click(); break;
       case 'reglages': afficherReglages(); break;
       case 'apropos': ouvrirFenetre($('dlg-apropos')); break;
+      case 'aide': ouvrirAide(); break;
       default: break;
     }
   });
@@ -456,6 +463,11 @@ function installerExport() {
   $('btn-export-svg').addEventListener('click', () => lancer(async () => {
     exporterSvg(etat.schema, themeExport());
     annoncer('Image SVG créée : regarde dans tes téléchargements.');
+  }));
+  $('btn-export-html').addEventListener('click', () => lancer(async () => {
+    const fondu = !!etat.reglages.fondu && !reduireAnimations.matches;
+    exporterHtml(etat.schema, themeExport(), { notes: $('export-html-notes').checked, fondu });
+    annoncer('Page HTML créée : regarde dans tes téléchargements.');
   }));
   $('btn-export-pdf').addEventListener('click', () => lancer(async () => {
     const theme = themeExport();

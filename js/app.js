@@ -10,7 +10,7 @@ import { creerSchemaAccueil, migrer } from './modele.js';
 import { listerSchemas, chargerSchema, enregistrerSchema, demanderStockagePersistant } from './stockage.js';
 import { installerGestes } from './interactions.js';
 import { creerEditeurTexte } from './editeur-texte.js';
-import { installerInterface, appliquerTheme, editerEtiquette, fermerChoix, demanderConfirmation } from './interface.js';
+import { installerInterface, appliquerTheme, editerEtiquette, fermerChoix, demanderConfirmation, ouvrirAide } from './interface.js';
 import { creerPresentation } from './presentation.js';
 import { creerPanneauEtapes } from './panneau-etapes.js';
 import { installerClavier } from './clavier.js';
@@ -38,7 +38,10 @@ async function demarrer() {
     editerEtiquette,
     avantGeste: () => { editeur.terminer(); fermerChoix(); },
   });
-  installerClavier({ editeur, editerEtiquette, fermerChoix });
+  installerClavier({
+    editeur, editerEtiquette, fermerChoix, ouvrirAide,
+    presenter: () => document.getElementById('btn-presenter').click(),
+  });
   installerMiseAJour({
     bouton: document.getElementById('btn-maj'),
     avantRechargement: async () => { editeur.terminer(); await sauvegarderMaintenant(); },

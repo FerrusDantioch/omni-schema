@@ -53,12 +53,12 @@ export function construireSvg(schema, theme) {
     const A = parId.get(f.de);
     const B = parId.get(f.vers);
     if (!A || !B) continue;
-    const g = el('g', { 'data-id': f.id }, calqueFleches);
+    const g = el('g', { 'data-id': f.id, 'data-etape': effectives.get(f.id) }, calqueFleches);
     dessinerFleche(g, f, A, B, theme, { zoneClic: false });
     elements.push({ id: f.id, type: 'fleche', donnees: f, A, B, g, etape: effectives.get(f.id) });
   }
   for (const b of blocs) {
-    const g = el('g', { 'data-id': b.id, transform: `translate(${b.x} ${b.y})` }, calqueBlocs);
+    const g = el('g', { 'data-id': b.id, 'data-etape': effectives.get(b.id), transform: `translate(${b.x} ${b.y})` }, calqueBlocs);
     dessinerBloc(g, b, theme);
     elements.push({ id: b.id, type: 'bloc', donnees: b, g, etape: effectives.get(b.id) });
   }
@@ -93,6 +93,11 @@ function haloFleche(parent, item, couleur) {
   return el('path', { d, fill: 'none', stroke: couleur, 'stroke-width': 12, 'stroke-opacity': 0.35, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, parent);
 }
 
+/** Dessine le surlignage doux d'un élément (contour d'un bloc, halo d'une flèche). */
+export function dessinerSurlignage(parent, item, couleur) {
+  return item.type === 'bloc' ? contourBloc(parent, item.donnees, couleur) : haloFleche(parent, item, couleur);
+}
+
 /**
  * Affiche l'état du schéma à un « arrêt » de la présentation :
  * - les éléments dont l'étape est ≤ arrêt sont visibles, les autres cachés ;
@@ -108,10 +113,7 @@ export function appliquerArret(rendu, arret, { surligner = true, precedent = nul
     const visible = item.etape <= arret;
     item.g.style.display = visible ? '' : 'none';
     if (visible && precedent !== null && item.etape > precedent) nouveaux.push(item.g);
-    if (surligner && arret > 0 && item.etape === arret) {
-      if (item.type === 'bloc') contourBloc(rendu.calqueSurlignage, item.donnees, T.selection);
-      else haloFleche(rendu.calqueSurlignage, item, T.selection);
-    }
+    if (surligner && arret > 0 && item.etape === arret) dessinerSurlignage(rendu.calqueSurlignage, item, T.selection);
   }
   return nouveaux;
 }

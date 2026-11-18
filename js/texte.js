@@ -33,11 +33,31 @@ function couperMot(mot, largeurMax) {
   return morceaux;
 }
 
+/**
+ * Sépare un paragraphe en « mots » pour le retour à la ligne, en
+ * respectant la typographie française : « ? ! : ; » restent collés au
+ * mot voisin, et les espaces insécables ne sont jamais coupées.
+ */
+function motsInsecables(paragraphe) {
+  // On coupe seulement sur les espaces ordinaires (pas les insécables \u00a0 et \u202f).
+  const bruts = paragraphe.split(/[ \t\r]+/).filter(Boolean);
+  const mots = [];
+  for (const mot of bruts) {
+    const precedent = mots[mots.length - 1];
+    if (precedent !== undefined && (/^[?!:;»]/.test(mot) || /«$/.test(precedent))) {
+      mots[mots.length - 1] = `${precedent}\u00a0${mot}`;
+    } else {
+      mots.push(mot);
+    }
+  }
+  return mots;
+}
+
 /** Découpe le texte en lignes qui tiennent dans largeurMax. */
 function decouper(texte, largeurMax) {
   const lignes = [];
   for (const paragraphe of texte.split('\n')) {
-    const mots = paragraphe.split(/\s+/).filter(Boolean);
+    const mots = motsInsecables(paragraphe);
     if (!mots.length) { lignes.push(''); continue; }
     let ligne = '';
     for (const mot of mots) {

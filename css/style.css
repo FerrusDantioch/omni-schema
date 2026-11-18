@@ -636,6 +636,7 @@ dialog::backdrop { background: var(--voile); }
 .pilules label:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 2px; }
 
 .aide-reglage { margin: 0.5rem 0.25rem 0; font-size: 0.85rem; color: var(--texte-doux); }
+.aide-reglage.aide-haut { margin: 0 0.25rem 0.5rem; }
 
 .cases label {
   display: flex;
@@ -659,6 +660,42 @@ dialog::backdrop { background: var(--voile); }
 .apropos a[href^="mailto:"] { font-family: var(--police-ui); font-size: 0.92rem; }
 /* Signature en italique discrète, comme « Conçu et réalisé par Ferrus Dantioch ». */
 .apropos .signature { margin-top: 1.25rem; font-family: var(--police-lecture); font-style: italic; color: var(--texte-doux); }
+
+/* Texte réservé aux lecteurs d'écran (invisible à l'écran) */
+.lecteur-seul {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Aide et raccourcis */
+.aide h3 { margin: 1.1rem 0 0.4rem; }
+.aide h3:first-of-type { margin-top: 0.25rem; }
+.liste-aide { display: grid; grid-template-columns: minmax(8rem, auto) 1fr; gap: 0.35rem 1rem; margin: 0; }
+.liste-aide dt { font-weight: 650; }
+.liste-aide dd { margin: 0; color: var(--texte-doux); }
+@media (max-width: 480px) {
+  .liste-aide { grid-template-columns: 1fr; gap: 0.1rem; }
+  .liste-aide dd { margin-bottom: 0.5rem; }
+}
+kbd {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 0.05em 0.4em;
+  border: 1px solid var(--bord);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: var(--fond);
+  font-family: var(--police-chiffres);
+  font-size: 0.85em;
+  text-align: center;
+}
 
 /* Textes d'explication dans les fenêtres (police de lecture) */
 .texte-explication { margin: 0 0 1rem; font-family: var(--police-lecture); font-size: 1.02rem; color: var(--texte-doux); }
