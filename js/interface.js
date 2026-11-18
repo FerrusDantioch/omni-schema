@@ -8,11 +8,15 @@ import { COULEURS, couleurBloc, couleursToile } from './couleurs.js';
 import { FORMES, trouver, creerSchema, migrer, nouvelId } from './modele.js';
 import {
   etat, notifier, surChangement, demanderRendu, annuler, retablir, peutAnnuler, peutRetablir,
-  ajouterBloc, dupliquerSelection, supprimerSelection, modifierSelection, selectionner,
+  ajouterBloc, dupliquerSelection, supprimerSelection, modifierSelection,
   recentrer, zoomerCentre, renommer, ouvrirSchema, sauvegarderMaintenant, enregistrerReglages, annoncer,
 } from './noyau.js';
 import { listerSchemas, chargerSchema, enregistrerSchema, supprimerSchema } from './stockage.js';
 import { exporterSchema, exporterTout, importerFichier } from './fichiers.js';
+import { etapeMax, etapesEffectives } from './etapes.js';
+import { MODELES, creerDepuisModele } from './modeles.js';
+import { exporterPng, exporterSvg, imprimerEtapes } from './exports.js';
+import { themePresentation } from './presentation.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -78,7 +82,9 @@ requeteClair.addEventListener('change', () => { if (etat.reglages.theme === 'aut
 // ---------------------------------------------------------------------
 // Installation de toute l'interface
 // ---------------------------------------------------------------------
-export function installerInterface({ editeur }) {
+const reduireAnimations = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+export function installerInterface({ editeur, presentation, panneauEtapes }) {
   // --- Toutes les fenêtres : bouton « Fermer » et clic sur le fond ---
   for (const d of document.querySelectorAll('dialog')) {
     d.addEventListener('click', (e) => {
@@ -99,6 +105,7 @@ export function installerInterface({ editeur }) {
 
   // --- Barre du haut ---
   $('btn-menu').addEventListener('click', () => ouvrirFenetre($('dlg-menu')));
+  $('btn-presenter').addEventListener('click', () => presenter(presentation, editeur));
   $('btn-annuler').addEventListener('click', annuler);
   $('btn-retablir').addEventListener('click', retablir);
   $('btn-titre').addEventListener('click', async () => {
@@ -115,20 +122,24 @@ export function installerInterface({ editeur }) {
     demanderRendu();
     notifier();
   });
+  $('btn-etapes').addEventListener('click', () => panneauEtapes.ouvrir());
   $('btn-recentrer').addEventListener('click', recentrer);
   $('btn-zoom-plus').addEventListener('click', () => zoomerCentre(1.25));
   $('btn-zoom-moins').addEventListener('click', () => zoomerCentre(0.8));
 
   // --- Barre du bas : bloc choisi ---
   $('btn-texte').addEventListener('click', () => editeur.ouvrir(etat.selection));
-  $('btn-forme').addEventListener('click', () => basculerChoix('choix-forme', 'btn-forme'));
-  $('btn-couleur').addEventListener('click', () => basculerChoix('choix-couleur', 'btn-couleur'));
+  $('btn-style').addEventListener('click', (e) => basculerChoix('choix-style', e.currentTarget));
+  $('btn-note').addEventListener('click', () => editerNote(etat.selection));
+  for (const b of document.querySelectorAll('[data-bouton-etape]')) {
+    b.addEventListener('click', (e) => basculerChoix('choix-etape', e.currentTarget));
+  }
   $('btn-dupliquer').addEventListener('click', dupliquerSelection);
   $('btn-supprimer-bloc').addEventListener('click', supprimerSelection);
 
   // --- Barre du bas : flèche choisie ---
   $('btn-etiquette').addEventListener('click', () => editerEtiquette(etat.selection));
-  $('btn-style').addEventListener('click', () => {
+  $('btn-trace').addEventListener('click', () => {
     const f = trouver(etat.schema, etat.selection);
     if (f) modifierSelection({ style: f.style === 'angle' ? 'droite' : 'angle' });
   });
@@ -137,11 +148,25 @@ export function installerInterface({ editeur }) {
     if (f) modifierSelection({ de: f.vers, vers: f.de });
   });
   $('btn-supprimer-fleche').addEventListener('click', supprimerSelection);
-  for (const b of document.querySelectorAll('[data-action="deselectionner"]')) {
-    b.addEventListener('click', () => selectionner(null));
-  }
+  // --- Panneau « Étape » de l'élément choisi ---
+  const changerEtape = (valeur) => {
+    const e = trouver(etat.schema, etat.selection);
+    if (!e) return;
+    modifierSelection({ etape: Math.max(0, valeur) });
+  };
+  $('etape-moins').addEventListener('click', () => { const e = trouver(etat.schema, etat.selection); if (e) changerEtape(e.etape - 1); });
+  $('etape-plus').addEventListener('click', () => { const e = trouver(etat.schema, etat.selection); if (e) changerEtape(e.etape + 1); });
+  $('etape-zero').addEventListener('click', () => changerEtape(0));
+  $('etape-nouvelle').addEventListener('click', () => changerEtape(etapeMax(etat.schema) + 1));
+
+  // --- Note du présentateur : Entrée = retour à la ligne, Ctrl+Entrée = enregistrer ---
+  $('note-champ').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); $('dlg-note').close('oui'); }
+  });
 
   construireChoix();
+  installerNouveau();
+  installerExport();
   installerMenu();
   installerReglages();
   $('version-app').textContent = APP_VERSION;
@@ -165,28 +190,56 @@ export async function editerEtiquette(id) {
   modifierSelection({ etiquette: texte.slice(0, 200) });
 }
 
+/** Modifier la note du présentateur d'un bloc. */
+export function editerNote(id) {
+  const b = trouver(etat.schema, id);
+  if (!b || b.type !== 'bloc') return;
+  const d = $('dlg-note');
+  const champ = $('note-champ');
+  $('note-bloc').textContent = `Bloc : ${(b.texte || 'sans texte').replace(/\s+/g, ' ').slice(0, 60)}`;
+  champ.value = b.note;
+  d.returnValue = 'non';
+  ouvrirFenetre(d);
+  champ.focus();
+  d.addEventListener('close', () => {
+    if (d.returnValue !== 'oui') return;
+    etat.selection = id;
+    modifierSelection({ note: champ.value.replace(/\s+$/, '').slice(0, 5000) });
+    annoncer(champ.value.trim() ? 'Note enregistrée' : 'Note effacée');
+  }, { once: true });
+}
+
+/** Lance la présentation (après avoir terminé une éventuelle saisie). */
+async function presenter(presentation, editeur) {
+  editeur.terminer();
+  fermerChoix();
+  await sauvegarderMaintenant();
+  const ok = await presentation.ouvrir();
+  if (!ok) annoncer('Ajoute au moins un bloc avant de présenter.');
+}
+
 // ---------------------------------------------------------------------
-// Petits panneaux « Forme » et « Couleur »
+// Panneau « Style » : forme et couleur
 // ---------------------------------------------------------------------
 function construireChoix() {
-  const panneauForme = $('choix-forme');
+  const panneauForme = $('options-forme');
   for (const f of FORMES) {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'option-choix';
     b.dataset.forme = f.id;
     b.innerHTML = `<svg viewBox="0 0 40 28" class="apercu-forme" aria-hidden="true">${apercuForme(f.id)}</svg><span>${f.nom}</span>`;
-    b.addEventListener('click', () => { modifierSelection({ forme: f.id }); fermerChoix(); });
+    b.addEventListener('click', () => modifierSelection({ forme: f.id }));
     panneauForme.appendChild(b);
   }
-  const panneauCouleur = $('choix-couleur');
+  const panneauCouleur = $('options-couleur');
   for (const c of COULEURS) {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'option-choix';
     b.dataset.couleur = c.id;
     b.innerHTML = `<span class="pastille" aria-hidden="true"></span><span>${c.nom}</span>`;
-    b.addEventListener('click', () => { modifierSelection({ couleur: c.id }); fermerChoix(); });
+    b.addEventListener('click', () => modifierSelection({ couleur: c.id }));
     panneauCouleur.appendChild(b);
   }
 }
@@ -201,23 +254,21 @@ function apercuForme(forme) {
   }
 }
 
-function basculerChoix(idPanneau, idBouton) {
+function basculerChoix(idPanneau, bouton) {
   const panneau = $(idPanneau);
   const ouvrir = panneau.hidden;
   fermerChoix();
   if (ouvrir) {
     panneau.hidden = false;
-    $(idBouton).setAttribute('aria-expanded', 'true');
-    const actif = panneau.querySelector('[aria-pressed="true"]') || panneau.querySelector('button');
+    bouton.setAttribute('aria-expanded', 'true');
+    const actif = panneau.querySelector('[aria-pressed="true"]') || panneau.querySelector('button:not(:disabled)');
     if (actif) actif.focus();
   }
 }
 
 export function fermerChoix() {
-  for (const [p, b] of [['choix-forme', 'btn-forme'], ['choix-couleur', 'btn-couleur']]) {
-    $(p).hidden = true;
-    $(b).setAttribute('aria-expanded', 'false');
-  }
+  for (const p of document.querySelectorAll('.choix')) p.hidden = true;
+  for (const b of document.querySelectorAll('[aria-controls^="choix-"]')) b.setAttribute('aria-expanded', 'false');
 }
 
 // ---------------------------------------------------------------------
@@ -236,7 +287,8 @@ function mettreAJourInterface() {
   for (const groupe of document.querySelectorAll('.groupe-outils')) {
     groupe.hidden = groupe.dataset.pour !== type;
   }
-  if (type !== 'bloc') fermerChoix();
+  if (type === 'aucun') fermerChoix();
+  else if (type === 'fleche') $('choix-style').hidden = true;
 
   if (sel && sel.type === 'bloc') {
     for (const b of document.querySelectorAll('[data-forme]')) b.setAttribute('aria-pressed', String(b.dataset.forme === sel.forme));
@@ -249,8 +301,19 @@ function mettreAJourInterface() {
     }
   }
   if (sel && sel.type === 'fleche') {
-    $('libelle-style').textContent = sel.style === 'angle' ? 'Droite' : 'Angle droit';
-    $('btn-style').setAttribute('aria-label', sel.style === 'angle' ? 'Passer en flèche droite' : 'Passer en flèche à angle droit');
+    $('libelle-trace').textContent = sel.style === 'angle' ? 'Droite' : 'Angle droit';
+    $('btn-trace').setAttribute('aria-label', sel.style === 'angle' ? 'Passer en flèche droite' : 'Passer en flèche à angle droit');
+  }
+  if (sel) {
+    // Panneau « Étape » : valeur actuelle et explications.
+    $('etape-valeur').textContent = sel.etape > 0 ? `Étape ${sel.etape}` : 'Toujours visible';
+    $('etape-moins').disabled = sel.etape <= 0;
+    $('etape-zero').disabled = sel.etape <= 0;
+    const effective = etapesEffectives(etat.schema).get(sel.id);
+    const max = etapeMax(etat.schema);
+    let info = max > 0 ? `Le schéma compte ${max} étape${max > 1 ? 's' : ''}.` : 'Aucune étape pour l\'instant : tout s\'affiche d\'un coup.';
+    if (sel.type === 'fleche' && effective > sel.etape) info = `Cette flèche apparaîtra à l'étape ${effective}, en même temps que ses blocs.`;
+    $('etape-info').textContent = info;
   }
 
   $('aide-vide').hidden = etat.schema.elements.length > 0;
@@ -271,6 +334,7 @@ function installerMenu() {
     switch (action) {
       case 'schemas': await afficherListe(); break;
       case 'nouveau': await nouveauSchema(); break;
+      case 'exporter-image': afficherExport(); break;
       case 'exporter':
         await sauvegarderMaintenant();
         exporterSchema(etat.schema);
@@ -314,14 +378,90 @@ function installerMenu() {
   });
 }
 
+// ---------------------------------------------------------------------
+// Nouveau schéma, avec choix du modèle de départ
+// ---------------------------------------------------------------------
+function installerNouveau() {
+  const liste = $('liste-modeles');
+  for (const m of MODELES) {
+    const label = document.createElement('label');
+    label.className = 'carte-modele';
+    label.innerHTML = `<input type="radio" name="modele" value="${m.id}"><span class="nom-modele"></span><span class="desc-modele"></span>`;
+    label.querySelector('.nom-modele').textContent = m.nom;
+    label.querySelector('.desc-modele').textContent = m.description;
+    liste.appendChild(label);
+  }
+  $('nouveau-titre').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); $('dlg-nouveau').close('oui'); }
+  });
+  // Choisir un modèle propose son nom comme titre (si on n'en a pas tapé d'autre).
+  liste.addEventListener('change', (e) => {
+    const champ = $('nouveau-titre');
+    const noms = MODELES.map((m) => m.nom).concat('Nouveau schéma');
+    if (noms.includes(champ.value.trim())) {
+      const m = MODELES.find((x) => x.id === e.target.value);
+      champ.value = m.id === 'vide' ? 'Nouveau schéma' : m.nom;
+    }
+  });
+}
+
 async function nouveauSchema() {
-  const titre = await demanderTexte('Nom du nouveau schéma', 'Nouveau schéma');
-  if (!titre) return;
+  const d = $('dlg-nouveau');
+  $('nouveau-titre').value = 'Nouveau schéma';
+  d.querySelector('input[name="modele"][value="vide"]').checked = true;
+  d.returnValue = 'non';
+  ouvrirFenetre(d);
+  $('nouveau-titre').focus();
+  $('nouveau-titre').select();
+  const ok = await new Promise((resoudre) => d.addEventListener('close', () => resoudre(d.returnValue === 'oui'), { once: true }));
+  if (!ok) return;
+  const titre = $('nouveau-titre').value.trim() || 'Nouveau schéma';
+  const modele = (d.querySelector('input[name="modele"]:checked') || {}).value || 'vide';
   await sauvegarderMaintenant();
-  const s = creerSchema(titre);
+  const s = modele === 'vide' ? creerSchema(titre) : creerDepuisModele(modele, titre);
   await enregistrerSchema(s);
   ouvrirSchema(s);
-  annoncer('Nouveau schéma créé.');
+  annoncer(modele === 'vide' ? 'Nouveau schéma créé.' : 'Modèle prêt : remplace les textes, puis présente !', 3500);
+}
+
+// ---------------------------------------------------------------------
+// Export en image ou PDF
+// ---------------------------------------------------------------------
+function themeExport() {
+  const choisi = $('dlg-export').querySelector('input[name="theme-export"]:checked');
+  return choisi ? choisi.value : 'clair';
+}
+
+function afficherExport() {
+  const d = $('dlg-export');
+  const theme = themePresentation(etat.schema);
+  for (const r of d.querySelectorAll('input[name="theme-export"]')) r.checked = r.value === theme;
+  ouvrirFenetre(d);
+}
+
+function installerExport() {
+  const lancer = async (action) => {
+    try {
+      await sauvegarderMaintenant();
+      await action();
+    } catch (erreur) {
+      console.error(erreur);
+      annoncer(erreur.message || 'L\'export a échoué.', 5000);
+    }
+  };
+  $('btn-export-png').addEventListener('click', () => lancer(async () => {
+    await exporterPng(etat.schema, themeExport());
+    annoncer('Image PNG créée : regarde dans tes téléchargements.');
+  }));
+  $('btn-export-svg').addEventListener('click', () => lancer(async () => {
+    exporterSvg(etat.schema, themeExport());
+    annoncer('Image SVG créée : regarde dans tes téléchargements.');
+  }));
+  $('btn-export-pdf').addEventListener('click', () => lancer(async () => {
+    const theme = themeExport();
+    $('dlg-export').close();
+    imprimerEtapes(etat.schema, theme, { surligner: $('export-surligner').checked, notes: $('export-notes').checked });
+  }));
 }
 
 // ---------------------------------------------------------------------
@@ -438,6 +578,11 @@ function afficherReglages() {
   for (const r of d.querySelectorAll('input[name="taille"]')) r.checked = Number(r.value) === Number(etat.reglages.taille);
   d.querySelector('input[name="grille"]').checked = !!etat.reglages.grille;
   d.querySelector('input[name="guides"]').checked = !!etat.reglages.guides;
+  d.querySelector('input[name="pastilles"]').checked = !!etat.reglages.pastilles;
+  const fondu = d.querySelector('input[name="fondu"]');
+  fondu.checked = !!etat.reglages.fondu && !reduireAnimations.matches;
+  fondu.disabled = reduireAnimations.matches;
+  $('aide-fondu').hidden = !reduireAnimations.matches;
   ouvrirFenetre(d);
 }
 
@@ -449,6 +594,8 @@ function installerReglages() {
     else if (champ.name === 'taille') etat.reglages.taille = Number(champ.value);
     else if (champ.name === 'grille') etat.reglages.grille = champ.checked;
     else if (champ.name === 'guides') etat.reglages.guides = champ.checked;
+    else if (champ.name === 'pastilles') etat.reglages.pastilles = champ.checked;
+    else if (champ.name === 'fondu') etat.reglages.fondu = champ.checked;
     enregistrerReglages();
     appliquerTheme();
     notifier();

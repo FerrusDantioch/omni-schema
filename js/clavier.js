@@ -20,8 +20,8 @@ export function installerClavier({ editeur, editerEtiquette, fermerChoix }) {
   let minuterieDeplacement = null;
 
   document.addEventListener('keydown', (e) => {
-    // Pas de raccourci pendant la saisie ou quand une fenêtre est ouverte.
-    if (editeur.actif()) return;
+    // Pas de raccourci pendant la saisie, la présentation, ou quand une fenêtre est ouverte.
+    if (editeur.actif() || etat.presentation) return;
     if (document.querySelector('dialog[open]')) return;
     const cible = e.target;
     if (cible && (cible.tagName === 'INPUT' || cible.tagName === 'TEXTAREA' || cible.isContentEditable)) return;

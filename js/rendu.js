@@ -7,7 +7,7 @@
 // =====================================================================
 
 import { couleurBloc, couleursToile } from './couleurs.js';
-import { POLICE, GRAISSE, GRILLE } from './config.js';
+import { POLICE, POLICE_CHIFFRES, GRAISSE, GRILLE } from './config.js';
 import { mettreEnPage, INTERLIGNE } from './texte.js';
 import { zoneTexte, traceFleche, milieu, pointe, pointBord, centre } from './geometrie.js';
 import { listeBlocs, listeFleches, trouver } from './modele.js';
@@ -25,8 +25,19 @@ export function el(nom, attributs = {}, parent = null) {
   return e;
 }
 
+/** Pastille ronde avec le numéro d'étape (visible seulement en édition). */
+function pastilleEtape(parent, x, y, numero, theme) {
+  const T = couleursToile(theme);
+  const g = el('g', { class: 'pastille-etape' }, parent);
+  el('circle', { cx: x, cy: y, r: 12, fill: T.selection, stroke: T.fond, 'stroke-width': 2 }, g);
+  const t = el('text', {
+    x, y: y + 4.5, fill: T.fond, 'font-size': 13, 'font-weight': 700, 'text-anchor': 'middle', 'font-family': POLICE_CHIFFRES,
+  }, g);
+  t.textContent = String(numero);
+}
+
 /** Dessine la forme et le texte d'un bloc dans le groupe « g » (coordonnées locales). */
-export function dessinerBloc(g, b, theme, { masquerTexte = false } = {}) {
+export function dessinerBloc(g, b, theme, { masquerTexte = false, badge = false } = {}) {
   g.replaceChildren();
   const c = couleurBloc(theme, b.couleur);
   const w = b.largeur;
@@ -45,6 +56,7 @@ export function dessinerBloc(g, b, theme, { masquerTexte = false } = {}) {
     default: // arrondi
       el('rect', { x: 0, y: 0, width: w, height: h, rx: Math.min(14, h / 3), ...style }, g);
   }
+  if (badge && b.etape > 0) pastilleEtape(g, 0, 0, b.etape, theme);
   if (masquerTexte) return;
 
   const zone = zoneTexte({ ...b, x: 0, y: 0 });
@@ -65,12 +77,14 @@ export function dessinerBloc(g, b, theme, { masquerTexte = false } = {}) {
       // ligne de base : milieu de la ligne + ~0,35 × taille
       y: arrondir(haut + i * hauteurLigne + hauteurLigne / 2 + mise.taille * 0.35),
     }, texte);
-    t.textContent = ligne || ' ';
+    t.textContent = ligne || '\u00a0';
   });
+  const pastille = g.querySelector('.pastille-etape');
+  if (pastille) g.appendChild(pastille); // au premier plan, devant le texte
 }
 
 /** Dessine une flèche (trait, pointe, étiquette) dans le groupe « g ». */
-export function dessinerFleche(g, f, A, B, theme, { selectionnee = false, zoneClic = true } = {}) {
+export function dessinerFleche(g, f, A, B, theme, { selectionnee = false, zoneClic = true, badge = false } = {}) {
   g.replaceChildren();
   const T = couleursToile(theme);
   const points = traceFleche(f, A, B);
@@ -101,6 +115,10 @@ export function dessinerFleche(g, f, A, B, theme, { selectionnee = false, zoneCl
       'text-anchor': 'middle',
     }, g);
     t.textContent = f.etiquette;
+  }
+  if (badge && f.etape > 0) {
+    const p = milieu(points, f.etiquette ? 0.25 : 0.5);
+    pastilleEtape(g, arrondir(p.x), arrondir(p.y), f.etape, theme);
   }
 }
 
@@ -168,9 +186,10 @@ export function creerRendu(svg) {
       presents.add(b.id);
       const n = noeudPour(b.id, 'bloc', calqueBlocs);
       const enEdition = etat.editionId === b.id;
-      const signature = `${b.largeur}|${b.hauteur}|${b.forme}|${b.couleur}|${theme}|${enEdition}|${b.texte}`;
+      const badge = etat.reglages.pastilles;
+      const signature = `${b.largeur}|${b.hauteur}|${b.forme}|${b.couleur}|${theme}|${enEdition}|${badge}|${b.etape}|${b.texte}`;
       if (signature !== n.signature) {
-        dessinerBloc(n.g, b, theme, { masquerTexte: enEdition });
+        dessinerBloc(n.g, b, theme, { masquerTexte: enEdition, badge });
         n.signature = signature;
         n.g.setAttribute('aria-label', b.texte || 'Bloc vide');
       }
@@ -192,9 +211,9 @@ export function creerRendu(svg) {
       const n = noeudPour(f.id, 'fleche', calqueFleches);
       const selectionnee = etat.selection === f.id;
       const signature = [A.x, A.y, A.largeur, A.hauteur, A.forme, B.x, B.y, B.largeur, B.hauteur, B.forme,
-        f.style, f.etiquette, theme, selectionnee].join('|');
+        f.style, f.etiquette, theme, selectionnee, f.etape, etat.reglages.pastilles].join('|');
       if (signature !== n.signature) {
-        dessinerFleche(n.g, f, A, B, theme, { selectionnee });
+        dessinerFleche(n.g, f, A, B, theme, { selectionnee, badge: etat.reglages.pastilles });
         n.signature = signature;
       }
     }

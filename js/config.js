@@ -6,7 +6,7 @@ export const APP_NOM = 'omni-schema';
 
 // ⚠ Quand tu publies une nouvelle version, change ce numéro ET celui de
 // VERSION dans sw.js (les deux doivent être identiques).
-export const APP_VERSION = '0.1.1';
+export const APP_VERSION = '0.2.0';
 
 // Version du format des fichiers de schéma. On l'augmente seulement si la
 // structure des données change ; modele.js sait alors convertir les anciens.
@@ -32,3 +32,4 @@ export const CLE_DERNIER = 'omni-schema.dernier-schema';
 // l'appareil : rien n'est téléchargé).
 export const POLICE = 'system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Ubuntu, Cantarell, sans-serif';
 export const GRAISSE = 500;
+export const POLICE_CHIFFRES = 'ui-monospace, "Cascadia Mono", "Roboto Mono", "JetBrains Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace';

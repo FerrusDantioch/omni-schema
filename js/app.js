@@ -10,7 +10,9 @@ import { creerSchemaAccueil, migrer } from './modele.js';
 import { listerSchemas, chargerSchema, enregistrerSchema, demanderStockagePersistant } from './stockage.js';
 import { installerGestes } from './interactions.js';
 import { creerEditeurTexte } from './editeur-texte.js';
-import { installerInterface, appliquerTheme, editerEtiquette, fermerChoix } from './interface.js';
+import { installerInterface, appliquerTheme, editerEtiquette, fermerChoix, demanderConfirmation } from './interface.js';
+import { creerPresentation } from './presentation.js';
+import { creerPanneauEtapes } from './panneau-etapes.js';
 import { installerClavier } from './clavier.js';
 import { installerMiseAJour } from './mise-a-jour.js';
 
@@ -23,7 +25,14 @@ async function demarrer() {
   brancherRendu(rendu);
 
   const editeur = creerEditeurTexte(document.getElementById('editeur-texte'));
-  installerInterface({ editeur });
+  const presentation = creerPresentation({
+    apresFermeture: () => { svg.focus({ preventScroll: true }); demanderRendu(); },
+  });
+  const panneauEtapes = creerPanneauEtapes({
+    demanderConfirmation,
+    presenter: () => document.getElementById('btn-presenter').click(),
+  });
+  installerInterface({ editeur, presentation, panneauEtapes });
   installerGestes(svg, {
     editerTexte: (id) => editeur.ouvrir(id),
     editerEtiquette,

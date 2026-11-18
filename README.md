@@ -15,8 +15,8 @@ Adresse prévue : <https://ferrusdantioch.github.io/omni-schema/>
 
 | Jalon | Contenu | État |
 |---|---|---|
-| 1 — Édition de base | PWA hors ligne, thèmes, À propos, bouton « Mettre à jour », blocs, flèches, zoom/déplacement, grille, annuler/rétablir, plusieurs schémas, export/import JSON | ✅ livré, en test |
-| 2 — Présentation | étapes, navigation, surlignage, notes, modèles de départ, export PNG/SVG/PDF | à venir |
+| 1 — Édition de base | PWA hors ligne, thèmes, À propos, bouton « Mettre à jour », blocs, flèches, zoom/déplacement, grille, annuler/rétablir, plusieurs schémas, export/import JSON | ✅ livré |
+| 2 — Présentation | étapes, navigation, surlignage, notes, modèles de départ, export PNG/SVG/PDF | ✅ livré, en test |
 | 3 — HTML autonome et finitions | lecteur HTML en un seul fichier, accessibilité clavier, petits écrans | à venir |
 
 ## Utilisation rapide
@@ -35,6 +35,22 @@ Adresse prévue : <https://ferrusdantioch.github.io/omni-schema/>
 | Zoomer | pincer à deux doigts | molette, ou **+** / **−** ; **0** pour recentrer |
 | Annuler / rétablir | flèches en haut à droite | **Ctrl+Z** / **Ctrl+Y** (ou Ctrl+Maj+Z) |
 | Dupliquer / supprimer | barre du bas | **Ctrl+D** / **Suppr** |
+| Choisir l'étape d'un élément | bouton **Étape** de la barre du bas | idem |
+| Voir / réordonner toutes les étapes | bouton **Étapes** (rien de sélectionné) | idem |
+| Écrire une note de présentateur | bouton **Note** sur un bloc | idem |
+
+### En présentation (bouton ▶ Présenter)
+
+| Je veux… | Au doigt | Au clavier / télécommande |
+|---|---|---|
+| Étape suivante | toucher la partie droite, ou glisser vers la gauche | **→**, **Espace**, **Entrée**, **Page suivante** |
+| Étape précédente | toucher le tiers gauche, ou glisser vers la droite | **←**, **Retour arrière**, **Page précédente** |
+| Début / fin | — | **Début** / **Fin** |
+| Notes du présentateur | bouton **Notes** en bas à gauche | **N** |
+| Quitter | croix en haut à droite, ou geste « retour » | **Échap** |
+
+Une flèche n'apparaît jamais avant ses deux blocs : elle se montre automatiquement
+à l'étape du dernier de ses blocs (sauf si tu lui donnes une étape plus tardive).
 
 ## Identité visuelle
 
@@ -58,6 +74,12 @@ js/
   rendu.js             dessin SVG
   interactions.js      gestes (doigt, souris, stylet)
   editeur-texte.js     écriture directement dans le bloc
+  etapes.js            logique des étapes (sans affichage)
+  panneau-etapes.js    panneau « Étapes »
+  presentation.js      mode présentation plein écran
+  schema-svg.js        SVG autonome du schéma (présentation, exports)
+  exports.js           exports PNG, SVG et PDF (une page par étape)
+  modeles.js           modèles de départ
   geometrie.js         calculs : bords, flèches, aimantation
   texte.js             retour à la ligne et taille du texte
   historique.js        annuler / rétablir

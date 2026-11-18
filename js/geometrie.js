@@ -95,11 +95,11 @@ export function traceFleche(fleche, A, B) {
   return simplifier([p1, { x: p1.x, y: my }, { x: p2.x, y: my }, p2]);
 }
 
-/** Point situé à mi-longueur d'une ligne brisée (pour l'étiquette). */
-export function milieu(points) {
+/** Point situé à une fraction de la longueur d'une ligne brisée (0,5 = milieu, pour l'étiquette). */
+export function milieu(points, fraction = 0.5) {
   let total = 0;
   for (let i = 1; i < points.length; i++) total += Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y);
-  let reste = total / 2;
+  let reste = total * fraction;
   for (let i = 1; i < points.length; i++) {
     const a = points[i - 1], b = points[i];
     const l = Math.hypot(b.x - a.x, b.y - a.y);

@@ -26,6 +26,7 @@ export const etat = {
   guides: [],            // lignes d'alignement affichées pendant un déplacement
   liaison: null,         // flèche en cours de création { de, x, y, cible }
   gesteEnCours: false,   // vrai pendant qu'un doigt / la souris agit
+  presentation: false,   // vrai pendant le mode présentation
 };
 
 const historique = creerHistorique();
@@ -35,7 +36,7 @@ const ecouteurs = new Set();
 const apresRendu = new Set();
 
 function lireReglages() {
-  const defaut = { theme: 'auto', taille: 100, grille: true, guides: true };
+  const defaut = { theme: 'auto', taille: 100, grille: true, guides: true, pastilles: true, fondu: false };
   try {
     return { ...defaut, ...(JSON.parse(localStorage.getItem(CLE_REGLAGES) || '{}') || {}) };
   } catch {
