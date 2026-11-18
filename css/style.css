@@ -10,11 +10,46 @@
    Contrastes vérifiés : texte ≥ 4,5:1, bordures de champs ≥ 3:1.
    ===================================================================== */
 
-/* ---------- Polices (déjà présentes sur l'appareil, rien n'est téléchargé) ---------- */
+/* ---------- Polices de l'Omni-système, embarquées dans l'application ----------
+   Les mêmes que le portfolio, mais copiées dans le dossier polices/ :
+   rien n'est téléchargé depuis internet, tout marche hors ligne.
+   - Oxanium : interface, titres, boutons et texte des blocs ;
+   - Literata : texte de lecture (explications, notes, À propos) ;
+   - JetBrains Mono : chiffres (version, étapes, compteur).
+   Licence des polices : SIL Open Font License (voir polices/LICENCES.txt). */
+@font-face {
+  font-family: "Oxanium";
+  src: url("../polices/oxanium.woff2") format("woff2");
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Literata";
+  src: url("../polices/literata.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Literata";
+  src: url("../polices/literata-italique.woff2") format("woff2");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("../polices/jetbrains-mono.woff2") format("woff2");
+  font-weight: 100 800;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
-  --police-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Ubuntu, Cantarell, sans-serif;
-  --police-lecture: "Iowan Old Style", "Palatino Linotype", Charter, "Source Serif Pro", "Noto Serif", "DejaVu Serif", Georgia, serif;
-  --police-chiffres: ui-monospace, "Cascadia Mono", "Roboto Mono", "JetBrains Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace;
+  --police-ui: "Oxanium", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  --police-lecture: "Literata", Georgia, "Noto Serif", "Times New Roman", serif;
+  --police-chiffres: "JetBrains Mono", ui-monospace, "Cascadia Mono", "Roboto Mono", Menlo, Consolas, monospace;
   --rayon: 12px;
   --rayon-carte: 18px;
 }
@@ -224,6 +259,7 @@ a { color: var(--accent); text-underline-offset: 0.18em; }
   text-align: left;
 }
 .titre-schema span {
+  line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -386,7 +422,8 @@ a { color: var(--accent); text-underline-offset: 0.18em; }
   font-weight: 650;
   line-height: 1.1;
 }
-.outil span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+/* line-height généreux : les accents des majuscules (É) d'Oxanium ne sont pas coupés. */
+.outil span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; line-height: 1.35; }
 .outil:hover { background: var(--surface-2); }
 /* Outil actif : pastille violette pleine, comme le choix « Normal » du portfolio. */
 .outil[aria-pressed="true"], .outil[aria-expanded="true"] { background: var(--accent-fond); color: var(--accent-texte); }

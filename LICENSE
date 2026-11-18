@@ -12,7 +12,9 @@ Partage autorisé en citant l'auteur, sans usage commercial ni
 modification.
 
 Cette licence ne couvre que le code de l'application. Les schémas que
-tu crées avec omni-schema t'appartiennent.
+tu crées avec omni-schema t'appartiennent. Les polices du dossier
+polices/ (Oxanium, Literata, JetBrains Mono) restent sous leur propre
+licence, la SIL Open Font License 1.1 : voir polices/LICENCES.txt.
 
 Résumé : https://creativecommons.org/licenses/by-nc-nd/4.0/deed.fr
 
@@ -27,7 +29,9 @@ Sharing is allowed with credit to the author, for non-commercial use
 and without modification.
 
 This license only covers the application's code. The diagrams you
-create with omni-schema belong to you.
+create with omni-schema belong to you. The fonts in the polices/ folder
+(Oxanium, Literata, JetBrains Mono) remain under their own license, the
+SIL Open Font License 1.1: see polices/LICENCES.txt.
 
 Summary: https://creativecommons.org/licenses/by-nc-nd/4.0/deed.en
 

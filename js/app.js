@@ -15,6 +15,8 @@ import { creerPresentation } from './presentation.js';
 import { creerPanneauEtapes } from './panneau-etapes.js';
 import { installerClavier } from './clavier.js';
 import { installerMiseAJour } from './mise-a-jour.js';
+import { attendrePolices } from './polices.js';
+import { viderCacheTexte } from './texte.js';
 
 const svg = document.getElementById('toile');
 
@@ -56,6 +58,12 @@ async function demarrer() {
   });
   window.addEventListener('pagehide', () => { sauvegarderMaintenant(); });
 
+  // Le texte des blocs est mesuré avec la police Oxanium : on attend qu'elle soit prête.
+  await attendrePolices();
+  // Si une police arrive plus tard (appareil lent), on refait la mise en page.
+  if (document.fonts) {
+    document.fonts.addEventListener('loadingdone', () => { viderCacheTexte(); rendu.vider(); demanderRendu(); });
+  }
   await ouvrirPremierSchema();
   demanderStockagePersistant();
 }

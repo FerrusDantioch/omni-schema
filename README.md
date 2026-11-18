@@ -60,7 +60,20 @@ Une flèche n'apparaît jamais avant ses deux blocs : elle se montre automatique
 Alignée sur le portfolio de l'Omni-système : fond nuit `#14121e`, cartes `#1e1928`,
 filets `#262435`, violet `#a777ff` avec texte sombre sur les boutons, petites étiquettes
 en MAJUSCULES espacées, chiffres en police à chasse fixe, texte de lecture à empattements,
-choix en « pilules ». Polices déjà présentes sur l'appareil : rien n'est téléchargé.
+choix en « pilules ».
+
+Polices : les mêmes que le portfolio, **embarquées** dans le dossier `polices/` (environ 95 Ko,
+rien n'est téléchargé depuis internet) :
+
+| Police | Usage |
+|---|---|
+| **Oxanium** | interface, titres, boutons, texte des blocs |
+| **Literata** | texte de lecture (explications, notes, À propos) |
+| **JetBrains Mono** | chiffres (version, étapes, compteur) |
+
+Elles sont sous licence libre SIL Open Font License 1.1 (voir `polices/LICENCES.txt`).
+Les exports SVG, PNG et HTML contiennent la police Oxanium : ils s'affichent à l'identique
+sur tous les appareils.
 En thème clair, le violet est assombri (`#6a3fd6`) pour rester lisible.
 
 ## Page HTML autonome
@@ -76,8 +89,8 @@ que tu peux envoyer par e-mail ou mettre sur une clé USB :
 - les notes du présentateur n'y sont incluses que si tu le demandes ;
 - sans JavaScript, il affiche quand même le schéma complet.
 
-Comme le texte est mis en page au moment de l'export, un appareil qui n'a pas la même police système
-peut afficher un texte très légèrement plus large ou plus étroit.
+La police Oxanium est incluse dans le fichier : le texte s'affiche exactement comme dans l'application,
+sur tous les appareils (environ 20 Ko de plus ; 50 Ko avec les notes, qui utilisent Literata).
 
 ## Accessibilité
 
@@ -106,6 +119,7 @@ js/
   schema-svg.js        SVG autonome du schéma (présentation, exports)
   exports.js           exports PNG, SVG et PDF (une page par étape)
   export-html.js       page HTML autonome (avec son petit lecteur)
+  polices.js           chargement des polices et intégration aux exports
   modeles.js           modèles de départ
   geometrie.js         calculs : bords, flèches, aimantation
   texte.js             retour à la ligne et taille du texte
@@ -119,6 +133,7 @@ js/
   config.js            version et constantes
   theme-init.js        applique le thème avant l'affichage
 icons/                 icônes de l'application
+polices/               polices embarquées (Oxanium, Literata, JetBrains Mono) et leurs licences
 assets/logo-omni-systeme.webp   logo de l'Omni-système (espace réservé à remplacer)
 ```
 

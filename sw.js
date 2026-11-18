@@ -8,7 +8,7 @@
 // apparaît dans l'application.
 // =====================================================================
 
-const VERSION = '0.3.0';
+const VERSION = '0.4.0';
 const CACHE = `omni-schema-${VERSION}`;
 
 // Tous les fichiers de l'application (chemins relatifs : fonctionne dans
@@ -36,6 +36,7 @@ const FICHIERS = [
   './js/modeles.js',
   './js/noyau.js',
   './js/panneau-etapes.js',
+  './js/polices.js',
   './js/presentation.js',
   './js/rendu.js',
   './js/schema-svg.js',
@@ -48,6 +49,10 @@ const FICHIERS = [
   './icons/icon-maskable-512.png',
   './icons/apple-touch-icon.png',
   './assets/logo-omni-systeme.webp',
+  './polices/oxanium.woff2',
+  './polices/literata.woff2',
+  './polices/literata-italique.woff2',
+  './polices/jetbrains-mono.woff2',
 ];
 
 // Installation : on télécharge tout. « cache: 'reload' » évite de

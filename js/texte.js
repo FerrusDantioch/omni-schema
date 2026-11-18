@@ -73,6 +73,11 @@ function decouper(texte, largeurMax) {
   return lignes;
 }
 
+/** Oublie les mises en page mémorisées (à faire quand une police vient d'arriver). */
+export function viderCacheTexte() {
+  cache.clear();
+}
+
 /**
  * Renvoie { lignes, taille, tronque } : la plus grande taille (entre 18
  * et 11) pour laquelle le texte tient dans la zone donnée.

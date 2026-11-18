@@ -17,6 +17,7 @@ import { listeBlocs } from './modele.js';
 import { arrets, nomElement } from './etapes.js';
 import { construireSvg, dessinerSurlignage } from './schema-svg.js';
 import { telecharger, nomFichier } from './fichiers.js';
+import { cssPolicesIntegrees } from './polices.js';
 
 // Couleurs de l'interface du lecteur, selon le thème choisi.
 const INTERFACE = {
@@ -28,7 +29,7 @@ const INTERFACE = {
 const echapper = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 /** Fabrique le texte complet du fichier HTML. */
-export function construireHtml(schema, theme, { notes = false, fondu = false } = {}) {
+export function construireHtml(schema, theme, { notes = false, fondu = false, css = '' } = {}) {
   if (!listeBlocs(schema).length) throw new Error('Ce schéma est vide : ajoute au moins un bloc.');
   const T = couleursToile(theme);
   const I = INTERFACE[theme] || INTERFACE.clair;
@@ -67,13 +68,14 @@ export function construireHtml(schema, theme, { notes = false, fondu = false } =
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; font-src data:">
 <meta name="generator" content="omni-schema ${APP_VERSION}">
 <title>${echapper(schema.titre)}</title>
 <style>
+${css}
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
-body{background:${T.fond};color:${I.texte};font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif;overflow:hidden;overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
+body{background:${T.fond};color:${I.texte};font-family:"Oxanium",system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif;overflow:hidden;overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
 #scene{position:fixed;inset:0;padding:max(1rem,env(safe-area-inset-top)) max(1rem,env(safe-area-inset-right)) max(4.5rem,env(safe-area-inset-bottom)) max(1rem,env(safe-area-inset-left));cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation}
 #scene svg{display:block;width:100%;height:100%;pointer-events:none}
 button{font:inherit;color:inherit;display:inline-flex;align-items:center;justify-content:center;gap:.35rem;min-width:48px;min-height:48px;padding:.4rem .6rem;border:0;border-radius:12px;background:transparent;opacity:.6;cursor:pointer;touch-action:manipulation;font-weight:650}
@@ -91,7 +93,7 @@ button svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;s
 #notes h2{margin:0 0 .5rem;font-size:.75rem;letter-spacing:.16em;text-transform:uppercase;color:${I.doux}}
 .note+.note{margin-top:.75rem;padding-top:.75rem;border-top:1px solid ${I.filet}}
 .note p{margin:0}.note-bloc{font-weight:700;color:${I.accent}}
-.note-texte{font-family:"Iowan Old Style","Palatino Linotype",Charter,"Noto Serif",Georgia,serif;font-size:1.08rem;line-height:1.55;white-space:pre-wrap}
+.note-texte{font-family:"Literata","Iowan Old Style","Palatino Linotype",Charter,"Noto Serif",Georgia,serif;font-size:1.08rem;line-height:1.55;white-space:pre-wrap}
 .sans-note{margin:0;font-style:italic;color:${I.doux}}
 [hidden]{display:none!important}
 @keyframes apparition{from{opacity:0}to{opacity:1}}
@@ -120,9 +122,11 @@ ${notes ? '<section id="notes" hidden aria-labelledby="titre-notes"><h2 id="titr
 `;
 }
 
-/** Crée le fichier .html et propose de le télécharger. */
-export function exporterHtml(schema, theme, options) {
-  const html = construireHtml(schema, theme, options);
+/** Crée le fichier .html (polices comprises) et propose de le télécharger. */
+export async function exporterHtml(schema, theme, options = {}) {
+  // Oxanium pour le schéma et les boutons ; Literata seulement si les notes sont incluses.
+  const css = await cssPolicesIntegrees(options.notes ? ['oxanium', 'literata'] : ['oxanium']);
+  const html = construireHtml(schema, theme, { ...options, css });
   telecharger(nomFichier(schema.titre, 'html'), html, 'text/html');
 }
 
