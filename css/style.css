@@ -1,0 +1,517 @@
+/* =====================================================================
+   omni-schema — styles
+   Trois thèmes (clair, sombre, sombre violet), réglés par l'attribut
+   data-theme de <html>. Tailles en rem : le réglage « Taille du texte »
+   agrandit toute l'interface. Aucune animation.
+   ===================================================================== */
+
+/* ---------- Thèmes ---------- */
+:root,
+[data-theme="violet"] {
+  color-scheme: dark;
+  --fond: #140e26;          /* fond général */
+  --barre: #1f1638;         /* barres du haut et du bas */
+  --surface: #261c44;       /* fenêtres, menus */
+  --surface-2: #33275a;     /* survol, éléments actifs */
+  --bord: #4a3b7a;
+  --texte: #f3eeff;
+  --texte-doux: #cbbfe8;
+  --accent: #c9b4ff;        /* violet nuit lumineux */
+  --accent-fond: #5b3fa8;
+  --accent-texte: #ffffff;
+  --danger: #ff9aa8;
+  --danger-fond: #7a1f35;
+  --focus: #ffd166;
+  --voile: rgb(8 4 20 / 0.7);
+}
+
+[data-theme="sombre"] {
+  color-scheme: dark;
+  --fond: #0f0e13;
+  --barre: #1c1a23;
+  --surface: #23212b;
+  --surface-2: #302d3a;
+  --bord: #4a4657;
+  --texte: #f2eff7;
+  --texte-doux: #c4bfd1;
+  --accent: #b49cf5;
+  --accent-fond: #5b3fa8;
+  --accent-texte: #ffffff;
+  --danger: #ff9a92;
+  --danger-fond: #7a221d;
+  --focus: #ffd166;
+  --voile: rgb(0 0 0 / 0.7);
+}
+
+[data-theme="clair"] {
+  color-scheme: light;
+  --fond: #ebe7f4;
+  --barre: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #ece6fb;
+  --bord: #b9b0cf;
+  --texte: #1d1928;
+  --texte-doux: #4a4458;
+  --accent: #5b3fa8;
+  --accent-fond: #5b3fa8;
+  --accent-texte: #ffffff;
+  --danger: #b3261e;
+  --danger-fond: #b3261e;
+  --focus: #b35c00;
+  --voile: rgb(20 10 40 / 0.45);
+}
+
+/* ---------- Base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--fond);
+  color: var(--texte);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Ubuntu, Cantarell, sans-serif;
+  font-size: 1rem;
+  line-height: 1.45;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Aucune animation, aucune transition, nulle part. */
+*, *::before, *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+
+[hidden] { display: none !important; }
+
+.sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+.icone {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.icone.petite { width: 1rem; height: 1rem; opacity: 0.75; }
+
+button, input, select, textarea { font: inherit; color: inherit; }
+
+button {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+button:disabled { cursor: default; opacity: 0.4; }
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+a { color: var(--accent); text-underline-offset: 0.15em; }
+
+/* ---------- Boutons ---------- */
+.bouton-icone {
+  display: inline-grid;
+  place-items: center;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0.5rem;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--texte);
+}
+.bouton-icone:hover:not(:disabled) { background: var(--surface-2); }
+.bouton-icone.danger { color: var(--danger); }
+
+.bouton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 48px;
+  padding: 0.6rem 1.1rem;
+  border: 2px solid var(--bord);
+  border-radius: 12px;
+  background: var(--surface);
+  font-weight: 600;
+}
+.bouton:hover { background: var(--surface-2); }
+.bouton.principal { background: var(--accent-fond); border-color: var(--accent-fond); color: var(--accent-texte); }
+.bouton.danger { background: var(--danger-fond); border-color: var(--danger-fond); color: #fff; }
+.pleine-largeur { width: 100%; }
+
+/* ---------- Barre du haut ---------- */
+.barre-haut {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  padding-top: max(0.25rem, env(safe-area-inset-top));
+  padding-left: max(0.5rem, env(safe-area-inset-left));
+  padding-right: max(0.5rem, env(safe-area-inset-right));
+  background: var(--barre);
+  border-bottom: 1px solid var(--bord);
+  min-width: 0;
+}
+
+.titre-schema {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  min-height: 48px;
+  padding: 0 0.6rem;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  font-size: 1.05rem;
+  font-weight: 650;
+  text-align: left;
+}
+.titre-schema span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.titre-schema:hover { background: var(--surface-2); }
+
+.bouton-maj {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  padding: 0.4rem 0.8rem;
+  border: 2px solid var(--accent);
+  border-radius: 999px;
+  background: var(--accent-fond);
+  color: var(--accent-texte);
+  font-weight: 650;
+  white-space: nowrap;
+}
+.bouton-maj .icone { width: 1.2rem; height: 1.2rem; }
+
+/* ---------- Zone de dessin ---------- */
+.zone {
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+  touch-action: none;           /* les gestes sont gérés par l'application */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.toile {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+.toile:focus-visible { outline-offset: -4px; }
+
+.toile .bloc { cursor: grab; }
+.toile .fleche { cursor: pointer; }
+.toile .decor { pointer-events: none; }
+.toile .poignee-redim { cursor: nwse-resize; }
+.toile .poignee-relier { cursor: crosshair; }
+.toile text { pointer-events: none; }
+
+.editeur-texte {
+  position: absolute;
+  z-index: 2;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  outline: 3px solid var(--focus);
+  resize: none;
+  overflow: auto;
+  text-align: center;
+  line-height: 1.25;
+  box-sizing: border-box;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.aide-vide {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  transform: translate(-50%, -50%);
+  width: min(90%, 28rem);
+  margin: 0;
+  padding: 1rem 1.2rem;
+  border: 2px dashed var(--bord);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--texte-doux);
+  text-align: center;
+  pointer-events: none;
+}
+
+.annonce {
+  position: absolute;
+  left: 50%;
+  bottom: 0.75rem;
+  transform: translateX(-50%);
+  z-index: 5;
+  max-width: calc(100% - 2rem);
+  padding: 0.6rem 1rem;
+  border-radius: 12px;
+  background: var(--texte);
+  color: var(--fond);
+  font-weight: 600;
+  text-align: center;
+  pointer-events: none;
+  visibility: hidden;
+}
+.annonce.visible { visibility: visible; }
+
+/* ---------- Barre du bas ---------- */
+.barre-bas {
+  background: var(--barre);
+  border-top: 1px solid var(--bord);
+  padding: 0.25rem 0.25rem;
+  padding-bottom: max(0.25rem, env(safe-area-inset-bottom));
+  padding-left: max(0.25rem, env(safe-area-inset-left));
+  padding-right: max(0.25rem, env(safe-area-inset-right));
+}
+
+.groupe-outils {
+  display: flex;
+  justify-content: center;
+  gap: 0.15rem;
+  max-width: 40rem;
+  margin: 0 auto;
+}
+
+.outil {
+  flex: 1 1 0;
+  min-width: 48px;
+  max-width: 6.5rem;
+  min-height: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  padding: 0.3rem 0.1rem;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.1;
+}
+.outil span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.outil:hover { background: var(--surface-2); }
+.outil[aria-pressed="true"], .outil[aria-expanded="true"] { background: var(--surface-2); color: var(--accent); box-shadow: inset 0 -3px 0 var(--accent); }
+.outil.danger { color: var(--danger); }
+
+/* ---------- Panneaux Forme / Couleur ---------- */
+.choix {
+  position: fixed;
+  left: 50%;
+  bottom: calc(64px + env(safe-area-inset-bottom) + 0.5rem);
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35rem;
+  width: max-content;
+  max-width: calc(100% - 1rem);
+  padding: 0.5rem;
+  border: 1px solid var(--bord);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.35);
+}
+
+.option-choix {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  min-width: 64px;
+  min-height: 64px;
+  padding: 0.4rem;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.option-choix:hover { background: var(--surface-2); }
+.option-choix[aria-pressed="true"] { border-color: var(--accent); background: var(--surface-2); }
+.apercu-forme { width: 40px; height: 28px; }
+.pastille {
+  width: 32px;
+  height: 26px;
+  border: 3px solid;
+  border-radius: 8px;
+}
+
+/* ---------- Fenêtres (dialogues) ---------- */
+dialog {
+  border: 1px solid var(--bord);
+  border-radius: 18px;
+  padding: 0;
+  background: var(--surface);
+  color: var(--texte);
+  max-height: calc(100dvh - 2rem);
+}
+dialog::backdrop { background: var(--voile); }
+
+.fenetre {
+  width: min(32rem, calc(100vw - 1.5rem));
+  padding: 0.75rem 1.25rem 1.25rem;
+  overflow-y: auto;
+}
+.fenetre.petite { width: min(26rem, calc(100vw - 1.5rem)); padding-top: 1.25rem; }
+.fenetre h2 { margin: 0; font-size: 1.25rem; }
+
+.fenetre-entete, .tiroir-entete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.boutons-fenetre {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+}
+
+.etiquette-champ { display: block; margin-bottom: 0.5rem; font-weight: 600; }
+.fenetre input[type="text"] {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid var(--bord);
+  border-radius: 10px;
+  background: var(--fond);
+}
+.fenetre input[type="text"]:focus { border-color: var(--accent); }
+
+/* Menu : tiroir collé à gauche */
+.tiroir {
+  margin: 0;
+  width: min(22rem, 88vw);
+  height: 100%;
+  max-height: none;
+  border-radius: 0 18px 18px 0;
+  border-width: 0 1px 0 0;
+  padding: max(0.5rem, env(safe-area-inset-top)) 0.75rem 1rem max(0.75rem, env(safe-area-inset-left));
+  overflow-y: auto;
+}
+.tiroir h2 { margin: 0 0 0 0.5rem; font-size: 1.2rem; }
+
+.liste-menu { list-style: none; margin: 0; padding: 0; }
+.liste-menu button {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  min-height: 52px;
+  padding: 0.5rem 0.75rem;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  font-weight: 550;
+  text-align: left;
+}
+.liste-menu button:hover { background: var(--surface-2); }
+.liste-menu .icone { color: var(--accent); }
+.separateur { height: 1px; margin: 0.5rem 0.75rem; background: var(--bord); }
+
+/* Liste des schémas */
+.liste-schemas { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; gap: 0.6rem; }
+.carte-schema {
+  display: flex;
+  align-items: stretch;
+  gap: 0.25rem;
+  border: 2px solid var(--bord);
+  border-radius: 14px;
+  background: var(--fond);
+}
+.carte-schema.courant { border-color: var(--accent); }
+.ouvrir-schema {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.15rem;
+  min-height: 56px;
+  padding: 0.5rem 0.75rem;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  text-align: left;
+}
+.ouvrir-schema:hover { background: var(--surface-2); }
+.titre-carte { font-weight: 650; overflow-wrap: anywhere; }
+.details-carte { font-size: 0.85rem; color: var(--texte-doux); }
+.actions-carte { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+
+/* Réglages */
+.groupe-choix {
+  margin: 0 0 1rem;
+  padding: 0.5rem 0.75rem 0.75rem;
+  border: 1px solid var(--bord);
+  border-radius: 12px;
+}
+.groupe-choix legend { padding: 0 0.4rem; font-weight: 650; }
+.groupe-choix label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 48px;
+  cursor: pointer;
+}
+.groupe-choix input { width: 1.4rem; height: 1.4rem; flex: none; accent-color: var(--accent-fond); }
+
+/* À propos */
+.apropos { text-align: center; }
+.apropos .fenetre-entete { margin-bottom: 0; }
+.apropos .logo { display: block; width: 128px; height: 128px; margin: 0 auto 0.75rem; border-radius: 24px; object-fit: contain; }
+.apropos h2 { font-size: 1.5rem; }
+.apropos .version { margin-top: 0.25rem; color: var(--texte-doux); }
+.apropos p { margin: 0.75rem 0; }
+/* Liens : zone de toucher agrandie (padding) sans les isoler sur leur ligne. */
+.apropos a { padding: 0.7rem 0.15rem; overflow-wrap: anywhere; }
+.apropos p { line-height: 1.6; }
+.apropos .signature { margin-top: 1.25rem; font-style: italic; font-weight: 600; color: var(--accent); }
+
+/* ---------- Petits écrans ---------- */
+@media (max-width: 380px) {
+  .outil { font-size: 0.68rem; }
+  .bouton-maj span { display: none; }
+}
+
+/* ---------- Contraste renforcé demandé par l'appareil ---------- */
+@media (prefers-contrast: more) {
+  :root { --bord: currentColor; }
+}
