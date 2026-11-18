@@ -21,7 +21,7 @@ const MARGE = 48;
  * Renvoie { svg, elements, calqueSurlignage, theme } ; « elements » liste
  * chaque élément avec son groupe SVG et son étape effective.
  */
-export function construireSvg(schema, theme) {
+export function construireSvg(schema, theme, { css = '' } = {}) {
   const T = couleursToile(theme);
   const blocs = listeBlocs(schema);
   const parId = new Map(blocs.map((b) => [b.id, b]));
@@ -42,6 +42,8 @@ export function construireSvg(schema, theme) {
   svg.setAttribute('role', 'img');
   const titre = el('title', {}, svg);
   titre.textContent = schema.titre;
+  // Polices intégrées (exports) : le dessin s'affiche pareil partout.
+  if (css) el('style', {}, svg).textContent = css;
 
   el('rect', { x: vb.x, y: vb.y, width: vb.largeur, height: vb.hauteur, fill: T.fond, class: 'fond-schema' }, svg);
   const calqueSurlignage = el('g', { class: 'surlignage' }, svg);

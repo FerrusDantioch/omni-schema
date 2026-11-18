@@ -6,7 +6,7 @@ export const APP_NOM = 'omni-schema';
 
 // ⚠ Quand tu publies une nouvelle version, change ce numéro ET celui de
 // VERSION dans sw.js (les deux doivent être identiques).
-export const APP_VERSION = '0.3.0';
+export const APP_VERSION = '0.4.0';
 
 // Version du format des fichiers de schéma. On l'augmente seulement si la
 // structure des données change ; modele.js sait alors convertir les anciens.
@@ -28,8 +28,14 @@ export const BLOC_DEFAUT = { largeur: 160, hauteur: 80 };
 export const CLE_REGLAGES = 'omni-schema.reglages';
 export const CLE_DERNIER = 'omni-schema.dernier-schema';
 
-// Police utilisée pour le texte des blocs (polices déjà présentes sur
-// l'appareil : rien n'est téléchargé).
-export const POLICE = 'system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Ubuntu, Cantarell, sans-serif';
+// Police du texte des blocs : Oxanium, la police de l'Omni-système,
+// embarquée dans l'application (dossier polices/, rien n'est téléchargé).
+export const POLICE = '"Oxanium", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif';
 export const GRAISSE = 500;
-export const POLICE_CHIFFRES = 'ui-monospace, "Cascadia Mono", "Roboto Mono", "JetBrains Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace';
+export const POLICE_CHIFFRES = '"JetBrains Mono", ui-monospace, "Cascadia Mono", "Roboto Mono", Menlo, Consolas, monospace';
+
+// Fichiers des polices (pour les intégrer aux exports SVG, PNG et HTML).
+export const FICHIERS_POLICES = {
+  oxanium: { famille: 'Oxanium', fichier: 'polices/oxanium.woff2', graisse: '200 800', style: 'normal' },
+  literata: { famille: 'Literata', fichier: 'polices/literata.woff2', graisse: '400', style: 'normal' },
+};

@@ -461,12 +461,12 @@ function installerExport() {
     annoncer('Image PNG créée : regarde dans tes téléchargements.');
   }));
   $('btn-export-svg').addEventListener('click', () => lancer(async () => {
-    exporterSvg(etat.schema, themeExport());
+    await exporterSvg(etat.schema, themeExport());
     annoncer('Image SVG créée : regarde dans tes téléchargements.');
   }));
   $('btn-export-html').addEventListener('click', () => lancer(async () => {
     const fondu = !!etat.reglages.fondu && !reduireAnimations.matches;
-    exporterHtml(etat.schema, themeExport(), { notes: $('export-html-notes').checked, fondu });
+    await exporterHtml(etat.schema, themeExport(), { notes: $('export-html-notes').checked, fondu });
     annoncer('Page HTML créée : regarde dans tes téléchargements.');
   }));
   $('btn-export-pdf').addEventListener('click', () => lancer(async () => {

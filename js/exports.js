@@ -12,20 +12,23 @@ import { arrets } from './etapes.js';
 import { listeBlocs, trouver } from './modele.js';
 import { couleursToile } from './couleurs.js';
 import { telecharger, nomFichier } from './fichiers.js';
+import { cssPolicesIntegrees } from './polices.js';
 
 const verifier = (schema) => {
   if (!listeBlocs(schema).length) throw new Error('Ce schéma est vide : ajoute au moins un bloc.');
 };
 
-export function exporterSvg(schema, theme) {
+export async function exporterSvg(schema, theme) {
   verifier(schema);
-  const { svg } = construireSvg(schema, theme);
+  const { svg } = construireSvg(schema, theme, { css: await cssPolicesIntegrees(['oxanium']) });
   telecharger(nomFichier(schema.titre, 'svg'), svgEnTexte(svg), 'image/svg+xml');
 }
 
 export async function exporterPng(schema, theme) {
   verifier(schema);
-  const { svg, cadre } = construireSvg(schema, theme);
+  // Une image SVG chargée dans un canevas ne voit pas les polices de la
+  // page : on les intègre dans le SVG lui-même.
+  const { svg, cadre } = construireSvg(schema, theme, { css: await cssPolicesIntegrees(['oxanium']) });
   const url = URL.createObjectURL(new Blob([svgEnTexte(svg)], { type: 'image/svg+xml' }));
   try {
     const image = new Image();
