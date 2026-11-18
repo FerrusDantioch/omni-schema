@@ -8,13 +8,18 @@
 //                               (un déplacement de bloc en cours est annulé) ;
 // - molette de la souris      → zoom autour du pointeur ;
 // - clic molette (bouton du milieu) → déplace la vue.
+// Sélection multiple :
+// - appui long sur un bloc (doigt)  → démarre la sélection multiple ;
+//   ensuite, toucher un bloc l'ajoute ou le retire ;
+// - appui long sur le fond, puis glisser → rectangle de sélection ;
+// - à la souris : Maj+clic sur un bloc, Maj+glisser sur le fond.
 // Un geste ne démarre qu'après un petit mouvement (seuil), ce qui
 // distingue un simple « toucher » d'un glissement.
 // =====================================================================
 
 import {
   etat, demanderRendu, valider, abandonner, selectionner, ajouterBloc, relier,
-  borneZoom, zoomerAutour,
+  borneZoom, zoomerAutour, basculerDansGroupe, entrerGroupe, annoncer,
 } from './noyau.js';
 import { trouver, listeBlocs } from './modele.js';
 import { aimanter, surGrille } from './geometrie.js';
@@ -25,6 +30,7 @@ export function installerGestes(svg, { editerTexte, editerEtiquette, avantGeste 
   let geste = null;
   let rectZone = null;
   let dernierToucherVide = null; // pour détecter le double toucher sur le fond
+  const DELAI_APPUI_LONG = 500;  // millisecondes
 
   const position = (e) => ({ x: e.clientX - rectZone.left, y: e.clientY - rectZone.top });
   const versSchema = (p) => ({ x: (p.x - etat.vue.x) / etat.vue.k, y: (p.y - etat.vue.y) / etat.vue.k });
@@ -61,8 +67,22 @@ export function installerGestes(svg, { editerTexte, editerEtiquette, avantGeste 
     const poignee = cible && cible.dataset.poignee;
     const id = cible && cible.dataset.id;
     const element = id ? trouver(etat.schema, id) : null;
+    const touche = e.pointerType !== 'mouse';
+    const modificateur = e.shiftKey || e.ctrlKey || e.metaKey;
 
-    if (poignee === 'redim') {
+    if (element && element.type === 'bloc' && modificateur) {
+      // Maj+clic (ou Ctrl+clic) : ajoute / retire le bloc de la sélection multiple.
+      basculerDansGroupe(element.id);
+      geste = { ...base, mode: 'rien' };
+    } else if (element && element.type === 'bloc' && etat.groupe) {
+      // Sélection multiple active : on glisse tout le groupe (le bloc touché le rejoint).
+      const ajoute = !etat.groupe.includes(element.id);
+      if (ajoute) basculerDansGroupe(element.id);
+      geste = demarrerGroupe(base, element.id, ajoute);
+    } else if (!element && !poignee && modificateur && !touche) {
+      // Maj+glisser sur le fond : rectangle de sélection.
+      geste = { ...base, mode: 'rectangle', debut: versSchema(p) };
+    } else if (poignee === 'redim') {
       const b = trouver(etat.schema, etat.selection);
       if (!b) return;
       geste = { ...base, mode: 'redim', idBloc: b.id, l0: b.largeur, h0: b.hauteur };
@@ -72,14 +92,45 @@ export function installerGestes(svg, { editerTexte, editerEtiquette, avantGeste 
       const dejaChoisi = etat.selection === element.id;
       selectionner(element.id);
       geste = { ...base, mode: 'bloc', idBloc: element.id, x0: element.x, y0: element.y, dejaChoisi };
+      if (touche) armerAppuiLong(geste);
     } else if (element && element.type === 'fleche') {
       const dejaChoisi = etat.selection === element.id;
       selectionner(element.id);
       geste = { ...base, mode: 'fleche', idFleche: element.id, dejaChoisi };
     } else {
       geste = { ...base, mode: 'vue', vue0: { ...etat.vue }, surFond: true };
+      if (touche) armerAppuiLong(geste);
     }
   });
+
+  /** Prépare le glissement de tout le groupe ; « idBloc » sert de repère pour l'aimantation. */
+  function demarrerGroupe(base, idBloc, ajoute) {
+    const positions = new Map();
+    for (const gid of etat.groupe || []) {
+      const b = trouver(etat.schema, gid);
+      if (b) positions.set(gid, { x: b.x, y: b.y });
+    }
+    return { ...base, mode: 'groupe', idBloc, positions, ajoute };
+  }
+
+  /** Appui long (doigt ou stylet) : sélection multiple ou rectangle de sélection. */
+  function armerAppuiLong(g) {
+    g.minuterie = setTimeout(() => {
+      if (geste !== g || g.bouge || pointeurs.size !== 1) return;
+      if (navigator.vibrate) navigator.vibrate(15); // petit retour tactile, si l'appareil le permet
+      if (g.mode === 'bloc') {
+        basculerDansGroupe(g.idBloc);
+        geste = demarrerGroupe(g, g.idBloc, true);
+        annoncer('Sélection multiple : touche d\'autres blocs pour les ajouter.', 3500);
+      } else if (g.mode === 'vue') {
+        const debut = versSchema(g.depart);
+        geste = { ...g, mode: 'rectangle', debut, seuil: 2 };
+        etat.rectangle = { x1: debut.x, y1: debut.y, x2: debut.x, y2: debut.y };
+        demanderRendu();
+        annoncer('Glisse pour entourer les blocs à choisir.', 3000);
+      }
+    }, DELAI_APPUI_LONG);
+  }
 
   // ------------------------------------------------------------------
   svg.addEventListener('pointermove', (e) => {
@@ -95,6 +146,7 @@ export function installerGestes(svg, { editerTexte, editerEtiquette, avantGeste 
     if (!geste.bouge) {
       if (Math.hypot(dx, dy) < geste.seuil) return;
       geste.bouge = true;
+      clearTimeout(geste.minuterie); // on bouge : ce n'est plus un appui long
     }
     const k = etat.vue.k;
 
@@ -116,6 +168,35 @@ export function installerGestes(svg, { editerTexte, editerEtiquette, avantGeste 
         b.x = r.x;
         b.y = r.y;
         etat.guides = r.guides;
+        demanderRendu();
+        break;
+      }
+
+      case 'groupe': {
+        const repere = trouver(etat.schema, geste.idBloc);
+        const depart = geste.positions.get(geste.idBloc);
+        if (!repere || !depart) return;
+        // L'aimantation se calcule sur le bloc saisi ; les autres suivent du même écart.
+        const autres = etat.reglages.guides ? listeBlocs(etat.schema).filter((o) => !geste.positions.has(o.id)) : [];
+        const r = aimanter(repere, depart.x + dx / k, depart.y + dy / k, autres, {
+          grille: etat.reglages.grille,
+          guides: etat.reglages.guides,
+          tolerance: 8 / k,
+        });
+        const ddx = r.x - depart.x;
+        const ddy = r.y - depart.y;
+        for (const [gid, pos] of geste.positions) {
+          const b = trouver(etat.schema, gid);
+          if (b) { b.x = pos.x + ddx; b.y = pos.y + ddy; }
+        }
+        etat.guides = r.guides;
+        demanderRendu();
+        break;
+      }
+
+      case 'rectangle': {
+        const m = versSchema(p);
+        etat.rectangle = { x1: geste.debut.x, y1: geste.debut.y, x2: m.x, y2: m.y };
         demanderRendu();
         break;
       }
@@ -179,6 +260,15 @@ export function installerGestes(svg, { editerTexte, editerEtiquette, avantGeste 
         if (!annule && !geste.bouge && geste.dejaChoisi) editerEtiquette(geste.idFleche);
         break;
 
+      case 'groupe':
+        if (geste.bouge) { if (annule) abandonner(); else valider(); }
+        else if (!annule && !geste.ajoute) basculerDansGroupe(geste.idBloc); // toucher un bloc choisi le retire
+        break;
+
+      case 'rectangle':
+        if (!annule) choisirDansRectangle();
+        break;
+
       case 'redim':
         if (annule) abandonner(); else valider();
         break;
@@ -201,10 +291,25 @@ export function installerGestes(svg, { editerTexte, editerEtiquette, avantGeste 
   svg.addEventListener('pointercancel', finPointeur);
   svg.addEventListener('lostpointercapture', (e) => { if (pointeurs.has(e.pointerId)) finPointeur(e); });
 
+  /** Fin du rectangle : les blocs qu'il touche rejoignent la sélection multiple. */
+  function choisirDansRectangle() {
+    const r = etat.rectangle;
+    if (!r) return;
+    const x1 = Math.min(r.x1, r.x2), x2 = Math.max(r.x1, r.x2);
+    const y1 = Math.min(r.y1, r.y2), y2 = Math.max(r.y1, r.y2);
+    const touches = listeBlocs(etat.schema)
+      .filter((b) => b.x < x2 && b.x + b.largeur > x1 && b.y < y2 && b.y + b.hauteur > y1)
+      .map((b) => b.id);
+    if (touches.length) entrerGroupe([...(etat.groupe || []), ...touches]);
+    else annoncer('Aucun bloc dans ce rectangle.');
+  }
+
   function terminer() {
+    if (geste) clearTimeout(geste.minuterie);
     geste = null;
     etat.guides = [];
     etat.liaison = null;
+    etat.rectangle = null;
     if (!pointeurs.size) etat.gesteEnCours = false;
     demanderRendu();
   }
@@ -243,8 +348,10 @@ export function installerGestes(svg, { editerTexte, editerEtiquette, avantGeste 
   // ------------------------------------------------------------------
   function demarrerPincement() {
     // Un geste à un doigt était en cours : on l'annule proprement.
-    if (geste && geste.bouge && (geste.mode === 'bloc' || geste.mode === 'redim')) abandonner();
+    if (geste) clearTimeout(geste.minuterie);
+    if (geste && geste.bouge && (geste.mode === 'bloc' || geste.mode === 'redim' || geste.mode === 'groupe')) abandonner();
     etat.liaison = null;
+    etat.rectangle = null;
     etat.guides = [];
     const [a, b] = [...pointeurs.values()];
     geste = {

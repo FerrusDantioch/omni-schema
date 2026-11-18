@@ -12,7 +12,7 @@ import {
 
 const $ = (id) => document.getElementById(id);
 
-export function creerPanneauEtapes({ demanderConfirmation, presenter }) {
+export function creerPanneauEtapes({ demanderConfirmation, presenter, presenterDeuxEcrans }) {
   const dialogue = $('dlg-etapes');
   const liste = $('liste-etapes');
 
@@ -122,6 +122,7 @@ export function creerPanneauEtapes({ demanderConfirmation, presenter }) {
     if (!dialogue.open) ouvrir();
   });
   $('btn-presenter-etapes').addEventListener('click', () => { dialogue.close(); presenter(); });
+  $('btn-presentateur-etapes').addEventListener('click', () => { dialogue.close(); presenterDeuxEcrans(); });
 
   dialogue.addEventListener('change', (e) => {
     if (e.target.name !== 'theme-presentation') return;

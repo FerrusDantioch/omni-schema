@@ -9,7 +9,7 @@
 import { couleurBloc, couleursToile } from './couleurs.js';
 import { POLICE, POLICE_CHIFFRES, GRAISSE, GRILLE } from './config.js';
 import { mettreEnPage, INTERLIGNE } from './texte.js';
-import { zoneTexte, traceFleche, milieu, pointe, pointBord, centre } from './geometrie.js';
+import { zoneTexte, zoneImage, traceFleche, milieu, pointe, pointBord, centre } from './geometrie.js';
 import { listeBlocs, listeFleches, trouver } from './modele.js';
 
 const NS = 'http://www.w3.org/2000/svg';
@@ -37,7 +37,7 @@ function pastilleEtape(parent, x, y, numero, theme) {
 }
 
 /** Dessine la forme et le texte d'un bloc dans le groupe « g » (coordonnées locales). */
-export function dessinerBloc(g, b, theme, { masquerTexte = false, badge = false } = {}) {
+export function dessinerBloc(g, b, theme, { masquerTexte = false, badge = false, images = null } = {}) {
   g.replaceChildren();
   const c = couleurBloc(theme, b.couleur);
   const w = b.largeur;
@@ -55,6 +55,15 @@ export function dessinerBloc(g, b, theme, { masquerTexte = false, badge = false 
       break;
     default: // arrondi
       el('rect', { x: 0, y: 0, width: w, height: h, rx: Math.min(14, h / 3), ...style }, g);
+  }
+  // Image du bloc (rangée dans schema.images), ajustée sans déformation.
+  const source = b.image && images ? images[b.image] : null;
+  if (source) {
+    const zi = zoneImage({ ...b, x: 0, y: 0 });
+    el('image', {
+      href: source, x: arrondir(zi.x), y: arrondir(zi.y), width: arrondir(zi.largeur), height: arrondir(zi.hauteur),
+      preserveAspectRatio: 'xMidYMid meet', 'pointer-events': 'none',
+    }, g);
   }
   if (badge && b.etape > 0) pastilleEtape(g, 0, 0, b.etape, theme);
   if (masquerTexte) return;
@@ -187,9 +196,9 @@ export function creerRendu(svg) {
       const n = noeudPour(b.id, 'bloc', calqueBlocs);
       const enEdition = etat.editionId === b.id;
       const badge = etat.reglages.pastilles;
-      const signature = `${b.largeur}|${b.hauteur}|${b.forme}|${b.couleur}|${theme}|${enEdition}|${badge}|${b.etape}|${b.texte}`;
+      const signature = `${b.largeur}|${b.hauteur}|${b.forme}|${b.couleur}|${theme}|${enEdition}|${badge}|${b.etape}|${b.image}|${b.texte}`;
       if (signature !== n.signature) {
-        dessinerBloc(n.g, b, theme, { masquerTexte: enEdition, badge });
+        dessinerBloc(n.g, b, theme, { masquerTexte: enEdition, badge, images: schema.images });
         n.signature = signature;
         n.g.setAttribute('aria-label', b.texte || 'Bloc vide');
       }
@@ -277,6 +286,28 @@ export function creerRendu(svg) {
       el('circle', { cx: lx, cy: ly, r: 12 / k, fill: T.selection, stroke: T.fond, 'stroke-width': 2 / k, class: 'decor' }, calquePoignees);
       el('path', { d: `M${lx - 6 / k} ${ly}h${12 / k}M${lx} ${ly - 6 / k}v${12 / k}`, stroke: T.fond, 'stroke-width': 2.5 / k, 'stroke-linecap': 'round', class: 'decor' }, calquePoignees);
       el('circle', { cx: lx, cy: ly, r: 22 / k, fill: 'transparent', 'data-poignee': 'relier', class: 'poignee-relier' }, calquePoignees);
+    }
+
+    // Sélection multiple : un contour par bloc, sans poignées.
+    if (etat.groupe) {
+      const m = 5 / k;
+      for (const gid of etat.groupe) {
+        const b = parId.get(gid);
+        if (!b) continue;
+        el('rect', {
+          x: b.x - m, y: b.y - m, width: b.largeur + 2 * m, height: b.hauteur + 2 * m, rx: 4 / k,
+          fill: T.selection, 'fill-opacity': 0.08, stroke: T.selection, 'stroke-width': 2.5 / k, 'stroke-dasharray': `${6 / k} ${4 / k}`, class: 'decor',
+        }, calquePoignees);
+      }
+    }
+
+    // Rectangle de sélection en cours.
+    if (etat.rectangle) {
+      const r = etat.rectangle;
+      el('rect', {
+        x: Math.min(r.x1, r.x2), y: Math.min(r.y1, r.y2), width: Math.abs(r.x2 - r.x1), height: Math.abs(r.y2 - r.y1),
+        fill: T.selection, 'fill-opacity': 0.1, stroke: T.selection, 'stroke-width': 1.5 / k, 'stroke-dasharray': `${5 / k} ${4 / k}`, class: 'decor',
+      }, calquePoignees);
     }
 
     // Flèche en cours de création (pointillés jusqu'au doigt).

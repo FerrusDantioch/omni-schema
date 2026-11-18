@@ -26,7 +26,10 @@ export const etat = {
   guides: [],            // lignes d'alignement affichées pendant un déplacement
   liaison: null,         // flèche en cours de création { de, x, y, cible }
   gesteEnCours: false,   // vrai pendant qu'un doigt / la souris agit
-  presentation: false,   // vrai pendant le mode présentation
+  presentation: false,   // vrai pendant le mode présentation (ou la vue présentateur)
+  presentateur: false,   // vrai pendant la vue présentateur (deux écrans)
+  groupe: null,          // sélection multiple : tableau d'ids de blocs (null = inactive)
+  rectangle: null,       // rectangle de sélection en cours { x1, y1, x2, y2 }
 };
 
 const historique = creerHistorique();
@@ -80,6 +83,8 @@ const photo = () => JSON.stringify(etat.schema.elements);
 export function ouvrirSchema(schema) {
   etat.schema = schema;
   etat.selection = null;
+  etat.groupe = null;
+  etat.rectangle = null;
   etat.editionId = null;
   etat.guides = [];
   etat.liaison = null;
@@ -146,6 +151,10 @@ export const peutRetablir = () => historique.peutRetablir();
 
 function verifierSelection() {
   if (etat.selection && !trouver(etat.schema, etat.selection)) etat.selection = null;
+  if (etat.groupe) {
+    etat.groupe = etat.groupe.filter((id) => trouver(etat.schema, id));
+    if (!etat.groupe.length) etat.groupe = null;
+  }
 }
 
 let minuterieSauvegarde = null;
@@ -266,10 +275,58 @@ export function rendreVisible(id) {
 // Actions sur les éléments
 // ---------------------------------------------------------------------
 export function selectionner(id) {
-  if (etat.selection === id) return;
+  if (etat.selection === id && !etat.groupe) return;
   etat.selection = id;
+  etat.groupe = null; // choisir un seul élément quitte la sélection multiple
   demanderRendu();
   notifier();
+}
+
+// ---------------------------------------------------------------------
+// Sélection multiple (« groupe ») : seulement des blocs
+// ---------------------------------------------------------------------
+
+/** Blocs concernés par la sélection : le groupe, ou le bloc choisi seul. */
+export function blocsSelectionnes() {
+  if (etat.groupe) return etat.groupe.map((id) => trouver(etat.schema, id)).filter(Boolean);
+  const e = trouver(etat.schema, etat.selection);
+  return e && e.type === 'bloc' ? [e] : [];
+}
+
+/** Active la sélection multiple avec ces blocs. */
+export function entrerGroupe(ids) {
+  etat.groupe = [...new Set(ids)];
+  etat.selection = null;
+  if (!etat.groupe.length) etat.groupe = null;
+  demanderRendu();
+  notifier();
+}
+
+/** Ajoute un bloc au groupe, ou l'en retire (le groupe démarre au besoin). */
+export function basculerDansGroupe(id) {
+  if (!etat.groupe) {
+    const actuel = trouver(etat.schema, etat.selection);
+    etat.groupe = actuel && actuel.type === 'bloc' && actuel.id !== id ? [actuel.id] : [];
+  }
+  const i = etat.groupe.indexOf(id);
+  if (i >= 0) etat.groupe.splice(i, 1);
+  else etat.groupe.push(id);
+  etat.selection = null;
+  if (!etat.groupe.length) etat.groupe = null;
+  demanderRendu();
+  notifier();
+}
+
+export function toutSelectionner() {
+  entrerGroupe(listeBlocs(etat.schema).map((b) => b.id));
+}
+
+/** Applique une modification à chaque bloc sélectionné (une seule action annulable). */
+export function modifierChaque(fonction) {
+  const blocs = blocsSelectionnes();
+  if (!blocs.length) return;
+  for (const b of blocs) fonction(b);
+  valider();
 }
 
 /** Trouve une place libre près de (x, y) pour ne pas empiler les blocs. */
@@ -313,6 +370,24 @@ export function relier(de, vers) {
 }
 
 export function dupliquerSelection() {
+  if (etat.groupe) {
+    // Copie des blocs du groupe ET des flèches qui les relient entre eux.
+    const correspondance = new Map();
+    for (const b of blocsSelectionnes()) {
+      const copie = { ...b, id: nouvelId('b'), x: b.x + GRILLE * 2, y: b.y + GRILLE * 2 };
+      correspondance.set(b.id, copie.id);
+      etat.schema.elements.push(copie);
+    }
+    for (const f of etat.schema.elements.filter((e) => e.type === 'fleche')) {
+      if (correspondance.has(f.de) && correspondance.has(f.vers)) {
+        etat.schema.elements.push({ ...f, id: nouvelId('f'), de: correspondance.get(f.de), vers: correspondance.get(f.vers) });
+      }
+    }
+    etat.groupe = [...correspondance.values()];
+    valider();
+    annoncer(`${correspondance.size} blocs dupliqués`);
+    return;
+  }
   const b = trouver(etat.schema, etat.selection);
   if (!b || b.type !== 'bloc') return;
   const copie = { ...b, id: nouvelId('b'), x: b.x + GRILLE, y: b.y + GRILLE };
@@ -323,6 +398,14 @@ export function dupliquerSelection() {
 }
 
 export function supprimerSelection() {
+  if (etat.groupe) {
+    const ids = new Set(etat.groupe);
+    etat.schema.elements = etat.schema.elements.filter((x) => !ids.has(x.id) && !ids.has(x.de) && !ids.has(x.vers));
+    etat.groupe = null;
+    valider();
+    annoncer(`${ids.size} bloc${ids.size > 1 ? 's' : ''} supprimé${ids.size > 1 ? 's' : ''} (Annuler pour les récupérer)`);
+    return;
+  }
   const e = trouver(etat.schema, etat.selection);
   if (!e) return;
   if (e.type === 'bloc') {
@@ -338,6 +421,7 @@ export function supprimerSelection() {
 
 /** Modifie une ou plusieurs propriétés de l'élément sélectionné. */
 export function modifierSelection(changements) {
+  if (etat.groupe) { modifierChaque((b) => Object.assign(b, changements)); return; }
   const e = trouver(etat.schema, etat.selection);
   if (!e) return;
   Object.assign(e, changements);
@@ -346,6 +430,11 @@ export function modifierSelection(changements) {
 
 /** Déplace le bloc sélectionné (clavier). Pas de validation immédiate. */
 export function decalerSelection(dx, dy) {
+  if (etat.groupe) {
+    for (const b of blocsSelectionnes()) { b.x += dx; b.y += dy; }
+    demanderRendu();
+    return true;
+  }
   const b = trouver(etat.schema, etat.selection);
   if (!b || b.type !== 'bloc') return false;
   b.x += dx;

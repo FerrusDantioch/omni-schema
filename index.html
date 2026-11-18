@@ -109,6 +109,14 @@
     <div class="options-choix" id="options-forme"></div>
     <p class="etiquette-section">Couleur</p>
     <div class="options-choix" id="options-couleur"></div>
+    <div id="section-image">
+      <p class="etiquette-section">Image</p>
+      <div class="boutons-etape">
+        <button type="button" class="bouton" id="btn-image-ajouter"><svg class="icone" aria-hidden="true"><use href="#i-image"/></svg><span id="libelle-image-ajouter">Ajouter une image</span></button>
+        <button type="button" class="bouton danger-texte" id="btn-image-retirer"><svg class="icone" aria-hidden="true"><use href="#i-supprimer"/></svg>Retirer l'image</button>
+      </div>
+      <input type="file" id="fichier-image" accept="image/*" hidden>
+    </div>
   </div>
   <div class="choix" id="choix-etape" hidden role="group" aria-labelledby="titre-choix-etape">
     <p class="etiquette-section" id="titre-choix-etape">Apparition en présentation</p>
@@ -136,11 +144,19 @@
     </div>
     <div class="groupe-outils" data-pour="bloc" hidden>
       <button type="button" class="outil" id="btn-texte"><svg class="icone" aria-hidden="true"><use href="#i-texte"/></svg><span>Texte</span></button>
-      <button type="button" class="outil" id="btn-style" aria-expanded="false" aria-controls="choix-style"><svg class="icone" aria-hidden="true"><use href="#i-couleur"/></svg><span>Style</span></button>
+      <button type="button" class="outil" id="btn-style" data-bouton-style aria-expanded="false" aria-controls="choix-style"><svg class="icone" aria-hidden="true"><use href="#i-couleur"/></svg><span>Style</span></button>
       <button type="button" class="outil" data-bouton-etape aria-expanded="false" aria-controls="choix-etape"><svg class="icone" aria-hidden="true"><use href="#i-etapes"/></svg><span>Étape</span></button>
       <button type="button" class="outil" id="btn-note"><svg class="icone" aria-hidden="true"><use href="#i-note"/></svg><span>Note</span></button>
       <button type="button" class="outil" id="btn-dupliquer"><svg class="icone" aria-hidden="true"><use href="#i-dupliquer"/></svg><span>Dupliquer</span></button>
       <button type="button" class="outil danger" id="btn-supprimer-bloc"><svg class="icone" aria-hidden="true"><use href="#i-supprimer"/></svg><span>Supprimer</span></button>
+    </div>
+    <div class="groupe-outils" data-pour="groupe" hidden>
+      <p class="compte-groupe" id="compte-groupe" aria-live="polite">2 blocs</p>
+      <button type="button" class="outil" data-bouton-style aria-expanded="false" aria-controls="choix-style"><svg class="icone" aria-hidden="true"><use href="#i-couleur"/></svg><span>Style</span></button>
+      <button type="button" class="outil" data-bouton-etape aria-expanded="false" aria-controls="choix-etape"><svg class="icone" aria-hidden="true"><use href="#i-etapes"/></svg><span>Étape</span></button>
+      <button type="button" class="outil" id="btn-dupliquer-groupe"><svg class="icone" aria-hidden="true"><use href="#i-dupliquer"/></svg><span>Dupliquer</span></button>
+      <button type="button" class="outil danger" id="btn-supprimer-groupe"><svg class="icone" aria-hidden="true"><use href="#i-supprimer"/></svg><span>Supprimer</span></button>
+      <button type="button" class="outil" id="btn-fermer-groupe"><svg class="icone" aria-hidden="true"><use href="#i-fermer"/></svg><span>Terminer</span></button>
     </div>
     <div class="groupe-outils" data-pour="fleche" hidden>
       <button type="button" class="outil" id="btn-etiquette"><svg class="icone" aria-hidden="true"><use href="#i-etiquette"/></svg><span>Étiquette</span></button>
@@ -286,9 +302,15 @@
       </div>
       <p class="aide-reglage">Sur un vidéoprojecteur, le thème clair est souvent le plus lisible.</p>
     </fieldset>
-    <button type="button" class="bouton principal pleine-largeur" id="btn-presenter-etapes">
-      <svg class="icone" aria-hidden="true"><use href="#i-presenter"/></svg>Présenter
-    </button>
+    <div class="boutons-presenter">
+      <button type="button" class="bouton principal" id="btn-presenter-etapes">
+        <svg class="icone" aria-hidden="true"><use href="#i-presenter"/></svg>Présenter
+      </button>
+      <button type="button" class="bouton" id="btn-presentateur-etapes">
+        <svg class="icone" aria-hidden="true"><use href="#i-schemas"/></svg>Vue présentateur (2 écrans)
+      </button>
+    </div>
+    <p class="aide-reglage">Vue présentateur : sur ordinateur avec un vidéoprojecteur. Une fenêtre montre le schéma au public ; la tienne montre l'étape suivante, tes notes et un chronomètre.</p>
   </dialog>
 
   <!-- ===== Note du présentateur ===== -->
@@ -360,10 +382,52 @@
       <button type="button" class="pres-bouton" id="pres-suivant" aria-label="Étape suivante"><svg class="icone" aria-hidden="true"><use href="#i-suivant"/></svg></button>
     </div>
     <p class="pres-aide" id="pres-aide">Touche à droite pour avancer, à gauche pour revenir.</p>
+    <div class="pres-reprise" id="pres-reprise" hidden role="group" aria-labelledby="pres-reprise-texte">
+      <p id="pres-reprise-texte"></p>
+      <div class="boutons-etape">
+        <button type="button" class="bouton principal" id="pres-reprendre">Reprendre là</button>
+        <button type="button" class="bouton" id="pres-debut">Depuis le début</button>
+      </div>
+    </div>
     <section class="pres-panneau-notes" id="pres-panneau-notes" hidden aria-labelledby="pres-notes-titre">
       <h2 class="etiquette-section" id="pres-notes-titre">Notes</h2>
       <div id="pres-notes-contenu"></div>
     </section>
+  </div>
+
+  <!-- ===== Vue présentateur (deux écrans) ===== -->
+  <div class="presentateur" id="presentateur" hidden role="region" aria-label="Vue présentateur" tabindex="-1">
+    <header class="pt-entete">
+      <p class="etiquette-section">Vue présentateur</p>
+      <p class="pt-compteur" id="pt-compteur" role="status">1 / 1</p>
+      <p class="pt-chrono"><span id="pt-chrono" aria-label="Temps écoulé">00:00</span>
+        <button type="button" class="bouton-icone petit-bouton" id="pt-zero" aria-label="Remettre le chronomètre à zéro" title="Remettre à zéro"><svg class="icone" aria-hidden="true"><use href="#i-maj"/></svg></button></p>
+      <p class="pt-etat" id="pt-etat"></p>
+      <button type="button" class="bouton" id="pt-public">Ouvrir la fenêtre public</button>
+      <button type="button" class="bouton-icone" id="pt-quitter" aria-label="Terminer la présentation" title="Terminer (Échap)"><svg class="icone" aria-hidden="true"><use href="#i-fermer"/></svg></button>
+    </header>
+    <div class="pt-corps">
+      <section class="pt-actuel" aria-labelledby="pt-titre-actuel">
+        <h2 class="etiquette-section" id="pt-titre-actuel">Ce que voit le public</h2>
+        <div class="pt-scene" id="pt-scene-actuelle"></div>
+      </section>
+      <aside class="pt-cote">
+        <section aria-labelledby="pt-titre-suivant">
+          <h2 class="etiquette-section" id="pt-titre-suivant">Étape suivante</h2>
+          <div class="pt-scene petite" id="pt-scene-suivante"></div>
+          <p class="pt-fin" id="pt-fin" hidden>C'est la dernière étape.</p>
+        </section>
+        <section class="pt-notes" aria-labelledby="pt-notes-titre">
+          <h2 class="etiquette-section" id="pt-notes-titre">Notes</h2>
+          <div id="pt-notes"></div>
+        </section>
+      </aside>
+    </div>
+    <footer class="pt-pied">
+      <button type="button" class="bouton" id="pt-reprise" hidden></button>
+      <button type="button" class="bouton" id="pt-precedent"><svg class="icone" aria-hidden="true"><use href="#i-precedent"/></svg>Précédent</button>
+      <button type="button" class="bouton principal" id="pt-suivant">Suivant<svg class="icone" aria-hidden="true"><use href="#i-suivant"/></svg></button>
+    </footer>
   </div>
 
   <!-- Pages préparées pour l'impression / le PDF (invisibles à l'écran) -->
@@ -384,6 +448,8 @@
       <dt>Toucher deux fois le fond</dt><dd>nouveau bloc</dd>
       <dt>Tirer le rond +</dt><dd>vers un bloc : le relier ; vers le vide : nouveau bloc relié</dd>
       <dt>Petit carré du bloc</dt><dd>changer sa taille</dd>
+      <dt>Appui long sur un bloc</dt><dd>sélection multiple (puis toucher d'autres blocs)</dd>
+      <dt>Appui long sur le fond, puis glisser</dt><dd>entourer plusieurs blocs</dd>
     </dl>
     <h3 class="etiquette-section">Au clavier</h3>
     <dl class="liste-aide">
@@ -399,7 +465,8 @@
       <dt><kbd>Suppr</kbd> · <kbd>Ctrl</kbd>+<kbd>D</kbd></dt><dd>supprimer · dupliquer</dd>
       <dt><kbd>Ctrl</kbd>+<kbd>Z</kbd> · <kbd>Ctrl</kbd>+<kbd>Y</kbd></dt><dd>annuler · rétablir</dd>
       <dt><kbd>+</kbd> <kbd>−</kbd> · <kbd>0</kbd></dt><dd>zoomer, dézoomer · recentrer</dd>
-      <dt><kbd>P</kbd></dt><dd>présenter</dd>
+      <dt><kbd>P</kbd> · <kbd>Maj</kbd>+<kbd>P</kbd></dt><dd>présenter · vue présentateur (2 écrans)</dd>
+      <dt><kbd>Ctrl</kbd>+<kbd>A</kbd> · <kbd>Maj</kbd>+clic</dt><dd>tout sélectionner · ajouter un bloc à la sélection</dd>
       <dt><kbd>?</kbd></dt><dd>cette aide</dd>
     </dl>
     <h3 class="etiquette-section">En présentation</h3>

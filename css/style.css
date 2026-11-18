@@ -227,6 +227,7 @@ a { color: var(--accent); text-underline-offset: 0.18em; }
 .bouton.principal { background: var(--accent-fond); border-color: var(--accent-fond); color: var(--accent-texte); }
 .bouton.principal:hover { filter: brightness(1.08); }
 .bouton.danger { background: var(--danger-fond); border-color: var(--danger-fond); color: var(--danger-texte); }
+.bouton.danger-texte { color: var(--danger); }
 .pleine-largeur { width: 100%; }
 
 /* ---------- Barre du haut ---------- */
@@ -428,6 +429,20 @@ a { color: var(--accent); text-underline-offset: 0.18em; }
 /* Outil actif : pastille violette pleine, comme le choix « Normal » du portfolio. */
 .outil[aria-pressed="true"], .outil[aria-expanded="true"] { background: var(--accent-fond); color: var(--accent-texte); }
 .outil.danger { color: var(--danger); }
+/* Nombre de blocs choisis (sélection multiple) */
+.compte-groupe {
+  flex: 0 1 auto;
+  align-self: center;
+  margin: 0 0.25rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 999px;
+  background: var(--accent-fond);
+  color: var(--accent-texte);
+  font-family: var(--police-chiffres);
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
 
 /* ---------- Panneaux Forme / Couleur ---------- */
 .choix {
@@ -877,6 +892,21 @@ kbd {
 }
 @media (max-width: 640px) { .pres-aide { display: none; } }
 
+.pres-reprise {
+  position: absolute;
+  left: 50%;
+  top: max(1rem, env(safe-area-inset-top));
+  transform: translateX(-50%);
+  width: min(26rem, calc(100% - 7rem));
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--accent);
+  border-radius: var(--rayon-carte);
+  background: var(--surface);
+  box-shadow: var(--ombre);
+  text-align: center;
+}
+.pres-reprise p { margin: 0 0 0.6rem; font-family: var(--police-lecture); font-size: 1.05rem; }
+
 .pres-panneau-notes {
   position: absolute;
   left: max(0.5rem, env(safe-area-inset-left));
@@ -904,6 +934,67 @@ kbd {
 @media (prefers-reduced-motion: reduce) {
   .presentation.avec-fondu .apparait { animation: none !important; }
 }
+
+/* Panneau Étapes : les deux façons de présenter */
+.boutons-presenter { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.boutons-presenter .bouton { flex: 1 1 12rem; }
+
+/* ---------- Vue présentateur (deux écrans) ---------- */
+.presentateur {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 0.75rem;
+  padding: max(0.75rem, env(safe-area-inset-top)) max(0.75rem, env(safe-area-inset-right)) max(0.75rem, env(safe-area-inset-bottom)) max(0.75rem, env(safe-area-inset-left));
+  background: var(--fond);
+  color: var(--texte);
+  outline: none;
+}
+.pt-entete { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; }
+.pt-entete p { margin: 0; }
+.pt-compteur, .pt-chrono { font-family: var(--police-chiffres); font-size: 1.4rem; font-weight: 700; color: var(--chiffres); }
+.pt-chrono { display: flex; align-items: center; gap: 0.25rem; }
+.pt-etat { flex: 1 1 auto; color: var(--texte-doux); font-size: 0.9rem; }
+.pt-corps { display: grid; grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr); gap: 0.75rem; min-height: 0; }
+.pt-actuel, .pt-cote > section { display: flex; flex-direction: column; gap: 0.4rem; min-height: 0; }
+.pt-cote { display: grid; grid-template-rows: auto 1fr; gap: 0.75rem; min-height: 0; }
+.pt-scene { flex: 1 1 auto; min-height: 0; padding: 0.5rem; border: 1px solid var(--filet); border-radius: var(--rayon-carte); }
+.pt-scene.petite { flex: 0 0 auto; height: 28vh; }
+.pt-scene svg { display: block; width: 100%; height: 100%; }
+.pt-fin { margin: 0; color: var(--texte-doux); font-style: italic; }
+.pt-notes { overflow: hidden; }
+#pt-notes { overflow-y: auto; padding: 0.75rem 1rem; border: 1px solid var(--filet); border-radius: var(--rayon-carte); background: var(--surface); }
+.pt-pied { display: flex; justify-content: flex-end; gap: 0.5rem; }
+.pt-pied .bouton { min-width: 9rem; min-height: 56px; font-size: 1.1rem; }
+@media (max-width: 760px) {
+  .pt-corps { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) auto; }
+  .pt-scene.petite { height: 18vh; }
+}
+
+/* ---------- Fenêtre « public » (deuxième écran) ---------- */
+body.mode-public > *:not(.public-scene):not(.public-aide) { display: none !important; }
+body.mode-public { display: block; }
+.public-scene { position: fixed; inset: 0; padding: 2vmin; cursor: pointer; }
+.public-scene svg { display: block; width: 100%; height: 100%; }
+.public-aide {
+  position: fixed;
+  left: 50%;
+  bottom: 1.5rem;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 0.75rem 1.1rem;
+  max-width: calc(100% - 2rem);
+  border: 1px solid var(--accent);
+  border-radius: var(--rayon);
+  background: var(--surface);
+  color: var(--texte);
+  text-align: center;
+  pointer-events: none;
+}
+.public-scene .apparait { animation: apparition 280ms ease-out both !important; }
+@media (prefers-reduced-motion: reduce) { .public-scene .apparait { animation: none !important; } }
 
 /* ---------- Impression / PDF : une page par étape ---------- */
 .impression { display: none; }

@@ -22,6 +22,9 @@ Adresse prévue : <https://ferrusdantioch.github.io/omni-schema/>
 **Version 1.0.0** : les trois jalons sont livrés et validés sur appareils réels (téléphone, tablette,
 ordinateur), avec les polices et le logo de l'Omni-système.
 
+**Version 1.1.0** (jalon 4) : sélection multiple, images dans les blocs, reprise de la présentation
+là où on s'était arrêté, vue présentateur sur deux écrans.
+
 ## Utilisation rapide
 
 | Je veux… | Au doigt | À la souris / au clavier |
@@ -41,6 +44,9 @@ ordinateur), avec les polices et le logo de l'Omni-système.
 | Créer un bloc relié | tirer le rond **+** vers le vide | **R** (à droite) / **Maj+R** (en dessous) |
 | Relier deux blocs existants | tirer le rond **+** vers l'autre bloc | **L**, puis **Tab** pour viser, **Entrée** |
 | Voir tous les raccourcis | Menu → Aide et raccourcis | **?** |
+| Choisir plusieurs blocs | **appui long** sur un bloc, puis toucher les autres | **Maj+clic**, **Ctrl+A** |
+| Entourer plusieurs blocs | **appui long** sur le fond, puis glisser | **Maj+glisser** sur le fond |
+| Mettre une image dans un bloc | bouton **Style** → *Ajouter une image* | idem |
 | Choisir l'étape d'un élément | bouton **Étape** de la barre du bas | idem |
 | Voir / réordonner toutes les étapes | bouton **Étapes** (rien de sélectionné) | idem |
 | Écrire une note de présentateur | bouton **Note** sur un bloc | idem |
@@ -54,6 +60,21 @@ ordinateur), avec les polices et le logo de l'Omni-système.
 | Début / fin | — | **Début** / **Fin** |
 | Notes du présentateur | bouton **Notes** en bas à gauche | **N** |
 | Quitter | croix en haut à droite, ou geste « retour » | **Échap** |
+
+À l'ouverture, si tu t'étais arrêté en cours de route, l'app propose **« Reprendre là »**
+(l'étape atteinte est retenue sur l'appareil, pour chaque schéma).
+
+### Vue présentateur sur deux écrans (Étapes → *Vue présentateur*, ou **Maj+P**)
+
+Pensée pour un ordinateur relié à un vidéoprojecteur ou à un second écran :
+
+1. une deuxième fenêtre s'ouvre : elle ne montre que le schéma. Place-la sur le vidéoprojecteur,
+   puis clique dessus pour le plein écran ;
+2. ta fenêtre montre ce que voit le public, l'étape suivante, tes notes et un chronomètre ;
+3. tu avances depuis ta fenêtre (boutons, flèches, télécommande) : la fenêtre public suit.
+
+Les deux fenêtres se parlent à l'intérieur du navigateur (BroadcastChannel), sans réseau.
+Si le navigateur bloque la deuxième fenêtre, autorise les fenêtres surgissantes pour l'app.
 
 Une flèche n'apparaît jamais avant ses deux blocs : elle se montre automatiquement
 à l'étape du dernier de ses blocs (sauf si tu lui donnes une étape plus tardive).
@@ -118,7 +139,9 @@ js/
   editeur-texte.js     écriture directement dans le bloc
   etapes.js            logique des étapes (sans affichage)
   panneau-etapes.js    panneau « Étapes »
-  presentation.js      mode présentation plein écran
+  presentation.js      mode présentation plein écran (et reprise)
+  presentateur.js      vue présentateur et fenêtre public (deux écrans)
+  images.js            images des blocs (réduction, compression)
   schema-svg.js        SVG autonome du schéma (présentation, exports)
   exports.js           exports PNG, SVG et PDF (une page par étape)
   export-html.js       page HTML autonome (avec son petit lecteur)
@@ -147,13 +170,13 @@ Un schéma est un fichier JSON simple et lisible :
 ```json
 {
   "format": "omni-schema",
-  "version_format": 1,
+  "version_format": 2,
   "id": "s-…", "titre": "Mon schéma",
   "cree_le": "2026-11-18T09:00:00.000Z", "modifie_le": "…",
   "theme": "auto",
   "elements": [
     { "type": "bloc", "id": "b-…", "x": 0, "y": 0, "largeur": 160, "hauteur": 80,
-      "texte": "…", "forme": "arrondi", "couleur": "violet", "etape": 0, "note": "" },
+      "texte": "…", "forme": "arrondi", "couleur": "violet", "etape": 0, "note": "", "image": "" },
     { "type": "fleche", "id": "f-…", "de": "b-…", "vers": "b-…",
       "style": "droite", "etiquette": "", "etape": 0 }
   ]
@@ -164,6 +187,8 @@ Un schéma est un fichier JSON simple et lisible :
 - `couleur` : `neutre`, `violet`, `bleu`, `vert`, `jaune`, `rouge`.
 - `style` d'une flèche : `droite` ou `angle` (angle droit).
 - `etape` : `0` = toujours visible ; sinon numéro d'apparition en présentation.
+- `images` (format 2) : les images des blocs, `{ "i-…": "data:image/webp;base64,…" }` ; un bloc
+  y fait référence par son champ `image`. Elles sont réduites à 1200 pixels et compressées à l'import.
 - La sauvegarde de tous les schémas a la forme `{ "format": "omni-schema-sauvegarde", "schemas": [ … ] }`.
 
 Si la structure change un jour, `version_format` augmente et `js/modele.js` convertit automatiquement les anciens fichiers (tableau `MIGRATIONS`).

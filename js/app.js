@@ -13,6 +13,7 @@ import { creerEditeurTexte } from './editeur-texte.js';
 import { installerInterface, appliquerTheme, editerEtiquette, fermerChoix, demanderConfirmation, ouvrirAide } from './interface.js';
 import { creerPresentation } from './presentation.js';
 import { creerPanneauEtapes } from './panneau-etapes.js';
+import { creerVuePresentateur, demarrerPublic } from './presentateur.js';
 import { installerClavier } from './clavier.js';
 import { installerMiseAJour } from './mise-a-jour.js';
 import { attendrePolices } from './polices.js';
@@ -30,9 +31,20 @@ async function demarrer() {
   const presentation = creerPresentation({
     apresFermeture: () => { svg.focus({ preventScroll: true }); demanderRendu(); },
   });
+  const vuePresentateur = creerVuePresentateur({
+    annoncer,
+    apresFermeture: () => { svg.focus({ preventScroll: true }); demanderRendu(); },
+  });
+  const presenterDeuxEcrans = async () => {
+    editeur.terminer();
+    fermerChoix();
+    await sauvegarderMaintenant(); // la fenêtre public relit le schéma enregistré
+    if (!(await vuePresentateur.ouvrir())) annoncer('Ajoute au moins un bloc avant de présenter.');
+  };
   const panneauEtapes = creerPanneauEtapes({
     demanderConfirmation,
     presenter: () => document.getElementById('btn-presenter').click(),
+    presenterDeuxEcrans,
   });
   installerInterface({ editeur, presentation, panneauEtapes });
   installerGestes(svg, {
@@ -43,6 +55,7 @@ async function demarrer() {
   installerClavier({
     editeur, editerEtiquette, fermerChoix, ouvrirAide,
     presenter: () => document.getElementById('btn-presenter').click(),
+    presenterDeuxEcrans,
   });
   installerMiseAJour({
     bouton: document.getElementById('btn-maj'),
@@ -87,7 +100,13 @@ async function ouvrirPremierSchema() {
   ouvrirSchema(schema);
 }
 
-demarrer().catch((erreur) => {
+// « ?public=<id> » : fenêtre destinée au public (mode présentateur à deux écrans).
+// Elle n'affiche que le schéma et ne modifie jamais rien.
+const idPublic = new URLSearchParams(window.location.search).get('public');
+const lancement = idPublic
+  ? (async () => { appliquerTheme(); await attendrePolices(); await demarrerPublic(idPublic); })()
+  : demarrer();
+lancement.catch((erreur) => {
   console.error(erreur);
   annoncer(`Erreur au démarrage : ${erreur.message}`, 10000);
 });

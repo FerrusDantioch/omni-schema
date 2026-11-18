@@ -6,11 +6,11 @@ export const APP_NOM = 'omni-schema';
 
 // ⚠ Quand tu publies une nouvelle version, change ce numéro ET celui de
 // VERSION dans sw.js (les deux doivent être identiques).
-export const APP_VERSION = '1.0.0';
+export const APP_VERSION = '1.1.0';
 
 // Version du format des fichiers de schéma. On l'augmente seulement si la
 // structure des données change ; modele.js sait alors convertir les anciens.
-export const VERSION_FORMAT = 1;
+export const VERSION_FORMAT = 2; // 2 : ajout des images dans les blocs
 
 // Taille d'une case de la grille, en unités du schéma.
 export const GRILLE = 20;

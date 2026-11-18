@@ -8,11 +8,8 @@ import { GRILLE } from './config.js';
 
 export const centre = (b) => ({ x: b.x + b.largeur / 2, y: b.y + b.hauteur / 2 });
 
-/**
- * Zone réservée au texte à l'intérieur d'un bloc. Pour un ovale ou un
- * losange, la place utile est plus petite que le rectangle englobant.
- */
-export function zoneTexte(b) {
+/** Intérieur utile d'un bloc (plus petit pour un ovale ou un losange). */
+function zoneInterieure(b) {
   const proportions = {
     rectangle: [1, 1, 10],
     arrondi: [1, 1, 12],
@@ -27,6 +24,32 @@ export function zoneTexte(b) {
     largeur,
     hauteur,
   };
+}
+
+// Part de la hauteur donnée à l'image quand le bloc a aussi du texte.
+const PART_IMAGE = 0.62;
+
+/**
+ * Zone de l'image d'un bloc (ou null s'il n'en a pas) : tout l'intérieur
+ * du bloc s'il n'a pas de texte, sinon la partie haute.
+ */
+export function zoneImage(b) {
+  if (!b.image) return null;
+  const z = zoneInterieure(b);
+  if (!String(b.texte || '').trim()) return z;
+  return { x: z.x, y: z.y, largeur: z.largeur, hauteur: Math.max(10, z.hauteur * PART_IMAGE - 4) };
+}
+
+/**
+ * Zone réservée au texte à l'intérieur d'un bloc. Pour un ovale ou un
+ * losange, la place utile est plus petite que le rectangle englobant.
+ * Avec une image, le texte prend la partie basse.
+ */
+export function zoneTexte(b) {
+  const z = zoneInterieure(b);
+  if (!b.image) return z;
+  const haut = z.hauteur * PART_IMAGE;
+  return { x: z.x, y: z.y + haut, largeur: z.largeur, hauteur: Math.max(10, z.hauteur - haut) };
 }
 
 /**
