@@ -146,9 +146,10 @@ export function installerInterface({ editeur }) {
   installerReglages();
   $('version-app').textContent = APP_VERSION;
 
-  // Logo de l'Omni-système : s'il manque, on le cache proprement.
-  const logo = document.querySelector('#dlg-apropos .logo');
-  logo.addEventListener('error', () => { logo.hidden = true; });
+  // Logo de l'Omni-système (menu et À propos) : s'il manque, on le cache proprement.
+  for (const logo of document.querySelectorAll('img[src$="logo-omni-systeme.webp"]')) {
+    logo.addEventListener('error', () => { logo.hidden = true; });
+  }
 
   surChangement(mettreAJourInterface);
   mettreAJourInterface();

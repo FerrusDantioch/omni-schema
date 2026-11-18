@@ -19,7 +19,7 @@ export const COULEURS = [
 export const PALETTES = {
   clair: {
     neutre: { fond: '#ffffff', bord: '#4a4458', texte: '#1d1928' },
-    violet: { fond: '#ece6fb', bord: '#5b3fa8', texte: '#26174f' },
+    violet: { fond: '#ece6fb', bord: '#6a3fd6', texte: '#26174f' },
     bleu: { fond: '#e2edfa', bord: '#1f5fa8', texte: '#0d2a4f' },
     vert: { fond: '#e0f2e6', bord: '#2b7543', texte: '#103a1f' },
     jaune: { fond: '#fcf1cc', bord: '#8f6200', texte: '#3f2c00' },
@@ -27,27 +27,28 @@ export const PALETTES = {
   },
   sombre: {
     neutre: { fond: '#25222e', bord: '#b8b2c8', texte: '#f2eff7' },
-    violet: { fond: '#2f2549', bord: '#b49cf5', texte: '#f1ebff' },
+    violet: { fond: '#2a1f45', bord: '#a777ff', texte: '#f1ebff' },
     bleu: { fond: '#1a2a3f', bord: '#80b3ef', texte: '#e7f0fc' },
     vert: { fond: '#193223', bord: '#80cf99', texte: '#e6f6eb' },
     jaune: { fond: '#382e12', bord: '#e5c25c', texte: '#fcf2d6' },
     rouge: { fond: '#3c1d1d', bord: '#f0928c', texte: '#fde9e7' },
   },
+  // Sombre violet = identité du portfolio de l'Omni-système (fond nuit #14121e, violet #a777ff).
   violet: {
-    neutre: { fond: '#2a2142', bord: '#c9bde6', texte: '#f4f0ff' },
-    violet: { fond: '#3b2b66', bord: '#c9b4ff', texte: '#f6f1ff' },
-    bleu: { fond: '#1f2a52', bord: '#8fb5f5', texte: '#e9f0ff' },
-    vert: { fond: '#1d3436', bord: '#86d1a5', texte: '#e7f7ee' },
-    jaune: { fond: '#3d2f2a', bord: '#ecc767', texte: '#fdf3d8' },
-    rouge: { fond: '#41203a', bord: '#f39ab0', texte: '#ffeaf0' },
+    neutre: { fond: '#1e1928', bord: '#aaa6c0', texte: '#f2eef9' },
+    violet: { fond: '#2a1d47', bord: '#a777ff', texte: '#f4edff' },
+    bleu: { fond: '#172338', bord: '#7fb0f0', texte: '#e8f0fd' },
+    vert: { fond: '#142c27', bord: '#6fcf9c', texte: '#e6f7ee' },
+    jaune: { fond: '#2f2610', bord: '#e9c55e', texte: '#fcf3d8' },
+    rouge: { fond: '#361824', bord: '#f2939f', texte: '#ffe9ec' },
   },
 };
 
 // Couleurs de la zone de dessin (fond, grille, flèches, sélection).
 export const TOILE = {
-  clair: { fond: '#f7f5fb', grille: '#e3ddef', trait: '#3a3350', selection: '#6a4bd0', guide: '#d4407a' },
-  sombre: { fond: '#16141c', grille: '#272430', trait: '#d3cde0', selection: '#b49cf5', guide: '#ff7fae' },
-  violet: { fond: '#1b1430', grille: '#2b2147', trait: '#dcd0f7', selection: '#c9b4ff', guide: '#ff8fbd' },
+  clair: { fond: '#f5f3fa', grille: '#e2ddec', trait: '#39324d', selection: '#6a3fd6', guide: '#c2366f' },
+  sombre: { fond: '#111014', grille: '#1f1e25', trait: '#d3d0dc', selection: '#a777ff', guide: '#ff8fc4' },
+  violet: { fond: '#14121e', grille: '#221f30', trait: '#d8d0ea', selection: '#a777ff', guide: '#ff8fc4' },
 };
 
 /** Renvoie {fond, bord, texte} pour une couleur de bloc dans un thème. */

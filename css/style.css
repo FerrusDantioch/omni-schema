@@ -1,64 +1,90 @@
 /* =====================================================================
    omni-schema — styles
+   Identité de l'Omni-système (relevée sur le portfolio) :
+   fond nuit #14121e, cartes #1e1928, violet #a777ff avec texte sombre
+   sur les boutons, petites étiquettes en MAJUSCULES espacées, chiffres
+   en police à chasse fixe, texte de lecture à empattements.
    Trois thèmes (clair, sombre, sombre violet), réglés par l'attribut
    data-theme de <html>. Tailles en rem : le réglage « Taille du texte »
    agrandit toute l'interface. Aucune animation.
+   Contrastes vérifiés : texte ≥ 4,5:1, bordures de champs ≥ 3:1.
    ===================================================================== */
+
+/* ---------- Polices (déjà présentes sur l'appareil, rien n'est téléchargé) ---------- */
+:root {
+  --police-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Ubuntu, Cantarell, sans-serif;
+  --police-lecture: "Iowan Old Style", "Palatino Linotype", Charter, "Source Serif Pro", "Noto Serif", "DejaVu Serif", Georgia, serif;
+  --police-chiffres: ui-monospace, "Cascadia Mono", "Roboto Mono", "JetBrains Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace;
+  --rayon: 12px;
+  --rayon-carte: 18px;
+}
 
 /* ---------- Thèmes ---------- */
 :root,
 [data-theme="violet"] {
   color-scheme: dark;
-  --fond: #140e26;          /* fond général */
-  --barre: #1f1638;         /* barres du haut et du bas */
-  --surface: #261c44;       /* fenêtres, menus */
-  --surface-2: #33275a;     /* survol, éléments actifs */
-  --bord: #4a3b7a;
-  --texte: #f3eeff;
-  --texte-doux: #cbbfe8;
-  --accent: #c9b4ff;        /* violet nuit lumineux */
-  --accent-fond: #5b3fa8;
-  --accent-texte: #ffffff;
-  --danger: #ff9aa8;
-  --danger-fond: #7a1f35;
+  --fond: #14121e;          /* fond nuit du portfolio */
+  --barre: #14121e;         /* barres : même fond, séparées par un filet */
+  --surface: #1e1928;       /* cartes, fenêtres, menus */
+  --surface-2: #2a2338;     /* survol */
+  --filet: #262435;         /* bordures décoratives */
+  --bord: #6e6589;          /* bordures des champs (≥ 3:1) */
+  --texte: #ece8f5;
+  --texte-doux: #aaa6c0;
+  --accent: #a777ff;        /* violet de l'Omni-système */
+  --accent-fond: #a777ff;
+  --accent-texte: #16052b;  /* texte sombre sur violet, comme « Lancer le d20 » */
+  --chiffres: #dfcaff;
+  --danger: #ff8a9b;
+  --danger-fond: #ff8a9b;
+  --danger-texte: #2b0410;
   --focus: #ffd166;
-  --voile: rgb(8 4 20 / 0.7);
+  --voile: rgb(6 4 14 / 0.72);
+  --ombre: 0 10px 30px rgb(0 0 0 / 0.45);
 }
 
 [data-theme="sombre"] {
   color-scheme: dark;
-  --fond: #0f0e13;
-  --barre: #1c1a23;
-  --surface: #23212b;
-  --surface-2: #302d3a;
-  --bord: #4a4657;
-  --texte: #f2eff7;
-  --texte-doux: #c4bfd1;
-  --accent: #b49cf5;
-  --accent-fond: #5b3fa8;
-  --accent-texte: #ffffff;
-  --danger: #ff9a92;
-  --danger-fond: #7a221d;
+  --fond: #111014;
+  --barre: #111014;
+  --surface: #1b1a20;
+  --surface-2: #27252e;
+  --filet: #2a2831;
+  --bord: #6b6878;
+  --texte: #eeedf2;
+  --texte-doux: #b0adba;
+  --accent: #a777ff;
+  --accent-fond: #a777ff;
+  --accent-texte: #16052b;
+  --chiffres: #dfcaff;
+  --danger: #ff8a9b;
+  --danger-fond: #ff8a9b;
+  --danger-texte: #2b0410;
   --focus: #ffd166;
-  --voile: rgb(0 0 0 / 0.7);
+  --voile: rgb(0 0 0 / 0.72);
+  --ombre: 0 10px 30px rgb(0 0 0 / 0.5);
 }
 
 [data-theme="clair"] {
   color-scheme: light;
-  --fond: #ebe7f4;
+  --fond: #f5f3fa;
   --barre: #ffffff;
   --surface: #ffffff;
-  --surface-2: #ece6fb;
-  --bord: #b9b0cf;
-  --texte: #1d1928;
-  --texte-doux: #4a4458;
-  --accent: #5b3fa8;
-  --accent-fond: #5b3fa8;
+  --surface-2: #efe9fc;
+  --filet: #e2ddec;
+  --bord: #7d7594;
+  --texte: #16121f;
+  --texte-doux: #4f4a5e;
+  --accent: #6a3fd6;        /* violet foncé : lisible sur fond clair */
+  --accent-fond: #6a3fd6;
   --accent-texte: #ffffff;
+  --chiffres: #4b2a9c;
   --danger: #b3261e;
   --danger-fond: #b3261e;
+  --danger-texte: #ffffff;
   --focus: #b35c00;
-  --voile: rgb(20 10 40 / 0.45);
+  --voile: rgb(20 12 40 / 0.45);
+  --ombre: 0 10px 30px rgb(40 20 80 / 0.18);
 }
 
 /* ---------- Base ---------- */
@@ -77,7 +103,7 @@ body {
   overflow: hidden;
   background: var(--fond);
   color: var(--texte);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Ubuntu, Cantarell, sans-serif;
+  font-family: var(--police-ui);
   font-size: 1rem;
   line-height: 1.45;
   overscroll-behavior: none;
@@ -120,7 +146,19 @@ button:disabled { cursor: default; opacity: 0.4; }
   outline-offset: 2px;
 }
 
-a { color: var(--accent); text-underline-offset: 0.15em; }
+a { color: var(--accent); text-underline-offset: 0.18em; }
+
+/* Petite étiquette en majuscules espacées (« ESSAYEZ LE DÉ » sur le portfolio). */
+.etiquette-section {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--texte-doux);
+}
+
+.chiffres { font-family: var(--police-chiffres); color: var(--chiffres); }
 
 /* ---------- Boutons ---------- */
 .bouton-icone {
@@ -130,7 +168,7 @@ a { color: var(--accent); text-underline-offset: 0.15em; }
   min-height: 48px;
   padding: 0.5rem;
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--rayon);
   background: transparent;
   color: var(--texte);
 }
@@ -143,15 +181,17 @@ a { color: var(--accent); text-underline-offset: 0.15em; }
   justify-content: center;
   gap: 0.5rem;
   min-height: 48px;
-  padding: 0.6rem 1.1rem;
-  border: 2px solid var(--bord);
-  border-radius: 12px;
-  background: var(--surface);
-  font-weight: 600;
+  padding: 0.6rem 1.2rem;
+  border: 1px solid var(--bord);
+  border-radius: var(--rayon);
+  background: transparent;
+  font-weight: 650;
+  letter-spacing: 0.02em;
 }
 .bouton:hover { background: var(--surface-2); }
 .bouton.principal { background: var(--accent-fond); border-color: var(--accent-fond); color: var(--accent-texte); }
-.bouton.danger { background: var(--danger-fond); border-color: var(--danger-fond); color: #fff; }
+.bouton.principal:hover { filter: brightness(1.08); }
+.bouton.danger { background: var(--danger-fond); border-color: var(--danger-fond); color: var(--danger-texte); }
 .pleine-largeur { width: 100%; }
 
 /* ---------- Barre du haut ---------- */
@@ -164,7 +204,7 @@ a { color: var(--accent); text-underline-offset: 0.15em; }
   padding-left: max(0.5rem, env(safe-area-inset-left));
   padding-right: max(0.5rem, env(safe-area-inset-right));
   background: var(--barre);
-  border-bottom: 1px solid var(--bord);
+  border-bottom: 1px solid var(--filet);
   min-width: 0;
 }
 
@@ -177,10 +217,10 @@ a { color: var(--accent); text-underline-offset: 0.15em; }
   min-height: 48px;
   padding: 0 0.6rem;
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--rayon);
   background: transparent;
   font-size: 1.05rem;
-  font-weight: 650;
+  font-weight: 700;
   text-align: left;
 }
 .titre-schema span {
@@ -195,12 +235,12 @@ a { color: var(--accent); text-underline-offset: 0.15em; }
   align-items: center;
   gap: 0.4rem;
   min-height: 44px;
-  padding: 0.4rem 0.8rem;
-  border: 2px solid var(--accent);
-  border-radius: 999px;
+  padding: 0.4rem 0.9rem;
+  border: 0;
+  border-radius: var(--rayon);
   background: var(--accent-fond);
   color: var(--accent-texte);
-  font-weight: 650;
+  font-weight: 700;
   white-space: nowrap;
 }
 .bouton-maj .icone { width: 1.2rem; height: 1.2rem; }
@@ -256,14 +296,17 @@ a { color: var(--accent); text-underline-offset: 0.15em; }
   transform: translate(-50%, -50%);
   width: min(90%, 28rem);
   margin: 0;
-  padding: 1rem 1.2rem;
-  border: 2px dashed var(--bord);
-  border-radius: 16px;
+  padding: 1.1rem 1.3rem;
+  border: 1px solid var(--filet);
+  border-radius: var(--rayon-carte);
   background: var(--surface);
   color: var(--texte-doux);
+  font-family: var(--police-lecture);
+  font-size: 1.05rem;
   text-align: center;
   pointer-events: none;
 }
+.aide-vide strong { font-family: var(--police-ui); color: var(--texte); }
 
 .annonce {
   position: absolute;
@@ -272,10 +315,12 @@ a { color: var(--accent); text-underline-offset: 0.15em; }
   transform: translateX(-50%);
   z-index: 5;
   max-width: calc(100% - 2rem);
-  padding: 0.6rem 1rem;
-  border-radius: 12px;
-  background: var(--texte);
-  color: var(--fond);
+  padding: 0.65rem 1.1rem;
+  border: 1px solid var(--accent);
+  border-radius: var(--rayon);
+  background: var(--surface);
+  color: var(--texte);
+  box-shadow: var(--ombre);
   font-weight: 600;
   text-align: center;
   pointer-events: none;
@@ -286,9 +331,9 @@ a { color: var(--accent); text-underline-offset: 0.15em; }
 /* ---------- Barre du bas ---------- */
 .barre-bas {
   background: var(--barre);
-  border-top: 1px solid var(--bord);
-  padding: 0.25rem 0.25rem;
-  padding-bottom: max(0.25rem, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--filet);
+  padding: 0.3rem 0.25rem;
+  padding-bottom: max(0.3rem, env(safe-area-inset-bottom));
   padding-left: max(0.25rem, env(safe-area-inset-left));
   padding-right: max(0.25rem, env(safe-area-inset-right));
 }
@@ -296,7 +341,7 @@ a { color: var(--accent); text-underline-offset: 0.15em; }
 .groupe-outils {
   display: flex;
   justify-content: center;
-  gap: 0.15rem;
+  gap: 0.2rem;
   max-width: 40rem;
   margin: 0 auto;
 }
@@ -313,22 +358,24 @@ a { color: var(--accent); text-underline-offset: 0.15em; }
   gap: 0.1rem;
   padding: 0.3rem 0.1rem;
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--rayon);
   background: transparent;
+  color: var(--texte);
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 650;
   line-height: 1.1;
 }
 .outil span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 .outil:hover { background: var(--surface-2); }
-.outil[aria-pressed="true"], .outil[aria-expanded="true"] { background: var(--surface-2); color: var(--accent); box-shadow: inset 0 -3px 0 var(--accent); }
+/* Outil actif : pastille violette pleine, comme le choix « Normal » du portfolio. */
+.outil[aria-pressed="true"], .outil[aria-expanded="true"] { background: var(--accent-fond); color: var(--accent-texte); }
 .outil.danger { color: var(--danger); }
 
 /* ---------- Panneaux Forme / Couleur ---------- */
 .choix {
   position: fixed;
   left: 50%;
-  bottom: calc(64px + env(safe-area-inset-bottom) + 0.5rem);
+  bottom: calc(66px + env(safe-area-inset-bottom) + 0.5rem);
   transform: translateX(-50%);
   z-index: 10;
   display: flex;
@@ -338,10 +385,10 @@ a { color: var(--accent); text-underline-offset: 0.15em; }
   width: max-content;
   max-width: calc(100% - 1rem);
   padding: 0.5rem;
-  border: 1px solid var(--bord);
-  border-radius: 16px;
+  border: 1px solid var(--filet);
+  border-radius: var(--rayon-carte);
   background: var(--surface);
-  box-shadow: 0 6px 24px rgb(0 0 0 / 0.35);
+  box-shadow: var(--ombre);
 }
 
 .option-choix {
@@ -353,10 +400,10 @@ a { color: var(--accent); text-underline-offset: 0.15em; }
   min-height: 64px;
   padding: 0.4rem;
   border: 2px solid transparent;
-  border-radius: 12px;
+  border-radius: var(--rayon);
   background: transparent;
   font-size: 0.8rem;
-  font-weight: 600;
+  font-weight: 650;
 }
 .option-choix:hover { background: var(--surface-2); }
 .option-choix[aria-pressed="true"] { border-color: var(--accent); background: var(--surface-2); }
@@ -370,11 +417,12 @@ a { color: var(--accent); text-underline-offset: 0.15em; }
 
 /* ---------- Fenêtres (dialogues) ---------- */
 dialog {
-  border: 1px solid var(--bord);
-  border-radius: 18px;
+  border: 1px solid var(--filet);
+  border-radius: var(--rayon-carte);
   padding: 0;
   background: var(--surface);
   color: var(--texte);
+  box-shadow: var(--ombre);
   max-height: calc(100dvh - 2rem);
 }
 dialog::backdrop { background: var(--voile); }
@@ -385,7 +433,7 @@ dialog::backdrop { background: var(--voile); }
   overflow-y: auto;
 }
 .fenetre.petite { width: min(26rem, calc(100vw - 1.5rem)); padding-top: 1.25rem; }
-.fenetre h2 { margin: 0; font-size: 1.25rem; }
+.fenetre h2 { margin: 0; font-size: 1.3rem; font-weight: 800; letter-spacing: -0.01em; }
 
 .fenetre-entete, .tiroir-entete {
   display: flex;
@@ -395,6 +443,8 @@ dialog::backdrop { background: var(--voile); }
   margin-bottom: 0.75rem;
 }
 
+#confirmer-message { font-family: var(--police-lecture); font-size: 1.08rem; margin: 0; }
+
 .boutons-fenetre {
   display: flex;
   flex-wrap: wrap;
@@ -403,16 +453,16 @@ dialog::backdrop { background: var(--voile); }
   margin-top: 1.25rem;
 }
 
-.etiquette-champ { display: block; margin-bottom: 0.5rem; font-weight: 600; }
+.etiquette-champ { display: block; margin-bottom: 0.6rem; }
 .fenetre input[type="text"] {
   width: 100%;
   min-height: 48px;
   padding: 0.5rem 0.75rem;
-  border: 2px solid var(--bord);
-  border-radius: 10px;
+  border: 1px solid var(--bord);
+  border-radius: var(--rayon);
   background: var(--fond);
 }
-.fenetre input[type="text"]:focus { border-color: var(--accent); }
+.fenetre input[type="text"]:focus { border-color: var(--accent); outline: 2px solid var(--accent); outline-offset: 0; }
 
 /* Menu : tiroir collé à gauche */
 .tiroir {
@@ -420,14 +470,28 @@ dialog::backdrop { background: var(--voile); }
   width: min(22rem, 88vw);
   height: 100%;
   max-height: none;
-  border-radius: 0 18px 18px 0;
+  border-radius: 0 var(--rayon-carte) var(--rayon-carte) 0;
   border-width: 0 1px 0 0;
   padding: max(0.5rem, env(safe-area-inset-top)) 0.75rem 1rem max(0.75rem, env(safe-area-inset-left));
   overflow-y: auto;
 }
-.tiroir h2 { margin: 0 0 0 0.5rem; font-size: 1.2rem; }
+
+/* Marque en tête du menu, comme « OMNI-SYSTÈME » sur le portfolio. */
+.marque {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0 0 0 0.4rem;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.marque img { width: 34px; height: 34px; border-radius: 9px; object-fit: contain; }
 
 .liste-menu { list-style: none; margin: 0; padding: 0; }
+.liste-menu .etiquette-section { padding: 1rem 0.75rem 0.35rem; }
+.liste-menu .etiquette-section:first-child { padding-top: 0.25rem; }
 .liste-menu button {
   display: flex;
   align-items: center;
@@ -436,14 +500,13 @@ dialog::backdrop { background: var(--voile); }
   min-height: 52px;
   padding: 0.5rem 0.75rem;
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--rayon);
   background: transparent;
-  font-weight: 550;
+  font-weight: 600;
   text-align: left;
 }
 .liste-menu button:hover { background: var(--surface-2); }
 .liste-menu .icone { color: var(--accent); }
-.separateur { height: 1px; margin: 0.5rem 0.75rem; background: var(--bord); }
 
 /* Liste des schémas */
 .liste-schemas { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; gap: 0.6rem; }
@@ -451,11 +514,11 @@ dialog::backdrop { background: var(--voile); }
   display: flex;
   align-items: stretch;
   gap: 0.25rem;
-  border: 2px solid var(--bord);
+  border: 1px solid var(--filet);
   border-radius: 14px;
   background: var(--fond);
 }
-.carte-schema.courant { border-color: var(--accent); }
+.carte-schema.courant { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
 .ouvrir-schema {
   flex: 1 1 auto;
   min-width: 0;
@@ -465,45 +528,83 @@ dialog::backdrop { background: var(--voile); }
   justify-content: center;
   gap: 0.15rem;
   min-height: 56px;
-  padding: 0.5rem 0.75rem;
+  padding: 0.55rem 0.8rem;
   border: 0;
-  border-radius: 12px;
+  border-radius: 13px;
   background: transparent;
   text-align: left;
 }
 .ouvrir-schema:hover { background: var(--surface-2); }
-.titre-carte { font-weight: 650; overflow-wrap: anywhere; }
+.titre-carte { font-weight: 700; overflow-wrap: anywhere; }
 .details-carte { font-size: 0.85rem; color: var(--texte-doux); }
 .actions-carte { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
 
-/* Réglages */
+/* Réglages : choix en « pilules », comme Normal / Avantage / Désavantage */
 .groupe-choix {
-  margin: 0 0 1rem;
-  padding: 0.5rem 0.75rem 0.75rem;
-  border: 1px solid var(--bord);
-  border-radius: 12px;
+  margin: 0 0 1.25rem;
+  padding: 0;
+  border: 0;
+  min-width: 0;
 }
-.groupe-choix legend { padding: 0 0.4rem; font-weight: 650; }
-.groupe-choix label {
+.groupe-choix legend { padding: 0; margin-bottom: 0.6rem; }
+
+.pilules {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr)); /* 2 × 2 sur téléphone, 4 côte à côte sinon */
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border: 1px solid var(--filet);
+  border-radius: 16px;
+  background: var(--fond);
+}
+.pilules label {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  padding: 0.35rem 0.85rem;
+  border-radius: var(--rayon);
+  font-weight: 650;
+  text-align: center;
+  color: var(--texte-doux);
+  cursor: pointer;
+}
+.pilules label:hover { background: var(--surface-2); color: var(--texte); }
+/* Le vrai bouton radio reste présent (clavier, lecteur d'écran) mais invisible. */
+.pilules input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+}
+.pilules label:has(input:checked) { background: var(--accent-fond); color: var(--accent-texte); }
+.pilules label:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+.aide-reglage { margin: 0.5rem 0.25rem 0; font-size: 0.85rem; color: var(--texte-doux); }
+
+.cases label {
   display: flex;
   align-items: center;
   gap: 0.75rem;
   min-height: 48px;
   cursor: pointer;
 }
-.groupe-choix input { width: 1.4rem; height: 1.4rem; flex: none; accent-color: var(--accent-fond); }
+.cases input { width: 1.4rem; height: 1.4rem; flex: none; accent-color: var(--accent-fond); }
 
 /* À propos */
 .apropos { text-align: center; }
 .apropos .fenetre-entete { margin-bottom: 0; }
-.apropos .logo { display: block; width: 128px; height: 128px; margin: 0 auto 0.75rem; border-radius: 24px; object-fit: contain; }
-.apropos h2 { font-size: 1.5rem; }
-.apropos .version { margin-top: 0.25rem; color: var(--texte-doux); }
-.apropos p { margin: 0.75rem 0; }
+.apropos .logo { display: block; width: 112px; height: 112px; margin: 0 auto 0.9rem; border-radius: 24px; object-fit: contain; }
+.apropos h2 { font-size: 1.7rem; font-weight: 800; letter-spacing: -0.01em; }
+.apropos .version { margin-top: 0.3rem; font-size: 0.9rem; }
+.apropos .texte-lecture p { margin: 0.8rem 0; font-family: var(--police-lecture); font-size: 1.05rem; line-height: 1.6; }
 /* Liens : zone de toucher agrandie (padding) sans les isoler sur leur ligne. */
 .apropos a { padding: 0.7rem 0.15rem; overflow-wrap: anywhere; }
-.apropos p { line-height: 1.6; }
-.apropos .signature { margin-top: 1.25rem; font-style: italic; font-weight: 600; color: var(--accent); }
+.apropos .lien-omni { font-family: var(--police-ui); font-weight: 650; }
+.apropos a[href^="mailto:"] { font-family: var(--police-ui); font-size: 0.92rem; }
+/* Signature en italique discrète, comme « Conçu et réalisé par Ferrus Dantioch ». */
+.apropos .signature { margin-top: 1.25rem; font-family: var(--police-lecture); font-style: italic; color: var(--texte-doux); }
 
 /* ---------- Petits écrans ---------- */
 @media (max-width: 380px) {
@@ -513,5 +614,5 @@ dialog::backdrop { background: var(--voile); }
 
 /* ---------- Contraste renforcé demandé par l'appareil ---------- */
 @media (prefers-contrast: more) {
-  :root { --bord: currentColor; }
+  :root { --filet: var(--bord); }
 }

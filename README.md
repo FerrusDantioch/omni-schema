@@ -36,6 +36,14 @@ Adresse prévue : <https://ferrusdantioch.github.io/omni-schema/>
 | Annuler / rétablir | flèches en haut à droite | **Ctrl+Z** / **Ctrl+Y** (ou Ctrl+Maj+Z) |
 | Dupliquer / supprimer | barre du bas | **Ctrl+D** / **Suppr** |
 
+## Identité visuelle
+
+Alignée sur le portfolio de l'Omni-système : fond nuit `#14121e`, cartes `#1e1928`,
+filets `#262435`, violet `#a777ff` avec texte sombre sur les boutons, petites étiquettes
+en MAJUSCULES espacées, chiffres en police à chasse fixe, texte de lecture à empattements,
+choix en « pilules ». Polices déjà présentes sur l'appareil : rien n'est téléchargé.
+En thème clair, le violet est assombri (`#6a3fd6`) pour rester lisible.
+
 ## Structure des fichiers
 
 ```
