@@ -7,10 +7,10 @@
 // =====================================================================
 
 import { couleurBloc, couleursToile } from './couleurs.js';
-import { POLICE, POLICE_CHIFFRES, GRAISSE, GRILLE } from './config.js';
-import { mettreEnPage, INTERLIGNE, lignesEtiquette, TAILLE_ETIQUETTE, LARGEUR_ETIQUETTE } from './texte.js';
-import { zoneTexte, zoneImage, traceFleche, milieu, pointe, pointBord, centre } from './geometrie.js';
-import { listeBlocs, listeFleches, trouver } from './modele.js';
+import { POLICE, POLICE_CHIFFRES, GRAISSE, GRILLE, BANDE_ZONE } from './config.js';
+import { mettreEnPage, INTERLIGNE, lignesEtiquette, TAILLE_ETIQUETTE, LARGEUR_ETIQUETTE, ligneCoupee } from './texte.js';
+import { zoneTexte, zoneImage, traceFleche, milieu, pointe, pointBord, centre, contenuZone } from './geometrie.js';
+import { listeBlocs, listeFleches, listeZones, trouver, tailleTexte } from './modele.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 const arrondir = (v) => Math.round(v * 10) / 10;
@@ -36,8 +36,12 @@ function pastilleEtape(parent, x, y, numero, theme) {
   t.textContent = String(numero);
 }
 
-/** Dessine la forme et le texte d'un bloc dans le groupe « g » (coordonnées locales). */
-export function dessinerBloc(g, b, theme, { masquerTexte = false, badge = false, images = null } = {}) {
+/**
+ * Dessine la forme et le texte d'un bloc dans le groupe « g » (coordonnées locales).
+ * « fantome » : pour un bloc sans cadre, un contour très discret dans
+ * l'éditeur seulement (pour le retrouver), jamais dans les exports.
+ */
+export function dessinerBloc(g, b, theme, { masquerTexte = false, badge = false, images = null, fantome = false } = {}) {
   g.replaceChildren();
   const c = couleurBloc(theme, b.couleur);
   const w = b.largeur;
@@ -53,6 +57,15 @@ export function dessinerBloc(g, b, theme, { masquerTexte = false, badge = false,
     case 'losange':
       el('polygon', { points: `${w / 2},0 ${w},${h / 2} ${w / 2},${h} 0,${h / 2}`, ...style }, g);
       break;
+    case 'texte': {
+      // Sans cadre : surface invisible (pour pouvoir le toucher), contour fantôme en édition.
+      const T = couleursToile(theme);
+      el('rect', {
+        x: 0, y: 0, width: w, height: h, rx: 6, fill: 'transparent',
+        stroke: fantome ? T.grille : 'none', 'stroke-width': fantome ? 1.5 : null, 'stroke-dasharray': fantome ? '4 4' : null,
+      }, g);
+      break;
+    }
     default: // arrondi
       el('rect', { x: 0, y: 0, width: w, height: h, rx: Math.min(14, h / 3), ...style }, g);
   }
@@ -69,7 +82,7 @@ export function dessinerBloc(g, b, theme, { masquerTexte = false, badge = false,
   if (masquerTexte) return;
 
   const zone = zoneTexte({ ...b, x: 0, y: 0 });
-  const mise = mettreEnPage(b.texte, zone.largeur, zone.hauteur);
+  const mise = mettreEnPage(b.texte, zone.largeur, zone.hauteur, tailleTexte(b));
   if (!mise.lignes.length) return;
   const hauteurLigne = mise.taille * INTERLIGNE;
   const haut = zone.y + (zone.hauteur - mise.lignes.length * hauteurLigne) / 2;
@@ -90,6 +103,35 @@ export function dessinerBloc(g, b, theme, { masquerTexte = false, badge = false,
   });
   const pastille = g.querySelector('.pastille-etape');
   if (pastille) g.appendChild(pastille); // au premier plan, devant le texte
+}
+
+/**
+ * Dessine une zone de regroupement dans « g » (coordonnées locales) :
+ * grand cadre en pointillés, fond léger, titre en haut à gauche.
+ * Seuls la bande de titre et le bord réagissent au doigt : l'intérieur
+ * laisse passer les gestes (déplacer la vue, toucher deux fois…).
+ */
+export function dessinerZone(g, z, theme, { badge = false, interactive = true } = {}) {
+  g.replaceChildren();
+  const c = couleurBloc(theme, z.couleur);
+  const w = z.largeur;
+  const h = z.hauteur;
+  el('rect', {
+    x: 0, y: 0, width: w, height: h, rx: 18, fill: c.fond, 'fill-opacity': 0.55,
+    stroke: c.bord, 'stroke-width': 2, 'stroke-dasharray': '10 6', 'pointer-events': 'none',
+  }, g);
+  if (interactive) {
+    el('rect', { x: 0, y: 0, width: w, height: h, rx: 18, fill: 'none', stroke: 'transparent', 'stroke-width': 16, 'pointer-events': 'stroke', class: 'zone-prise' }, g);
+    el('rect', { x: 0, y: 0, width: w, height: BANDE_ZONE, rx: 18, fill: 'transparent', class: 'zone-prise' }, g);
+  }
+  const titre = ligneCoupee(z.titre, w - 32, 16, 700);
+  if (titre) {
+    const t = el('text', {
+      x: 16, y: 24, fill: c.texte, 'font-size': 16, 'font-family': POLICE, 'font-weight': 700, 'pointer-events': 'none',
+    }, g);
+    t.textContent = titre;
+  }
+  if (badge && z.etape > 0) pastilleEtape(g, 0, 0, z.etape, theme);
 }
 
 /** Liste de points → attribut « d » d'un tracé SVG. */
@@ -177,6 +219,7 @@ export function dessinerFleche(g, f, A, B, theme, { selectionnee = false, zoneCl
  */
 export function creerRendu(svg) {
   const monde = svg.querySelector('#monde');
+  const calqueZones = svg.querySelector('#calque-zones');
   const calqueFleches = svg.querySelector('#calque-fleches');
   const calqueBlocs = svg.querySelector('#calque-blocs');
   const calqueGuides = svg.querySelector('#calque-guides');
@@ -230,15 +273,34 @@ export function creerRendu(svg) {
     const parId = new Map(blocs.map((b) => [b.id, b]));
     const presents = new Set();
 
+    // --- Zones (derrière tout le reste ; les grandes sous les petites) ---
+    const zones = listeZones(schema);
+    for (const z of zones) {
+      presents.add(z.id);
+      const n = noeudPour(z.id, 'zone', calqueZones);
+      const badge = etat.reglages.pastilles;
+      const signature = `${z.largeur}|${z.hauteur}|${z.couleur}|${z.titre}|${theme}|${badge}|${z.etape}`;
+      if (signature !== n.signature) {
+        dessinerZone(n.g, z, theme, { badge });
+        n.signature = signature;
+        n.g.setAttribute('aria-label', `Zone ${z.titre || 'sans titre'}`);
+      }
+      const position = `${z.x}|${z.y}`;
+      if (position !== n.position) {
+        n.g.setAttribute('transform', `translate(${arrondir(z.x)} ${arrondir(z.y)})`);
+        n.position = position;
+      }
+    }
+
     // --- Blocs ---
     for (const b of blocs) {
       presents.add(b.id);
       const n = noeudPour(b.id, 'bloc', calqueBlocs);
       const enEdition = etat.editionId === b.id;
       const badge = etat.reglages.pastilles;
-      const signature = `${b.largeur}|${b.hauteur}|${b.forme}|${b.couleur}|${theme}|${enEdition}|${badge}|${b.etape}|${b.image}|${b.texte}`;
+      const signature = `${b.largeur}|${b.hauteur}|${b.forme}|${b.couleur}|${b.taille}|${theme}|${enEdition}|${badge}|${b.etape}|${b.image}|${b.texte}`;
       if (signature !== n.signature) {
-        dessinerBloc(n.g, b, theme, { masquerTexte: enEdition, badge, images: schema.images });
+        dessinerBloc(n.g, b, theme, { masquerTexte: enEdition, badge, images: schema.images, fantome: true });
         n.signature = signature;
         n.g.setAttribute('aria-label', b.texte || 'Bloc vide');
       }
@@ -270,6 +332,14 @@ export function creerRendu(svg) {
     // --- Nettoyage des éléments supprimés ---
     for (const [id, n] of noeuds) {
       if (!presents.has(id)) { n.g.remove(); noeuds.delete(id); }
+    }
+
+    // Ordre des zones dans le DOM : celui de listeZones (les grandes d'abord).
+    let precedenteZone = null;
+    for (const z of zones) {
+      const g = noeuds.get(z.id).g;
+      if (g.previousSibling !== precedenteZone) calqueZones.insertBefore(g, precedenteZone ? precedenteZone.nextSibling : calqueZones.firstChild);
+      precedenteZone = g;
     }
 
     // L'ordre des blocs dans le DOM suit l'ordre du schéma (le dernier est au-dessus).
@@ -326,6 +396,30 @@ export function creerRendu(svg) {
       el('circle', { cx: lx, cy: ly, r: 12 / k, fill: T.selection, stroke: T.fond, 'stroke-width': 2 / k, class: 'decor' }, calquePoignees);
       el('path', { d: `M${lx - 6 / k} ${ly}h${12 / k}M${lx} ${ly - 6 / k}v${12 / k}`, stroke: T.fond, 'stroke-width': 2.5 / k, 'stroke-linecap': 'round', class: 'decor' }, calquePoignees);
       el('circle', { cx: lx, cy: ly, r: 22 / k, fill: 'transparent', 'data-poignee': 'relier', class: 'poignee-relier' }, calquePoignees);
+    }
+
+    // Zone choisie : contour, blocs qu'elle emmène, poignée de taille (pas de liaison).
+    if (sel && sel.type === 'zone') {
+      const m = 5 / k;
+      el('rect', {
+        x: sel.x - m, y: sel.y - m, width: sel.largeur + 2 * m, height: sel.hauteur + 2 * m, rx: 18 + m,
+        fill: 'none', stroke: T.selection, 'stroke-width': 2.5 / k, class: 'decor',
+      }, calquePoignees);
+      // Les blocs qui suivront la zone si on la déplace : contour pointillé discret.
+      for (const e of contenuZone(sel, schema.elements)) {
+        if (e.type !== 'bloc') continue;
+        const d = 4 / k;
+        el('rect', {
+          x: e.x - d, y: e.y - d, width: e.largeur + 2 * d, height: e.hauteur + 2 * d, rx: 6 / k,
+          fill: 'none', stroke: T.selection, 'stroke-width': 1.5 / k, 'stroke-dasharray': `${3 / k} ${3 / k}`, 'stroke-opacity': 0.8, class: 'decor',
+        }, calquePoignees);
+      }
+      // Poignée : carré dans le coin ; la surface à toucher déborde surtout
+      // VERS L'EXTÉRIEUR, pour ne pas gêner les gestes à l'intérieur de la zone.
+      const coinX = sel.x + sel.largeur + m;
+      const coinY = sel.y + sel.hauteur + m;
+      el('rect', { x: coinX - 7 / k, y: coinY - 7 / k, width: 14 / k, height: 14 / k, rx: 3 / k, fill: T.selection, stroke: T.fond, 'stroke-width': 2 / k, class: 'decor' }, calquePoignees);
+      el('circle', { cx: coinX + 10 / k, cy: coinY + 10 / k, r: 22 / k, fill: 'transparent', 'data-poignee': 'redim', class: 'poignee-redim' }, calquePoignees);
     }
 
     // Sélection multiple : un contour par bloc, sans poignées.

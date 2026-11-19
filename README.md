@@ -29,6 +29,10 @@ là où on s'était arrêté, vue présentateur sur deux écrans.
 à deux pointes ou sans pointe, étiquettes de flèche sur plusieurs lignes, « Annuler » qui remet
 la sélection en place, polices complétées (Ÿ, espace fine insécable).
 
+**Version 1.3.0** : zones de regroupement, aligner et répartir plusieurs blocs, blocs de texte
+sans cadre et taille du texte, modèles personnels (« Enregistrer comme modèle »). Le zoom, le
+recadrage et la grille sont réunis dans le bouton **Vue**.
+
 ## Utilisation rapide
 
 | Je veux… | Au doigt | À la souris / au clavier |
@@ -42,11 +46,16 @@ la sélection en place, polices complétées (Ÿ, espace fine insécable).
 | Créer un bloc relié | tirer le rond **+** vers le vide | idem |
 | Étiquette d'une flèche | toucher la flèche, puis **Étiquette** | **Entrée** sur la flèche choisie |
 | Se déplacer dans le schéma | glisser le fond | glisser le fond ou clic molette |
-| Zoomer | pincer à deux doigts | molette, ou **+** / **−** ; **0** pour recentrer |
+| Zoomer | pincer à deux doigts, ou bouton **Vue** | molette, ou **+** / **−** ; **0** pour recentrer |
+| Voir tout le schéma, grille magnétique | bouton **Vue** | **0** |
 | Annuler / rétablir | flèches en haut à droite | **Ctrl+Z** / **Ctrl+Y** (ou Ctrl+Maj+Z) |
 | Dupliquer / supprimer | barre du bas | **Ctrl+D** / **Suppr** |
 | Copier / coller des blocs | **Copier** (bloc ou groupe choisi), puis **Coller** (rien de choisi), ici ou dans un autre schéma | **Ctrl+C** / **Ctrl+V** (et **Ctrl+X** pour couper) |
 | Coller un texte ou une image venus d'ailleurs | — | **Ctrl+V** : un nouveau bloc est créé |
+| Regrouper des blocs dans une zone | bouton **Zone** (ou **Aligner** → *Entourer d'une zone* avec plusieurs blocs choisis) ; on déplace la zone par son titre, ses blocs suivent (ils sont entourés de pointillés quand la zone est choisie ; un bloc posé à cheval sur le bord agrandit la zone) ; toucher encore le titre pour le changer | **Z** ; **Entrée** pour le titre |
+| Aligner, répartir, même taille | plusieurs blocs choisis → **Aligner** | idem |
+| Écrire un titre ou une légende libre | **Style** → forme *Sans cadre*, et *Taille du texte* | idem |
+| Repartir d'un de mes schémas | Menu → *Enregistrer comme modèle*, puis *Nouveau schéma* → *Mes modèles* | idem |
 | Changer le trait d'une flèche | toucher la flèche, puis **Trait** : droite, angle droit ou courbe ; plein ou pointillés ; une, deux ou aucune pointe | idem |
 | Créer un bloc relié | tirer le rond **+** vers le vide | **R** (à droite) / **Maj+R** (en dessous) |
 | Relier deux blocs existants | tirer le rond **+** vers l'autre bloc | **L**, puis **Tab** pour viser, **Entrée** |
@@ -179,27 +188,33 @@ Un schéma est un fichier JSON simple et lisible :
 ```json
 {
   "format": "omni-schema",
-  "version_format": 3,
+  "version_format": 4,
   "id": "s-…", "titre": "Mon schéma",
   "cree_le": "2026-11-18T09:00:00.000Z", "modifie_le": "…",
   "theme": "auto",
   "elements": [
     { "type": "bloc", "id": "b-…", "x": 0, "y": 0, "largeur": 160, "hauteur": 80,
-      "texte": "…", "forme": "arrondi", "couleur": "violet", "etape": 0, "note": "", "image": "" },
+      "texte": "…", "forme": "arrondi", "couleur": "violet", "taille": "normal", "etape": 0, "note": "", "image": "" },
+    { "type": "zone", "id": "z-…", "x": -40, "y": -60, "largeur": 480, "hauteur": 260,
+      "titre": "Phase 1", "couleur": "vert", "etape": 0 },
     { "type": "fleche", "id": "f-…", "de": "b-…", "vers": "b-…",
       "style": "droite", "trait": "plein", "pointes": "fin", "etiquette": "", "etape": 0 }
   ]
 }
 ```
 
-- `forme` : `rectangle`, `arrondi`, `ovale`, `losange`.
+- `forme` : `rectangle`, `arrondi`, `ovale`, `losange`, `texte` (sans cadre).
+- `taille` (format 4) : taille du texte d'un bloc, `petit`, `normal` ou `grand`.
+- `zone` (format 4) : grand cadre titré dessiné derrière les blocs ; en présentation, il
+  apparaît à son étape comme un bloc.
 - `couleur` : `neutre`, `violet`, `bleu`, `vert`, `jaune`, `rouge`.
 - `style` d'une flèche : `droite`, `angle` (angle droit) ou `courbe`.
 - `trait` (format 3) : `plein` ou `pointille` ; `pointes` : `fin` (une, au bout), `deux` ou `aucune`.
 - `etape` : `0` = toujours visible ; sinon numéro d'apparition en présentation.
 - `images` (format 2) : les images des blocs, `{ "i-…": "data:image/webp;base64,…" }` ; un bloc
   y fait référence par son champ `image`. Elles sont réduites à 1200 pixels et compressées à l'import.
-- La sauvegarde de tous les schémas a la forme `{ "format": "omni-schema-sauvegarde", "schemas": [ … ] }`.
+- La sauvegarde de tous les schémas a la forme `{ "format": "omni-schema-sauvegarde", "schemas": [ … ], "modeles": [ … ] }`
+  (`modeles` : les modèles personnels, rangés à part dans la base de l'appareil).
 
 Si la structure change un jour, `version_format` augmente et `js/modele.js` convertit automatiquement les anciens fichiers (tableau `MIGRATIONS`).
 

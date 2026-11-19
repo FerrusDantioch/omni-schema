@@ -10,7 +10,7 @@ import { creerSchemaAccueil, migrer } from './modele.js';
 import { listerSchemas, chargerSchema, enregistrerSchema, demanderStockagePersistant } from './stockage.js';
 import { installerGestes } from './interactions.js';
 import { creerEditeurTexte } from './editeur-texte.js';
-import { installerInterface, appliquerTheme, editerEtiquette, fermerChoix, demanderConfirmation, ouvrirAide } from './interface.js';
+import { installerInterface, appliquerTheme, editerEtiquette, editerTitreZone, fermerChoix, demanderConfirmation, ouvrirAide } from './interface.js';
 import { creerPresentation } from './presentation.js';
 import { creerPanneauEtapes } from './panneau-etapes.js';
 import { creerVuePresentateur, demarrerPublic } from './presentateur.js';
@@ -51,10 +51,11 @@ async function demarrer() {
   installerGestes(svg, {
     editerTexte: (id) => editeur.ouvrir(id),
     editerEtiquette,
+    editerTitreZone,
     avantGeste: () => { editeur.terminer(); fermerChoix(); },
   });
   installerClavier({
-    editeur, editerEtiquette, fermerChoix, ouvrirAide,
+    editeur, editerEtiquette, editerTitreZone, fermerChoix, ouvrirAide,
     presenter: () => document.getElementById('btn-presenter').click(),
     presenterDeuxEcrans,
   });
@@ -104,6 +105,17 @@ async function ouvrirPremierSchema() {
   }
   ouvrirSchema(schema);
 }
+
+// Base de données partagée avec un autre onglet d'omni-schema (mise à jour).
+window.addEventListener('omni-schema:base', (e) => {
+  if (e.detail === 'bloquee') {
+    annoncer('omni-schema est aussi ouvert dans un autre onglet, avec une version plus ancienne. Ferme cet autre onglet : tout reprendra ici tout seul. Tes schémas sont en sécurité.', 120000);
+  } else if (e.detail === 'debloquee') {
+    annoncer('C\'est reparti : l\'autre onglet est fermé, tes schémas sont là.', 4000);
+  } else if (e.detail === 'remplacee') {
+    annoncer('Une version plus récente d\'omni-schema vient de s\'ouvrir dans un autre onglet. Recharge cette page (ou ferme-la) pour continuer.', 120000);
+  }
+});
 
 // « ?public=<id> » : fenêtre destinée au public (mode présentateur à deux écrans).
 // Elle n'affiche que le schéma et ne modifie jamais rien.

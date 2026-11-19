@@ -9,7 +9,7 @@
 
 import { APP_VERSION, VERSION_FORMAT } from './config.js';
 import { migrer, nouvelId } from './modele.js';
-import { listerSchemas, enregistrerSchema, chargerSchema } from './stockage.js';
+import { listerSchemas, enregistrerSchema, chargerSchema, listerModeles, enregistrerModele, chargerModele } from './stockage.js';
 
 /** Fabrique un nom de fichier sûr à partir d'un titre. */
 export function nomFichier(titre, extension) {
@@ -49,12 +49,14 @@ export function exporterSchema(schema) {
 
 export async function exporterTout() {
   const schemas = await listerSchemas();
+  const modeles = await listerModeles();
   const sauvegarde = {
     format: 'omni-schema-sauvegarde',
     version_format: VERSION_FORMAT,
     version_app: APP_VERSION,
     date: new Date().toISOString(),
     schemas,
+    modeles, // modèles personnels (depuis la version 1.3.0)
   };
   telecharger(nomFichier('omni-schema-sauvegarde', 'json'), JSON.stringify(sauvegarde, null, 2), 'application/json');
   return schemas.length;
@@ -80,6 +82,22 @@ export async function importerFichier(fichier) {
 
   const importes = [];
   const erreurs = [];
+  // Modèles personnels d'une sauvegarde : ajoutés sans rien remplacer.
+  let modelesImportes = 0;
+  if (donnees.format === 'omni-schema-sauvegarde' && Array.isArray(donnees.modeles)) {
+    for (const brut of donnees.modeles) {
+      try {
+        const modele = migrer(brut);
+        const existant = await chargerModele(modele.id);
+        if (existant && JSON.stringify(existant.elements) === JSON.stringify(modele.elements)) continue; // déjà là
+        if (existant) modele.id = nouvelId('m');
+        await enregistrerModele(modele);
+        modelesImportes++;
+      } catch (erreur) {
+        erreurs.push(erreur.message);
+      }
+    }
+  }
   for (const brut of bruts) {
     try {
       const schema = migrer(brut);
@@ -95,6 +113,6 @@ export async function importerFichier(fichier) {
       erreurs.push(erreur.message);
     }
   }
-  if (!importes.length) throw new Error(erreurs[0] || 'Aucun schéma n\'a pu être importé.');
-  return { importes, erreurs };
+  if (!importes.length && !modelesImportes) throw new Error(erreurs[0] || 'Aucun schéma n\'a pu être importé.');
+  return { importes, erreurs, modelesImportes };
 }

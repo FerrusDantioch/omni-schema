@@ -5,14 +5,18 @@
 
 import { APP_VERSION } from './config.js';
 import { COULEURS, couleurBloc, couleursToile } from './couleurs.js';
-import { FORMES, STYLES_FLECHE, TRAITS, POINTES, trouver, creerSchema, migrer, nouvelId } from './modele.js';
+import { FORMES, TAILLES, STYLES_FLECHE, TRAITS, POINTES, trouver, creerSchema, migrer, nouvelId } from './modele.js';
 import {
   etat, notifier, surChangement, demanderRendu, annuler, retablir, peutAnnuler, peutRetablir,
   ajouterBloc, dupliquerSelection, supprimerSelection, modifierSelection, modifierChaque, blocsSelectionnes, selectionner,
   recentrer, zoomerCentre, renommer, ouvrirSchema, sauvegarderMaintenant, enregistrerReglages, annoncer,
+  ajouterZone, alignerSelection, repartirSelection, memeTailleSelection, surRendu,
 } from './noyau.js';
-import { listerSchemas, chargerSchema, enregistrerSchema, supprimerSchema } from './stockage.js';
-import { exporterSchema, exporterTout, importerFichier } from './fichiers.js';
+import {
+  listerSchemas, chargerSchema, enregistrerSchema, supprimerSchema,
+  listerModeles, chargerModele, enregistrerModele, supprimerModele,
+} from './stockage.js';
+import { exporterSchema, exporterTout, importerFichier, sansImagesInutiles } from './fichiers.js';
 import { etapeMax, etapesEffectives } from './etapes.js';
 import { MODELES, creerDepuisModele } from './modeles.js';
 import { exporterPng, exporterSvg, imprimerEtapes } from './exports.js';
@@ -128,6 +132,15 @@ export function installerInterface({ editeur, presentation, panneauEtapes }) {
   $('btn-etapes').addEventListener('click', () => panneauEtapes.ouvrir());
   $('btn-recentrer').addEventListener('click', recentrer);
   $('btn-coller').addEventListener('click', () => coller());
+  $('btn-ajouter-zone').addEventListener('click', () => ajouterZone());
+  $('btn-vue').addEventListener('click', (e) => {
+    $('zoom-valeur').textContent = `${Math.round(etat.vue.k * 100)} %`;
+    basculerChoix('choix-vue', e.currentTarget);
+  });
+  // Pourcentage du zoom, tenu à jour pendant que le panneau « Vue » est ouvert.
+  surRendu(() => {
+    if (!$('choix-vue').hidden) $('zoom-valeur').textContent = `${Math.round(etat.vue.k * 100)} %`;
+  });
   $('btn-copier').addEventListener('click', copierDepuisBouton);
   $('btn-copier-groupe').addEventListener('click', copierDepuisBouton);
   $('btn-zoom-plus').addEventListener('click', () => zoomerCentre(1.25));
@@ -142,6 +155,12 @@ export function installerInterface({ editeur, presentation, panneauEtapes }) {
   $('btn-dupliquer-groupe').addEventListener('click', dupliquerSelection);
   $('btn-supprimer-groupe').addEventListener('click', supprimerSelection);
   $('btn-fermer-groupe').addEventListener('click', () => selectionner(null));
+  $('btn-aligner').addEventListener('click', (e) => basculerChoix('choix-aligner', e.currentTarget));
+  $('btn-zone-autour').addEventListener('click', () => { fermerChoix(); ajouterZone(); });
+  // --- Barre du bas : zone choisie ---
+  $('btn-titre-zone').addEventListener('click', () => editerTitreZone(etat.selection));
+  $('btn-dupliquer-zone').addEventListener('click', dupliquerSelection);
+  $('btn-supprimer-zone').addEventListener('click', supprimerSelection);
   $('btn-note').addEventListener('click', () => editerNote(etat.selection));
   for (const b of document.querySelectorAll('[data-bouton-etape]')) {
     b.addEventListener('click', (e) => basculerChoix('choix-etape', e.currentTarget));
@@ -203,6 +222,7 @@ export function installerInterface({ editeur, presentation, panneauEtapes }) {
 
   construireChoix();
   construireChoixTrait();
+  construireChoixAligner();
   installerNouveau();
   installerExport();
   installerMenu();
@@ -226,6 +246,17 @@ export async function editerEtiquette(id) {
   if (texte === null) return;
   etat.selection = id;
   modifierSelection({ etiquette: texte.slice(0, 200) });
+}
+
+/** Modifier le titre d'une zone. */
+export async function editerTitreZone(id) {
+  const z = trouver(etat.schema, id);
+  if (!z || z.type !== 'zone') return;
+  const texte = await demanderTexte('Titre de la zone (laisse vide pour aucun)', z.titre, { videPermis: true });
+  if (texte === null) return;
+  etat.selection = id;
+  etat.groupe = null;
+  modifierSelection({ titre: texte.slice(0, 200) });
 }
 
 /** Fenêtre « Aide et raccourcis ». */
@@ -274,6 +305,16 @@ function construireChoix() {
     b.innerHTML = `<svg viewBox="0 0 40 28" class="apercu-forme" aria-hidden="true">${apercuForme(f.id)}</svg><span>${f.nom}</span>`;
     b.addEventListener('click', () => modifierSelection({ forme: f.id }));
     panneauForme.appendChild(b);
+  }
+  const panneauTaille = $('options-taille');
+  for (const t of TAILLES) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'option-choix';
+    b.dataset.taille = t.id;
+    b.innerHTML = `<span class="apercu-taille apercu-${t.id}" aria-hidden="true">Aa</span><span>${t.nom}</span>`;
+    b.addEventListener('click', () => modifierSelection({ taille: t.id }));
+    panneauTaille.appendChild(b);
   }
   const panneauCouleur = $('options-couleur');
   for (const c of COULEURS) {
@@ -336,8 +377,46 @@ function apercuForme(forme) {
     case 'rectangle': return `<rect x="3" y="3" width="34" height="22" ${style}/>`;
     case 'ovale': return `<ellipse cx="20" cy="14" rx="17" ry="11" ${style}/>`;
     case 'losange': return `<polygon points="20,2 38,14 20,26 2,14" ${style}/>`;
+    case 'texte': return '<text x="20" y="20" text-anchor="middle" font-size="15" font-weight="700" fill="currentColor">Abc</text>';
     default: return `<rect x="3" y="3" width="34" height="22" rx="7" ${style}/>`;
   }
+}
+
+// ---------------------------------------------------------------------
+// Panneau « Aligner » (sélection multiple)
+// ---------------------------------------------------------------------
+function construireChoixAligner() {
+  const trait = 'fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"';
+  const plein = 'fill="currentColor" opacity="0.85"';
+  // Petits dessins : la ligne de référence et deux blocs alignés dessus.
+  const dessins = {
+    gauche: `<path d="M6 2v24" ${trait}/><rect x="8" y="5" width="22" height="7" rx="1.5" ${plein}/><rect x="8" y="16" width="14" height="7" rx="1.5" ${plein}/>`,
+    centre: `<path d="M20 2v24" ${trait}/><rect x="9" y="5" width="22" height="7" rx="1.5" ${plein}/><rect x="13" y="16" width="14" height="7" rx="1.5" ${plein}/>`,
+    droite: `<path d="M34 2v24" ${trait}/><rect x="10" y="5" width="22" height="7" rx="1.5" ${plein}/><rect x="18" y="16" width="14" height="7" rx="1.5" ${plein}/>`,
+    haut: `<path d="M4 3h32" ${trait}/><rect x="8" y="5" width="9" height="20" rx="1.5" ${plein}/><rect x="22" y="5" width="9" height="12" rx="1.5" ${plein}/>`,
+    milieu: `<path d="M4 14h32" ${trait}/><rect x="8" y="4" width="9" height="20" rx="1.5" ${plein}/><rect x="22" y="8" width="9" height="12" rx="1.5" ${plein}/>`,
+    bas: `<path d="M4 25h32" ${trait}/><rect x="8" y="3" width="9" height="20" rx="1.5" ${plein}/><rect x="22" y="11" width="9" height="12" rx="1.5" ${plein}/>`,
+    horizontal: `<rect x="2" y="8" width="8" height="12" rx="1.5" ${plein}/><rect x="16" y="8" width="8" height="12" rx="1.5" ${plein}/><rect x="30" y="8" width="8" height="12" rx="1.5" ${plein}/>`,
+    vertical: `<rect x="13" y="1" width="14" height="6" rx="1.5" ${plein}/><rect x="13" y="11" width="14" height="6" rx="1.5" ${plein}/><rect x="13" y="21" width="14" height="6" rx="1.5" ${plein}/>`,
+    largeur: `<rect x="6" y="4" width="28" height="8" rx="1.5" ${plein}/><rect x="6" y="16" width="28" height="8" rx="1.5" ${plein}/>`,
+    hauteur: `<rect x="8" y="3" width="10" height="22" rx="1.5" ${plein}/><rect x="22" y="3" width="10" height="22" rx="1.5" ${plein}/>`,
+  };
+  const ajouter = (idPanneau, valeur, nom, action) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'option-choix';
+    b.dataset.aligner = valeur;
+    b.innerHTML = `<svg viewBox="0 0 40 28" class="apercu-forme" aria-hidden="true">${dessins[valeur]}</svg><span>${nom}</span>`;
+    b.addEventListener('click', action);
+    $(idPanneau).appendChild(b);
+  };
+  for (const [valeur, nom] of [['gauche', 'À gauche'], ['centre', 'Au centre'], ['droite', 'À droite'], ['haut', 'En haut'], ['milieu', 'Au milieu'], ['bas', 'En bas']]) {
+    ajouter('options-aligner', valeur, nom, () => alignerSelection(valeur));
+  }
+  ajouter('options-repartir', 'horizontal', 'En largeur', () => repartirSelection('horizontal'));
+  ajouter('options-repartir', 'vertical', 'En hauteur', () => repartirSelection('vertical'));
+  ajouter('options-taille-groupe', 'largeur', 'Largeur', () => memeTailleSelection('largeur'));
+  ajouter('options-taille-groupe', 'hauteur', 'Hauteur', () => memeTailleSelection('hauteur'));
 }
 
 function basculerChoix(idPanneau, bouton) {
@@ -360,6 +439,8 @@ export function fermerChoix() {
 // ---------------------------------------------------------------------
 // Mise à jour de l'interface selon l'état
 // ---------------------------------------------------------------------
+let typeAffiche = 'aucun'; // barre du bas affichée (aucun, bloc, groupe, zone, fleche)
+
 function mettreAJourInterface() {
   if (!etat.schema) return;
   $('titre-schema').textContent = etat.schema.titre;
@@ -374,15 +455,32 @@ function mettreAJourInterface() {
   for (const groupe of document.querySelectorAll('.groupe-outils')) {
     groupe.hidden = groupe.dataset.pour !== type;
   }
-  if (type === 'aucun') fermerChoix();
-  else if (type === 'fleche') $('choix-style').hidden = true;
-  else $('choix-trait').hidden = true;
+  // Chaque panneau appartient à une barre : on le ferme quand la barre change.
+  if (type !== typeAffiche) fermerChoix();
+  typeAffiche = type;
+  if (!$('choix-vue').hidden) $('zoom-valeur').textContent = `${Math.round(etat.vue.k * 100)} %`;
+  // Panneau Style : forme et taille pour les blocs, image pour un bloc seul.
+  $('section-forme').hidden = type === 'zone';
+  $('section-image').hidden = type !== 'bloc';
+  $('choix-style').setAttribute('aria-label', type === 'zone' ? 'Couleur de la zone' : 'Style');
+
+  if (sel && sel.type === 'zone') {
+    for (const b of document.querySelectorAll('[data-couleur]')) {
+      b.setAttribute('aria-pressed', String(b.dataset.couleur === sel.couleur));
+      const c = couleurBloc(etat.themeResolu, b.dataset.couleur);
+      b.querySelector('.pastille').style.background = c.fond;
+      b.querySelector('.pastille').style.borderColor = c.bord;
+    }
+  }
 
   if (etat.groupe) {
     const blocs = blocsSelectionnes();
     $('compte-groupe').textContent = `${blocs.length} bloc${blocs.length > 1 ? 's' : ''}`;
-    $('section-image').hidden = true; // une image se met bloc par bloc
+    // Sur téléphone, le compteur est caché : le nombre s'affiche dans « OK ».
+    $('btn-fermer-groupe').querySelector('span').dataset.court = `OK (${blocs.length})`;
+    for (const b of document.querySelectorAll('#options-repartir [data-aligner]')) b.disabled = blocs.length < 3;
     const commun = (cle) => (blocs.length && blocs.every((b) => b[cle] === blocs[0][cle]) ? blocs[0][cle] : null);
+    for (const b of document.querySelectorAll('[data-taille]')) b.setAttribute('aria-pressed', String(b.dataset.taille === commun('taille')));
     for (const b of document.querySelectorAll('[data-forme]')) b.setAttribute('aria-pressed', String(b.dataset.forme === commun('forme')));
     for (const b of document.querySelectorAll('[data-couleur]')) {
       b.setAttribute('aria-pressed', String(b.dataset.couleur === commun('couleur')));
@@ -395,13 +493,12 @@ function mettreAJourInterface() {
     $('etape-moins').disabled = blocs.every((b) => b.etape <= 0);
     $('etape-zero').disabled = blocs.every((b) => b.etape <= 0);
     $('etape-info').textContent = 'Le réglage s\'applique à tous les blocs choisis. « Nouvelle étape » les fait apparaître ensemble.';
-  } else {
-    $('section-image').hidden = false;
   }
   if (sel && sel.type === 'bloc') {
     $('libelle-image-ajouter').textContent = sel.image ? 'Remplacer l\'image' : 'Ajouter une image';
     $('btn-image-retirer').hidden = !sel.image;
     for (const b of document.querySelectorAll('[data-forme]')) b.setAttribute('aria-pressed', String(b.dataset.forme === sel.forme));
+    for (const b of document.querySelectorAll('[data-taille]')) b.setAttribute('aria-pressed', String(b.dataset.taille === (sel.taille || 'normal')));
     for (const b of document.querySelectorAll('[data-couleur]')) {
       b.setAttribute('aria-pressed', String(b.dataset.couleur === sel.couleur));
       const c = couleurBloc(etat.themeResolu, b.dataset.couleur);
@@ -445,6 +542,7 @@ function installerMenu() {
     switch (action) {
       case 'schemas': await afficherListe(); break;
       case 'nouveau': await nouveauSchema(); break;
+      case 'modele': await enregistrerCommeModele(); break;
       case 'exporter-image': afficherExport(); break;
       case 'exporter':
         await sauvegarderMaintenant();
@@ -472,11 +570,12 @@ function installerMenu() {
     if (!fichier) return;
     try {
       await sauvegarderMaintenant();
-      const { importes, erreurs } = await importerFichier(fichier);
-      ouvrirSchema(importes[0]);
+      const { importes, erreurs, modelesImportes } = await importerFichier(fichier);
+      if (importes.length) ouvrirSchema(importes[0]);
       let message = importes.length === 1
         ? `« ${importes[0].titre} » importé et ouvert.`
         : `${importes.length} schémas importés. Retrouve-les dans « Mes schémas ».`;
+      if (modelesImportes) message += ` ${modelesImportes} modèle${modelesImportes > 1 ? 's' : ''} ajouté${modelesImportes > 1 ? 's' : ''}.`;
       if (erreurs.length) message += ` (${erreurs.length} n'ont pas pu être lus.)`;
       annoncer(message, 4500);
     } catch (erreur) {
@@ -507,19 +606,91 @@ function installerNouveau() {
     if (e.key === 'Enter') { e.preventDefault(); $('dlg-nouveau').close('oui'); }
   });
   // Choisir un modèle propose son nom comme titre (si on n'en a pas tapé d'autre).
-  liste.addEventListener('change', (e) => {
+  // (vaut aussi pour « Mes modèles » : on écoute toute la fenêtre)
+  let nomPropose = 'Nouveau schéma';
+  $('dlg-nouveau').addEventListener('change', (e) => {
+    if (e.target.name !== 'modele') return;
     const champ = $('nouveau-titre');
-    const noms = MODELES.map((m) => m.nom).concat('Nouveau schéma');
-    if (noms.includes(champ.value.trim())) {
-      const m = MODELES.find((x) => x.id === e.target.value);
-      champ.value = m.id === 'vide' ? 'Nouveau schéma' : m.nom;
-    }
+    if (champ.value.trim() !== nomPropose) return; // l'utilisateur a tapé son propre nom
+    const m = MODELES.find((x) => x.id === e.target.value);
+    if (m) nomPropose = m.id === 'vide' ? 'Nouveau schéma' : m.nom;
+    else nomPropose = e.target.closest('label').querySelector('.nom-modele').textContent;
+    champ.value = nomPropose;
   });
+  $('dlg-nouveau').addEventListener('close', () => { nomPropose = 'Nouveau schéma'; });
+}
+
+// ---------------------------------------------------------------------
+// Mes modèles : un schéma enregistré pour repartir de lui plus tard
+// ---------------------------------------------------------------------
+async function enregistrerCommeModele() {
+  if (!etat.schema) return;
+  const nom = await demanderTexte('Nom du modèle', etat.schema.titre);
+  if (!nom) return;
+  await sauvegarderMaintenant();
+  const copie = JSON.parse(JSON.stringify(sansImagesInutiles(etat.schema)));
+  const maintenant = new Date().toISOString();
+  const modele = { ...copie, id: nouvelId('m'), titre: nom.slice(0, 200), cree_le: maintenant, modifie_le: maintenant };
+  try {
+    await enregistrerModele(modele);
+    annoncer(`Modèle « ${modele.titre} » enregistré : retrouve-le dans « Nouveau schéma ».`, 4000);
+  } catch (erreur) {
+    console.error(erreur);
+    annoncer('Le modèle n\'a pas pu être enregistré.', 5000);
+  }
+}
+
+/** Remplit la liste « Mes modèles » de la fenêtre « Nouveau schéma ». */
+async function remplirMesModeles() {
+  const liste = $('liste-mes-modeles');
+  let modeles = [];
+  try { modeles = await listerModeles(); } catch { modeles = []; }
+  liste.replaceChildren();
+  $('section-mes-modeles').hidden = !modeles.length;
+  for (const m of modeles) {
+    const label = document.createElement('label');
+    label.className = 'carte-modele avec-action';
+    label.innerHTML = '<input type="radio" name="modele"><span class="nom-modele"></span><span class="desc-modele"></span>';
+    label.querySelector('input').value = `perso:${m.id}`;
+    label.querySelector('.nom-modele').textContent = m.titre;
+    const nb = m.elements.filter((e) => e.type === 'bloc').length;
+    label.querySelector('.desc-modele').textContent = `${nb} bloc${nb > 1 ? 's' : ''}`;
+    const retirer = document.createElement('button');
+    retirer.type = 'button';
+    retirer.className = 'bouton-icone danger petit-bouton';
+    retirer.setAttribute('aria-label', `Supprimer le modèle ${m.titre}`);
+    retirer.title = 'Supprimer ce modèle';
+    retirer.innerHTML = '<svg class="icone" aria-hidden="true"><use href="#i-supprimer"/></svg>';
+    retirer.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      // La confirmation s'ouvre par-dessus « Nouveau schéma », qui reste ouverte.
+      const ok = await demanderConfirmation(`Supprimer le modèle « ${m.titre} » ? Les schémas déjà créés à partir de lui ne changent pas.`, 'Supprimer');
+      if (!ok) return;
+      await supprimerModele(m.id);
+      const choisi = $('dlg-nouveau').querySelector('input[name="modele"]:checked');
+      if (!choisi || choisi.value === `perso:${m.id}`) $('dlg-nouveau').querySelector('input[name="modele"][value="vide"]').checked = true;
+      await remplirMesModeles();
+      annoncer('Modèle supprimé.');
+    });
+    label.appendChild(retirer);
+    liste.appendChild(label);
+  }
+}
+
+/** Crée un schéma à partir d'un modèle personnel (copie complète, nouvel identifiant). */
+async function creerDepuisMonModele(idModele, titre) {
+  const brut = await chargerModele(idModele);
+  if (!brut) throw new Error('Ce modèle n\'existe plus.');
+  const s = migrer(brut);
+  const maintenant = new Date().toISOString();
+  return { ...s, id: nouvelId('s'), titre, cree_le: maintenant, modifie_le: maintenant };
 }
 
 async function nouveauSchema() {
   const d = $('dlg-nouveau');
   $('nouveau-titre').value = 'Nouveau schéma';
+  await remplirMesModeles();
   d.querySelector('input[name="modele"][value="vide"]').checked = true;
   d.returnValue = 'non';
   ouvrirFenetre(d);
@@ -530,7 +701,14 @@ async function nouveauSchema() {
   const titre = $('nouveau-titre').value.trim() || 'Nouveau schéma';
   const modele = (d.querySelector('input[name="modele"]:checked') || {}).value || 'vide';
   await sauvegarderMaintenant();
-  const s = modele === 'vide' ? creerSchema(titre) : creerDepuisModele(modele, titre);
+  let s;
+  try {
+    if (modele.startsWith('perso:')) s = await creerDepuisMonModele(modele.slice(6), titre);
+    else s = modele === 'vide' ? creerSchema(titre) : creerDepuisModele(modele, titre);
+  } catch (erreur) {
+    annoncer(erreur.message, 5000);
+    return;
+  }
   await enregistrerSchema(s);
   ouvrirSchema(s);
   annoncer(modele === 'vide' ? 'Nouveau schéma créé.' : 'Modèle prêt : remplace les textes, puis présente !', 3500);

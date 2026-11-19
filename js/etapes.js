@@ -83,7 +83,8 @@ export function numeroterAutomatiquement(schema) {
     ligne.blocs.sort((a, b) => a.x - b.x);
     for (const b of ligne.blocs) b.etape = n++;
   }
-  for (const e of schema.elements) if (e.type === 'fleche') e.etape = 0;
+  // Flèches (elles suivent leurs blocs) et zones : toujours visibles.
+  for (const e of schema.elements) if (e.type !== 'bloc') e.etape = 0;
 }
 
 /** Retire toutes les étapes : tout devient toujours visible. */
@@ -98,6 +99,7 @@ export function nomElement(schema, e, longueur = 40) {
     return propre.length > longueur ? `${propre.slice(0, longueur - 1)}…` : propre;
   };
   if (e.type === 'bloc') return couper(e.texte) || 'Bloc sans texte';
+  if (e.type === 'zone') return `Zone « ${couper(e.titre) || 'sans titre'} »`;
   const A = trouver(schema, e.de);
   const B = trouver(schema, e.vers);
   const nom = `${couper(A && A.texte) || 'bloc'} → ${couper(B && B.texte) || 'bloc'}`;

@@ -514,6 +514,15 @@ a { color: var(--accent); text-underline-offset: 0.18em; }
 .option-choix:hover { background: var(--surface-2); }
 .option-choix[aria-pressed="true"] { border-color: var(--accent); background: var(--surface-2); }
 .apercu-forme { width: 40px; height: 28px; }
+/* Taille du texte : « Aa » petit, normal, grand */
+.apercu-taille { display: flex; align-items: flex-end; justify-content: center; height: 28px; font-weight: 700; line-height: 1; }
+.apercu-petit { font-size: 0.85rem; }
+.apercu-normal { font-size: 1.1rem; }
+.apercu-grand { font-size: 1.6rem; }
+/* Bouton à bascule (ex. Grille magnétique dans le panneau Vue) */
+.bouton[aria-pressed="true"] { background: var(--accent-fond); color: var(--accent-texte); border-color: var(--accent-fond); }
+#zoom-valeur { min-width: 6rem; }
+.choix .bouton-pas .icone { width: 26px; height: 26px; }
 .pastille {
   width: 32px;
   height: 26px;
@@ -816,6 +825,9 @@ kbd {
 .carte-modele:has(input:checked) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 .carte-modele:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 2px; }
 .nom-modele { font-weight: 700; }
+/* Mes modèles : bouton « supprimer » au bout de la carte, au-dessus du choix. */
+.carte-modele.avec-action { padding-right: 3.6rem; }
+.carte-modele .petit-bouton { position: absolute; top: 50%; right: 0.35rem; transform: translateY(-50%); z-index: 1; }
 .desc-modele { font-size: 0.88rem; color: var(--texte-doux); }
 
 /* Export */
@@ -1031,7 +1043,8 @@ body.mode-public { display: block; }
 @media (max-width: 440px) {
   .groupe-outils { gap: 0.1rem; }
   .outil { font-size: 0.68rem; padding-inline: 0; min-width: 44px; }
-  .compte-groupe { margin: 0 0.1rem; padding: 0.3rem 0.45rem; font-size: 0.75rem; }
+  /* Le nombre de blocs passe dans le bouton « OK (3) » ; le compteur reste lu par les lecteurs d'écran. */
+  .compte-groupe { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .outil span[data-court] { font-size: 0; }
   .outil span[data-court]::after { content: attr(data-court); font-size: 0.68rem; }
 }

@@ -5,7 +5,7 @@
 //   Tab / Maj+Tab : élément suivant / précédent (blocs, puis flèches)
 //   Entrée ou F2 : écrire dans le bloc / étiquette de la flèche
 //   Flèches : déplacer le bloc (Maj : finement) · Alt+flèches : taille
-//   N : nouveau bloc · R : bloc relié à droite · Maj+R : relié en dessous
+//   N : nouveau bloc · Z : nouvelle zone · R : bloc relié à droite · Maj+R : relié en dessous
 //   L : relier le bloc choisi à un autre (Tab pour viser, Entrée pour valider)
 //   E : étape de l'élément · P : présenter · ? : aide
 //   Suppr : supprimer · Ctrl+D : dupliquer · Échap : désélectionner
@@ -15,9 +15,9 @@
 
 import {
   etat, annuler, retablir, supprimerSelection, dupliquerSelection, selectionner, ajouterBloc, relier, toutSelectionner,
-  decalerSelection, agrandirSelection, valider, zoomerCentre, recentrer, rendreVisible, demanderRendu,
+  decalerSelection, agrandirSelection, valider, zoomerCentre, recentrer, rendreVisible, demanderRendu, ajouterZone,
 } from './noyau.js';
-import { trouver, listeBlocs, listeFleches } from './modele.js';
+import { trouver, listeBlocs, listeFleches, listeZones } from './modele.js';
 import { nomElement } from './etapes.js';
 import { GRILLE } from './config.js';
 
@@ -37,7 +37,7 @@ function decrire(e) {
   return `${nomElement(etat.schema, e, 80)}${etape}.`;
 }
 
-export function installerClavier({ editeur, editerEtiquette, fermerChoix, ouvrirAide, presenter, presenterDeuxEcrans }) {
+export function installerClavier({ editeur, editerEtiquette, editerTitreZone, fermerChoix, ouvrirAide, presenter, presenterDeuxEcrans }) {
   let minuterieDeplacement = null;
   let liaison = null; // { de } pendant « L » : on choisit le bloc d'arrivée
 
@@ -147,6 +147,7 @@ export function installerClavier({ editeur, editerEtiquette, fermerChoix, ouvrir
         if (surBouton && touche === 'Enter') return;
         if (sel && sel.type === 'bloc') { e.preventDefault(); editeur.ouvrir(sel.id); }
         else if (sel && sel.type === 'fleche') { e.preventDefault(); editerEtiquette(sel.id); }
+        else if (sel && sel.type === 'zone') { e.preventDefault(); editerTitreZone(sel.id); }
         break;
       case 'Escape':
         fermerChoix();
@@ -158,7 +159,7 @@ export function installerClavier({ editeur, editerEtiquette, fermerChoix, ouvrir
         if (!surToile) return;
         const blocs = listeBlocs(etat.schema);
         // Pendant une liaison, seuls les blocs comptent ; sinon blocs puis flèches.
-        const ordre = liaison ? blocs.filter((b) => b.id !== liaison.de) : blocs.concat(listeFleches(etat.schema));
+        const ordre = liaison ? blocs.filter((b) => b.id !== liaison.de) : blocs.concat(listeFleches(etat.schema), listeZones(etat.schema));
         if (!ordre.length) return;
         e.preventDefault();
         const actuel = liaison ? (etat.liaison && etat.liaison.cible) : etat.selection;
@@ -178,7 +179,7 @@ export function installerClavier({ editeur, editerEtiquette, fermerChoix, ouvrir
       case 'ArrowRight':
       case 'ArrowUp':
       case 'ArrowDown': {
-        if ((!etat.groupe && (!sel || sel.type !== 'bloc')) || surBouton) return;
+        if ((!etat.groupe && (!sel || sel.type === 'fleche')) || surBouton) return;
         e.preventDefault();
         const pas = e.shiftKey ? 1 : (etat.reglages.grille ? GRILLE : 10);
         const dx = touche === 'ArrowLeft' ? -pas : touche === 'ArrowRight' ? pas : 0;
@@ -194,6 +195,12 @@ export function installerClavier({ editeur, editerEtiquette, fermerChoix, ouvrir
       case 'n':
         e.preventDefault();
         editeur.ouvrir(ajouterBloc().id);
+        break;
+      case 'z':
+        // Z : nouvelle zone (autour des blocs choisis, s'il y en a)
+        e.preventDefault();
+        ajouterZone();
+        annoncerLecteur('Zone créée. Entrée pour changer son titre.');
         break;
       case 'r':
         if (!sel || sel.type !== 'bloc') return;

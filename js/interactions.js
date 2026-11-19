@@ -3,6 +3,8 @@
 //
 // Règles choisies pour éviter les conflits :
 // - 1 doigt sur un bloc       → déplace le bloc ;
+// - 1 doigt sur le titre (ou le bord) d'une zone → déplace la zone et
+//   ce qu'elle contient ; l'intérieur d'une zone se comporte comme le fond ;
 // - 1 doigt sur le fond       → déplace la vue ;
 // - 2 doigts n'importe où     → zoom + déplacement de la vue
 //                               (un déplacement de bloc en cours est annulé) ;
@@ -19,13 +21,13 @@
 
 import {
   etat, demanderRendu, valider, abandonner, selectionner, ajouterBloc, relier,
-  borneZoom, zoomerAutour, basculerDansGroupe, entrerGroupe, annoncer,
+  borneZoom, zoomerAutour, basculerDansGroupe, entrerGroupe, annoncer, contenuZone, ajusterZones,
 } from './noyau.js';
 import { trouver, listeBlocs } from './modele.js';
 import { aimanter, surGrille } from './geometrie.js';
-import { BLOC_MIN } from './config.js';
+import { BLOC_MIN, ZONE_MIN } from './config.js';
 
-export function installerGestes(svg, { editerTexte, editerEtiquette, avantGeste }) {
+export function installerGestes(svg, { editerTexte, editerEtiquette, editerTitreZone, avantGeste }) {
   const pointeurs = new Map(); // id du pointeur → position à l'écran
   let geste = null;
   let rectZone = null;
@@ -85,7 +87,7 @@ export function installerGestes(svg, { editerTexte, editerEtiquette, avantGeste 
     } else if (poignee === 'redim') {
       const b = trouver(etat.schema, etat.selection);
       if (!b) return;
-      geste = { ...base, mode: 'redim', idBloc: b.id, l0: b.largeur, h0: b.hauteur };
+      geste = { ...base, mode: 'redim', idBloc: b.id, l0: b.largeur, h0: b.hauteur, min: b.type === 'zone' ? ZONE_MIN : BLOC_MIN };
     } else if (poignee === 'relier') {
       geste = { ...base, mode: 'relier', idBloc: etat.selection, seuil: 2 };
     } else if (element && element.type === 'bloc') {
@@ -93,6 +95,12 @@ export function installerGestes(svg, { editerTexte, editerEtiquette, avantGeste 
       selectionner(element.id);
       geste = { ...base, mode: 'bloc', idBloc: element.id, x0: element.x, y0: element.y, dejaChoisi };
       if (touche) armerAppuiLong(geste);
+    } else if (element && element.type === 'zone') {
+      // Zone saisie par sa bande de titre ou son bord : elle emmène ce qu'elle contient.
+      const dejaChoisi = etat.selection === element.id;
+      selectionner(element.id);
+      const emmenes = new Map(contenuZone(element).map((e) => [e.id, { x: e.x, y: e.y }]));
+      geste = { ...base, mode: 'zone', idZone: element.id, x0: element.x, y0: element.y, emmenes, dejaChoisi };
     } else if (element && element.type === 'fleche') {
       const dejaChoisi = etat.selection === element.id;
       selectionner(element.id);
@@ -194,6 +202,24 @@ export function installerGestes(svg, { editerTexte, editerEtiquette, avantGeste 
         break;
       }
 
+      case 'zone': {
+        const z = trouver(etat.schema, geste.idZone);
+        if (!z) return;
+        let x = geste.x0 + dx / k;
+        let y = geste.y0 + dy / k;
+        if (etat.reglages.grille) { x = surGrille(x); y = surGrille(y); }
+        const ddx = x - geste.x0;
+        const ddy = y - geste.y0;
+        z.x = x;
+        z.y = y;
+        for (const [eid, pos] of geste.emmenes) {
+          const e = trouver(etat.schema, eid);
+          if (e) { e.x = pos.x + ddx; e.y = pos.y + ddy; }
+        }
+        demanderRendu();
+        break;
+      }
+
       case 'rectangle': {
         const m = versSchema(p);
         etat.rectangle = { x1: geste.debut.x, y1: geste.debut.y, x2: m.x, y2: m.y };
@@ -204,11 +230,12 @@ export function installerGestes(svg, { editerTexte, editerEtiquette, avantGeste 
       case 'redim': {
         const b = trouver(etat.schema, geste.idBloc);
         if (!b) return;
-        let largeur = Math.max(BLOC_MIN.largeur, geste.l0 + dx / k);
-        let hauteur = Math.max(BLOC_MIN.hauteur, geste.h0 + dy / k);
+        const min = geste.min;
+        let largeur = Math.max(min.largeur, geste.l0 + dx / k);
+        let hauteur = Math.max(min.hauteur, geste.h0 + dy / k);
         if (etat.reglages.grille) {
-          largeur = Math.max(BLOC_MIN.largeur, surGrille(b.x + largeur) - b.x);
-          hauteur = Math.max(BLOC_MIN.hauteur, surGrille(b.y + hauteur) - b.y);
+          largeur = Math.max(min.largeur, surGrille(b.x + largeur) - b.x);
+          hauteur = Math.max(min.hauteur, surGrille(b.y + hauteur) - b.y);
         }
         b.largeur = largeur;
         b.hauteur = hauteur;
@@ -252,7 +279,7 @@ export function installerGestes(svg, { editerTexte, editerEtiquette, avantGeste 
 
     switch (geste.mode) {
       case 'bloc':
-        if (geste.bouge) { if (annule) abandonner(); else valider(); }
+        if (geste.bouge) { if (annule) abandonner(); else poser([geste.idBloc]); }
         else if (!annule && geste.dejaChoisi) editerTexte(geste.idBloc); // 2e toucher : écrire
         break;
 
@@ -260,8 +287,13 @@ export function installerGestes(svg, { editerTexte, editerEtiquette, avantGeste 
         if (!annule && !geste.bouge && geste.dejaChoisi) editerEtiquette(geste.idFleche);
         break;
 
-      case 'groupe':
+      case 'zone':
         if (geste.bouge) { if (annule) abandonner(); else valider(); }
+        else if (!annule && geste.dejaChoisi) editerTitreZone(geste.idZone); // 2e toucher : renommer
+        break;
+
+      case 'groupe':
+        if (geste.bouge) { if (annule) abandonner(); else poser([...geste.positions.keys()]); }
         else if (!annule && !geste.ajoute) basculerDansGroupe(geste.idBloc); // toucher un bloc choisi le retire
         break;
 
@@ -270,7 +302,9 @@ export function installerGestes(svg, { editerTexte, editerEtiquette, avantGeste 
         break;
 
       case 'redim':
-        if (annule) abandonner(); else valider();
+        if (annule) abandonner();
+        else if (!geste.bouge && geste.min === ZONE_MIN) toucherFond(p); // simple toucher près du coin d'une zone
+        else valider();
         break;
 
       case 'relier':
@@ -290,6 +324,13 @@ export function installerGestes(svg, { editerTexte, editerEtiquette, avantGeste 
   svg.addEventListener('pointerup', finPointeur);
   svg.addEventListener('pointercancel', finPointeur);
   svg.addEventListener('lostpointercapture', (e) => { if (pointeurs.has(e.pointerId)) finPointeur(e); });
+
+  /** Blocs lâchés après un glissement : les zones s'agrandissent au besoin (une seule action). */
+  function poser(ids) {
+    const n = ajusterZones(ids);
+    valider();
+    if (n) annoncer(n > 1 ? 'Zones agrandies pour contenir le bloc' : 'Zone agrandie pour contenir le bloc');
+  }
 
   /** Fin du rectangle : les blocs qu'il touche rejoignent la sélection multiple. */
   function choisirDansRectangle() {
@@ -349,7 +390,7 @@ export function installerGestes(svg, { editerTexte, editerEtiquette, avantGeste 
   function demarrerPincement() {
     // Un geste à un doigt était en cours : on l'annule proprement.
     if (geste) clearTimeout(geste.minuterie);
-    if (geste && geste.bouge && (geste.mode === 'bloc' || geste.mode === 'redim' || geste.mode === 'groupe')) abandonner();
+    if (geste && geste.bouge && ['bloc', 'redim', 'groupe', 'zone'].includes(geste.mode)) abandonner();
     etat.liaison = null;
     etat.rectangle = null;
     etat.guides = [];

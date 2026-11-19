@@ -14,8 +14,8 @@ export const TAILLE_MIN = 11;     // en dessous, on coupe avec « … »
 const contexte = document.createElement('canvas').getContext('2d');
 const cache = new Map();
 
-function choisirTaille(taille) {
-  contexte.font = `${GRAISSE} ${taille}px ${POLICE}`;
+function choisirTaille(taille, graisse = GRAISSE) {
+  contexte.font = `${graisse} ${taille}px ${POLICE}`;
 }
 const largeur = (t) => contexte.measureText(t).width;
 
@@ -79,19 +79,20 @@ export function viderCacheTexte() {
 }
 
 /**
- * Renvoie { lignes, taille, tronque } : la plus grande taille (entre 18
- * et 11) pour laquelle le texte tient dans la zone donnée.
+ * Renvoie { lignes, taille, tronque } : la plus grande taille (entre
+ * « max » et « min », par défaut 18 et 11) pour laquelle le texte tient
+ * dans la zone donnée.
  */
-export function mettreEnPage(texteBrut, largeurMax, hauteurMax) {
+export function mettreEnPage(texteBrut, largeurMax, hauteurMax, { max = TAILLE_MAX, min = TAILLE_MIN } = {}) {
   const texte = String(texteBrut || '').replace(/\s+$/, '');
-  const cle = `${Math.round(largeurMax)}|${Math.round(hauteurMax)}|${texte}`;
+  const cle = `${Math.round(largeurMax)}|${Math.round(hauteurMax)}|${max}|${min}|${texte}`;
   const memorise = cache.get(cle);
   if (memorise) return memorise;
 
   let resultat = null;
-  if (!texte) resultat = { lignes: [], taille: TAILLE_MAX, tronque: false };
+  if (!texte) resultat = { lignes: [], taille: max, tronque: false };
 
-  for (let taille = TAILLE_MAX; !resultat && taille >= TAILLE_MIN; taille--) {
+  for (let taille = max; !resultat && taille >= min; taille--) {
     choisirTaille(taille);
     const lignes = decouper(texte, largeurMax);
     if (lignes.length * taille * INTERLIGNE <= hauteurMax) resultat = { lignes, taille, tronque: false };
@@ -99,13 +100,13 @@ export function mettreEnPage(texteBrut, largeurMax, hauteurMax) {
 
   if (!resultat) {
     // Même en petit, ça ne tient pas : on garde ce qui rentre et on ajoute « … ».
-    choisirTaille(TAILLE_MIN);
-    const max = Math.max(1, Math.floor(hauteurMax / (TAILLE_MIN * INTERLIGNE)));
-    const lignes = decouper(texte, largeurMax).slice(0, max);
-    let derniere = lignes[max - 1] || '';
+    choisirTaille(min);
+    const nbLignes = Math.max(1, Math.floor(hauteurMax / (min * INTERLIGNE)));
+    const lignes = decouper(texte, largeurMax).slice(0, nbLignes);
+    let derniere = lignes[nbLignes - 1] || '';
     while (derniere && largeur(`${derniere}…`) > largeurMax) derniere = Array.from(derniere).slice(0, -1).join('');
-    lignes[max - 1] = `${derniere.trimEnd()}…`;
-    resultat = { lignes, taille: TAILLE_MIN, tronque: true };
+    lignes[nbLignes - 1] = `${derniere.trimEnd()}…`;
+    resultat = { lignes, taille: min, tronque: true };
   }
 
   if (cache.size > 800) cache.clear(); // évite que la mémoire grossisse sans fin
@@ -143,4 +144,14 @@ export function lignesEtiquette(texteBrut, largeurMax = LARGEUR_ETIQUETTE) {
   if (cache.size > 800) cache.clear();
   cache.set(cle, lignes);
   return lignes;
+}
+
+/** Texte sur une seule ligne, coupé par « … » s'il dépasse (titre d'une zone). */
+export function ligneCoupee(texteBrut, largeurMax, taille, graisse = GRAISSE) {
+  let texte = String(texteBrut || '').replace(/\s+/g, ' ').trim();
+  if (!texte) return '';
+  choisirTaille(taille, graisse);
+  if (largeur(texte) <= largeurMax) return texte;
+  while (texte && largeur(`${texte}…`) > largeurMax) texte = Array.from(texte).slice(0, -1).join('');
+  return texte ? `${texte.trimEnd()}…` : '';
 }

@@ -8,10 +8,10 @@
 
 import { couleursToile } from './couleurs.js';
 import { POLICE } from './config.js';
-import { listeBlocs, listeFleches } from './modele.js';
+import { listeBlocs, listeFleches, listeZones, listeCadres } from './modele.js';
 import { englobant, traceFleche } from './geometrie.js';
 import { etapesEffectives } from './etapes.js';
-import { el, dessinerBloc, dessinerFleche } from './rendu.js';
+import { el, dessinerBloc, dessinerFleche, dessinerZone } from './rendu.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 const MARGE = 48;
@@ -26,7 +26,7 @@ export function construireSvg(schema, theme, { css = '' } = {}) {
   const blocs = listeBlocs(schema);
   const parId = new Map(blocs.map((b) => [b.id, b]));
   const effectives = etapesEffectives(schema);
-  const boite = englobant(blocs) || { x: 0, y: 0, largeur: 320, hauteur: 200 };
+  const boite = englobant(listeCadres(schema)) || { x: 0, y: 0, largeur: 320, hauteur: 200 };
   const vb = {
     x: Math.floor(boite.x - MARGE),
     y: Math.floor(boite.y - MARGE),
@@ -46,11 +46,17 @@ export function construireSvg(schema, theme, { css = '' } = {}) {
   if (css) el('style', {}, svg).textContent = css;
 
   el('rect', { x: vb.x, y: vb.y, width: vb.largeur, height: vb.hauteur, fill: T.fond, class: 'fond-schema' }, svg);
+  const calqueZones = el('g', {}, svg);
   const calqueSurlignage = el('g', { class: 'surlignage' }, svg);
   const calqueFleches = el('g', {}, svg);
   const calqueBlocs = el('g', {}, svg);
 
   const elements = [];
+  for (const z of listeZones(schema)) {
+    const g = el('g', { 'data-id': z.id, 'data-etape': effectives.get(z.id), transform: `translate(${z.x} ${z.y})` }, calqueZones);
+    dessinerZone(g, z, theme, { interactive: false });
+    elements.push({ id: z.id, type: 'zone', donnees: z, g, etape: effectives.get(z.id) });
+  }
   for (const f of listeFleches(schema)) {
     const A = parId.get(f.de);
     const B = parId.get(f.vers);
@@ -83,6 +89,8 @@ function contourBloc(parent, b, couleur) {
     }
     case 'rectangle':
       return el('rect', { x, y, width: w, height: h, rx: 4, ...style }, parent);
+    case 'zone':
+      return el('rect', { x, y, width: w, height: h, rx: 18 + d, ...style }, parent);
     default:
       return el('rect', { x, y, width: w, height: h, rx: Math.min(14, b.hauteur / 3) + d, ...style }, parent);
   }
@@ -98,7 +106,9 @@ function haloFleche(parent, item, couleur) {
 
 /** Dessine le surlignage doux d'un élément (contour d'un bloc, halo d'une flèche). */
 export function dessinerSurlignage(parent, item, couleur) {
-  return item.type === 'bloc' ? contourBloc(parent, item.donnees, couleur) : haloFleche(parent, item, couleur);
+  if (item.type === 'fleche') return haloFleche(parent, item, couleur);
+  // Bloc ou zone : contour doux (une zone a des coins bien arrondis).
+  return contourBloc(parent, item.type === 'zone' ? { ...item.donnees, forme: 'zone' } : item.donnees, couleur);
 }
 
 /**

@@ -7,11 +7,11 @@
 //   3. met à jour l'affichage.
 // =====================================================================
 
-import { BLOC_DEFAUT, BLOC_MIN, CLE_REGLAGES, CLE_DERNIER, GRILLE, ZOOM_MIN, ZOOM_MAX } from './config.js';
-import { creerBloc, creerFleche, trouver, listeBlocs, nouvelId } from './modele.js';
+import { BLOC_DEFAUT, BLOC_MIN, ZONE_MIN, BANDE_ZONE, CLE_REGLAGES, CLE_DERNIER, GRILLE, ZOOM_MIN, ZOOM_MAX } from './config.js';
+import { creerBloc, creerFleche, creerZone, trouver, listeBlocs, listeCadres, nouvelId } from './modele.js';
 import { creerHistorique } from './historique.js';
 import { enregistrerSchema } from './stockage.js';
-import { englobant, surGrille } from './geometrie.js';
+import { englobant, surGrille, contenuZone as contenuZoneDe } from './geometrie.js';
 
 // ---------------------------------------------------------------------
 // État partagé
@@ -239,7 +239,7 @@ export function zoomerCentre(facteur) {
 /** Cadre la vue pour voir tout le schéma. */
 export function recentrer() {
   const { largeur, hauteur } = tailleZone();
-  const boite = etat.schema ? englobant(listeBlocs(etat.schema)) : null;
+  const boite = etat.schema ? englobant(listeCadres(etat.schema)) : null;
   if (!boite || !largeur || !hauteur) {
     etat.vue = { x: largeur / 2, y: hauteur / 3, k: 1 };
   } else {
@@ -401,12 +401,14 @@ export function dupliquerSelection() {
     return;
   }
   const b = trouver(etat.schema, etat.selection);
-  if (!b || b.type !== 'bloc') return;
-  const copie = { ...b, id: nouvelId('b'), x: b.x + GRILLE, y: b.y + GRILLE };
-  etat.schema.elements.push(copie);
+  if (!b || (b.type !== 'bloc' && b.type !== 'zone')) return;
+  const copie = { ...b, id: nouvelId(b.type === 'zone' ? 'z' : 'b'), x: b.x + GRILLE, y: b.y + GRILLE };
+  // Une zone copiée reste derrière les autres : on l'insère juste après l'originale.
+  if (b.type === 'zone') etat.schema.elements.splice(etat.schema.elements.indexOf(b) + 1, 0, copie);
+  else etat.schema.elements.push(copie);
   etat.selection = copie.id;
   valider();
-  annoncer('Bloc dupliqué');
+  annoncer(b.type === 'zone' ? 'Zone dupliquée (sans ses blocs)' : 'Bloc dupliqué');
 }
 
 export function supprimerSelection() {
@@ -428,7 +430,7 @@ export function supprimerSelection() {
   }
   etat.selection = null;
   valider();
-  annoncer(e.type === 'bloc' ? 'Bloc supprimé (Annuler pour le récupérer)' : 'Flèche supprimée');
+  annoncer({ bloc: 'Bloc supprimé (Annuler pour le récupérer)', zone: 'Zone supprimée (ses blocs restent)', fleche: 'Flèche supprimée' }[e.type]);
 }
 
 /** Modifie une ou plusieurs propriétés de l'élément sélectionné. */
@@ -448,9 +450,10 @@ export function decalerSelection(dx, dy) {
     return true;
   }
   const b = trouver(etat.schema, etat.selection);
-  if (!b || b.type !== 'bloc') return false;
-  b.x += dx;
-  b.y += dy;
+  if (!b || (b.type !== 'bloc' && b.type !== 'zone')) return false;
+  // Une zone emmène les blocs (et les zones) qu'elle contient.
+  const emmenes = b.type === 'zone' ? contenuZone(b) : [];
+  for (const e of [b, ...emmenes]) { e.x += dx; e.y += dy; }
   demanderRendu();
   return true;
 }
@@ -458,9 +461,148 @@ export function decalerSelection(dx, dy) {
 /** Redimensionne le bloc sélectionné (clavier). */
 export function agrandirSelection(dl, dh) {
   const b = trouver(etat.schema, etat.selection);
-  if (!b || b.type !== 'bloc') return false;
-  b.largeur = Math.max(BLOC_MIN.largeur, b.largeur + dl);
-  b.hauteur = Math.max(BLOC_MIN.hauteur, b.hauteur + dh);
+  if (!b || (b.type !== 'bloc' && b.type !== 'zone')) return false;
+  const min = b.type === 'zone' ? ZONE_MIN : BLOC_MIN;
+  b.largeur = Math.max(min.largeur, b.largeur + dl);
+  b.hauteur = Math.max(min.hauteur, b.hauteur + dh);
   demanderRendu();
   return true;
+}
+
+// ---------------------------------------------------------------------
+// Zones de regroupement
+// ---------------------------------------------------------------------
+
+/** Ce qu'une zone emmène quand on la déplace (voir geometrie.js). */
+export const contenuZone = (z) => contenuZoneDe(z, etat.schema.elements);
+
+/**
+ * Après le déplacement de blocs : un bloc posé DANS une zone (son centre
+ * y est) mais qui dépasse de son bord agrandit la zone. Ainsi, aucun bloc
+ * n'est « à cheval » : il est clairement dedans, ou clairement dehors.
+ * Renvoie le nombre de zones agrandies.
+ */
+export function ajusterZones(ids) {
+  const zones = etat.schema.elements.filter((e) => e.type === 'zone');
+  if (!zones.length) return 0;
+  const marge = 16;
+  const agrandies = new Set();
+  for (const id of ids) {
+    const b = trouver(etat.schema, id);
+    if (!b || b.type !== 'bloc') continue;
+    const cx = b.x + b.largeur / 2;
+    const cy = b.y + b.hauteur / 2;
+    for (const z of zones) {
+      if (cx < z.x || cx > z.x + z.largeur || cy < z.y || cy > z.y + z.hauteur) continue;
+      let x1 = z.x, y1 = z.y, x2 = z.x + z.largeur, y2 = z.y + z.hauteur;
+      if (b.x < x1) x1 = b.x - marge;
+      if (b.y < y1 + BANDE_ZONE) y1 = b.y - BANDE_ZONE - 4; // le titre reste lisible
+      if (b.x + b.largeur > x2) x2 = b.x + b.largeur + marge;
+      if (b.y + b.hauteur > y2) y2 = b.y + b.hauteur + marge;
+      if (x1 === z.x && y1 === z.y && x2 === z.x + z.largeur && y2 === z.y + z.hauteur) continue;
+      if (etat.reglages.grille) {
+        x1 = Math.floor(x1 / GRILLE) * GRILLE; y1 = Math.floor(y1 / GRILLE) * GRILLE;
+        x2 = Math.ceil(x2 / GRILLE) * GRILLE; y2 = Math.ceil(y2 / GRILLE) * GRILLE;
+      }
+      Object.assign(z, { x: x1, y: y1, largeur: x2 - x1, hauteur: y2 - y1 });
+      agrandies.add(z.id);
+    }
+  }
+  return agrandies.size;
+}
+
+/**
+ * Ajoute une zone. Si des blocs sont choisis, la zone les entoure ;
+ * sinon elle apparaît au centre de l'écran. Les zones sont rangées au
+ * début de la liste : elles restent derrière les blocs.
+ */
+export function ajouterZone() {
+  const blocs = blocsSelectionnes();
+  let place;
+  if (blocs.length) {
+    const boite = englobant(blocs);
+    const marge = 24;
+    place = {
+      x: boite.x - marge,
+      y: boite.y - marge - BANDE_ZONE,
+      largeur: boite.largeur + 2 * marge,
+      hauteur: boite.hauteur + 2 * marge + BANDE_ZONE,
+    };
+    if (etat.reglages.grille) {
+      const x2 = surGrille(place.x + place.largeur + GRILLE / 2);
+      const y2 = surGrille(place.y + place.hauteur + GRILLE / 2);
+      place.x = surGrille(place.x - GRILLE / 2);
+      place.y = surGrille(place.y - GRILLE / 2);
+      place.largeur = x2 - place.x;
+      place.hauteur = y2 - place.y;
+    }
+  } else {
+    const c = centreVue();
+    place = { x: c.x - 200, y: c.y - 130, largeur: 400, hauteur: 260 };
+    if (etat.reglages.grille) { place.x = surGrille(place.x); place.y = surGrille(place.y); }
+  }
+  const zone = creerZone(place);
+  etat.schema.elements.unshift(zone);
+  etat.groupe = null;
+  etat.selection = zone.id;
+  valider();
+  annoncer(blocs.length ? 'Zone créée autour des blocs choisis' : 'Zone créée : place des blocs dedans');
+  return zone;
+}
+
+// ---------------------------------------------------------------------
+// Aligner, répartir, même taille (sélection multiple)
+// ---------------------------------------------------------------------
+
+/**
+ * Aligne les blocs choisis. « comment » : gauche, centre, droite
+ * (horizontalement), haut, milieu, bas (verticalement). On s'aligne sur
+ * le rectangle qui entoure tous les blocs choisis.
+ */
+export function alignerSelection(comment) {
+  const blocs = blocsSelectionnes();
+  if (blocs.length < 2) return;
+  const boite = englobant(blocs);
+  for (const b of blocs) {
+    switch (comment) {
+      case 'gauche': b.x = boite.x; break;
+      case 'centre': b.x = boite.x + (boite.largeur - b.largeur) / 2; break;
+      case 'droite': b.x = boite.x + boite.largeur - b.largeur; break;
+      case 'haut': b.y = boite.y; break;
+      case 'milieu': b.y = boite.y + (boite.hauteur - b.hauteur) / 2; break;
+      case 'bas': b.y = boite.y + boite.hauteur - b.hauteur; break;
+      default: break;
+    }
+  }
+  valider();
+}
+
+/**
+ * Répartit les blocs à intervalles égaux (le premier et le dernier ne
+ * bougent pas ; l'écart entre deux blocs voisins devient le même).
+ */
+export function repartirSelection(sens) {
+  const blocs = blocsSelectionnes();
+  if (blocs.length < 3) return;
+  const [pos, taille] = sens === 'horizontal' ? ['x', 'largeur'] : ['y', 'hauteur'];
+  const tries = blocs.slice().sort((a, b) => (a[pos] + a[taille] / 2) - (b[pos] + b[taille] / 2));
+  const premier = tries[0];
+  const dernier = tries[tries.length - 1];
+  const occupe = tries.reduce((t, b) => t + b[taille], 0);
+  const ecart = (dernier[pos] + dernier[taille] - premier[pos] - occupe) / (tries.length - 1);
+  let courant = premier[pos] + premier[taille] + ecart;
+  for (const b of tries.slice(1, -1)) {
+    b[pos] = courant;
+    courant += b[taille] + ecart;
+  }
+  valider();
+}
+
+/** Donne à tous les blocs choisis la plus grande largeur (ou hauteur) du groupe. */
+export function memeTailleSelection(dimension) {
+  const blocs = blocsSelectionnes();
+  if (blocs.length < 2) return;
+  const max = Math.max(...blocs.map((b) => b[dimension]));
+  for (const b of blocs) b[dimension] = max;
+  valider();
 }
