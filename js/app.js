@@ -106,6 +106,17 @@ async function ouvrirPremierSchema() {
   ouvrirSchema(schema);
 }
 
+// Base de données partagée avec un autre onglet d'omni-schema (mise à jour).
+window.addEventListener('omni-schema:base', (e) => {
+  if (e.detail === 'bloquee') {
+    annoncer('omni-schema est aussi ouvert dans un autre onglet, avec une version plus ancienne. Ferme cet autre onglet : tout reprendra ici tout seul. Tes schémas sont en sécurité.', 120000);
+  } else if (e.detail === 'debloquee') {
+    annoncer('C\'est reparti : l\'autre onglet est fermé, tes schémas sont là.', 4000);
+  } else if (e.detail === 'remplacee') {
+    annoncer('Une version plus récente d\'omni-schema vient de s\'ouvrir dans un autre onglet. Recharge cette page (ou ferme-la) pour continuer.', 120000);
+  }
+});
+
 // « ?public=<id> » : fenêtre destinée au public (mode présentateur à deux écrans).
 // Elle n'affiche que le schéma et ne modifie jamais rien.
 const idPublic = new URLSearchParams(window.location.search).get('public');

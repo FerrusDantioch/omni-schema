@@ -9,7 +9,7 @@
 import { couleurBloc, couleursToile } from './couleurs.js';
 import { POLICE, POLICE_CHIFFRES, GRAISSE, GRILLE, BANDE_ZONE } from './config.js';
 import { mettreEnPage, INTERLIGNE, lignesEtiquette, TAILLE_ETIQUETTE, LARGEUR_ETIQUETTE, ligneCoupee } from './texte.js';
-import { zoneTexte, zoneImage, traceFleche, milieu, pointe, pointBord, centre } from './geometrie.js';
+import { zoneTexte, zoneImage, traceFleche, milieu, pointe, pointBord, centre, contenuZone } from './geometrie.js';
 import { listeBlocs, listeFleches, listeZones, trouver, tailleTexte } from './modele.js';
 
 const NS = 'http://www.w3.org/2000/svg';
@@ -398,17 +398,28 @@ export function creerRendu(svg) {
       el('circle', { cx: lx, cy: ly, r: 22 / k, fill: 'transparent', 'data-poignee': 'relier', class: 'poignee-relier' }, calquePoignees);
     }
 
-    // Zone choisie : contour et poignée de taille (pas de liaison).
+    // Zone choisie : contour, blocs qu'elle emmène, poignée de taille (pas de liaison).
     if (sel && sel.type === 'zone') {
       const m = 5 / k;
       el('rect', {
         x: sel.x - m, y: sel.y - m, width: sel.largeur + 2 * m, height: sel.hauteur + 2 * m, rx: 18 + m,
         fill: 'none', stroke: T.selection, 'stroke-width': 2.5 / k, class: 'decor',
       }, calquePoignees);
+      // Les blocs qui suivront la zone si on la déplace : contour pointillé discret.
+      for (const e of contenuZone(sel, schema.elements)) {
+        if (e.type !== 'bloc') continue;
+        const d = 4 / k;
+        el('rect', {
+          x: e.x - d, y: e.y - d, width: e.largeur + 2 * d, height: e.hauteur + 2 * d, rx: 6 / k,
+          fill: 'none', stroke: T.selection, 'stroke-width': 1.5 / k, 'stroke-dasharray': `${3 / k} ${3 / k}`, 'stroke-opacity': 0.8, class: 'decor',
+        }, calquePoignees);
+      }
+      // Poignée : carré dans le coin ; la surface à toucher déborde surtout
+      // VERS L'EXTÉRIEUR, pour ne pas gêner les gestes à l'intérieur de la zone.
       const coinX = sel.x + sel.largeur + m;
       const coinY = sel.y + sel.hauteur + m;
       el('rect', { x: coinX - 7 / k, y: coinY - 7 / k, width: 14 / k, height: 14 / k, rx: 3 / k, fill: T.selection, stroke: T.fond, 'stroke-width': 2 / k, class: 'decor' }, calquePoignees);
-      el('circle', { cx: coinX, cy: coinY, r: 22 / k, fill: 'transparent', 'data-poignee': 'redim', class: 'poignee-redim' }, calquePoignees);
+      el('circle', { cx: coinX + 10 / k, cy: coinY + 10 / k, r: 22 / k, fill: 'transparent', 'data-poignee': 'redim', class: 'poignee-redim' }, calquePoignees);
     }
 
     // Sélection multiple : un contour par bloc, sans poignées.

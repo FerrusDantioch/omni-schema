@@ -11,7 +11,7 @@ import { BLOC_DEFAUT, BLOC_MIN, ZONE_MIN, BANDE_ZONE, CLE_REGLAGES, CLE_DERNIER,
 import { creerBloc, creerFleche, creerZone, trouver, listeBlocs, listeCadres, nouvelId } from './modele.js';
 import { creerHistorique } from './historique.js';
 import { enregistrerSchema } from './stockage.js';
-import { englobant, surGrille } from './geometrie.js';
+import { englobant, surGrille, contenuZone as contenuZoneDe } from './geometrie.js';
 
 // ---------------------------------------------------------------------
 // État partagé
@@ -473,18 +473,42 @@ export function agrandirSelection(dl, dh) {
 // Zones de regroupement
 // ---------------------------------------------------------------------
 
+/** Ce qu'une zone emmène quand on la déplace (voir geometrie.js). */
+export const contenuZone = (z) => contenuZoneDe(z, etat.schema.elements);
+
 /**
- * Ce qu'une zone emmène quand on la déplace : les blocs dont le centre
- * est dans la zone, et les zones entièrement à l'intérieur.
+ * Après le déplacement de blocs : un bloc posé DANS une zone (son centre
+ * y est) mais qui dépasse de son bord agrandit la zone. Ainsi, aucun bloc
+ * n'est « à cheval » : il est clairement dedans, ou clairement dehors.
+ * Renvoie le nombre de zones agrandies.
  */
-export function contenuZone(z) {
-  const dedans = (x, y) => x >= z.x && x <= z.x + z.largeur && y >= z.y && y <= z.y + z.hauteur;
-  return etat.schema.elements.filter((e) => {
-    if (e.id === z.id) return false;
-    if (e.type === 'bloc') return dedans(e.x + e.largeur / 2, e.y + e.hauteur / 2);
-    if (e.type === 'zone') return dedans(e.x, e.y) && dedans(e.x + e.largeur, e.y + e.hauteur);
-    return false;
-  });
+export function ajusterZones(ids) {
+  const zones = etat.schema.elements.filter((e) => e.type === 'zone');
+  if (!zones.length) return 0;
+  const marge = 16;
+  const agrandies = new Set();
+  for (const id of ids) {
+    const b = trouver(etat.schema, id);
+    if (!b || b.type !== 'bloc') continue;
+    const cx = b.x + b.largeur / 2;
+    const cy = b.y + b.hauteur / 2;
+    for (const z of zones) {
+      if (cx < z.x || cx > z.x + z.largeur || cy < z.y || cy > z.y + z.hauteur) continue;
+      let x1 = z.x, y1 = z.y, x2 = z.x + z.largeur, y2 = z.y + z.hauteur;
+      if (b.x < x1) x1 = b.x - marge;
+      if (b.y < y1 + BANDE_ZONE) y1 = b.y - BANDE_ZONE - 4; // le titre reste lisible
+      if (b.x + b.largeur > x2) x2 = b.x + b.largeur + marge;
+      if (b.y + b.hauteur > y2) y2 = b.y + b.hauteur + marge;
+      if (x1 === z.x && y1 === z.y && x2 === z.x + z.largeur && y2 === z.y + z.hauteur) continue;
+      if (etat.reglages.grille) {
+        x1 = Math.floor(x1 / GRILLE) * GRILLE; y1 = Math.floor(y1 / GRILLE) * GRILLE;
+        x2 = Math.ceil(x2 / GRILLE) * GRILLE; y2 = Math.ceil(y2 / GRILLE) * GRILLE;
+      }
+      Object.assign(z, { x: x1, y: y1, largeur: x2 - x1, hauteur: y2 - y1 });
+      agrandies.add(z.id);
+    }
+  }
+  return agrandies.size;
 }
 
 /**

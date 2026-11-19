@@ -248,3 +248,17 @@ export function englobant(blocs) {
   }
   return { x: x1, y: y1, largeur: x2 - x1, hauteur: y2 - y1 };
 }
+
+/**
+ * Ce qu'une zone emmène quand on la déplace : les blocs dont le centre
+ * est dans la zone, et les zones entièrement à l'intérieur.
+ */
+export function contenuZone(z, elements) {
+  const dedans = (x, y) => x >= z.x && x <= z.x + z.largeur && y >= z.y && y <= z.y + z.hauteur;
+  return elements.filter((e) => {
+    if (e.id === z.id) return false;
+    if (e.type === 'bloc') return dedans(e.x + e.largeur / 2, e.y + e.hauteur / 2);
+    if (e.type === 'zone') return dedans(e.x, e.y) && dedans(e.x + e.largeur, e.y + e.hauteur);
+    return false;
+  });
+}

@@ -10,6 +10,11 @@ const MAGASIN_MODELES = 'modeles';
 
 let promesseBase = null;
 
+/** Prévient le reste de l'application (événement « omni-schema:base »). */
+function signaler(etat) {
+  window.dispatchEvent(new CustomEvent('omni-schema:base', { detail: etat }));
+}
+
 /** Ouvre la base (une seule fois) et crée les « magasins » si besoin. */
 function ouvrirBase() {
   if (!promesseBase) {
@@ -24,15 +29,24 @@ function ouvrirBase() {
           base.createObjectStore(MAGASIN_MODELES, { keyPath: 'id' });
         }
       };
+      let bloquee = false;
       demande.onsuccess = () => {
         const base = demande.result;
+        if (bloquee) signaler('debloquee');
         // Une version plus récente de l'app s'ouvre dans un autre onglet :
         // on libère la base pour qu'elle puisse se mettre à jour.
-        base.onversionchange = () => { base.close(); promesseBase = null; };
+        base.onversionchange = () => {
+          base.close();
+          promesseBase = null;
+          signaler('remplacee');
+        };
         resoudre(base);
       };
       demande.onerror = () => rejeter(demande.error);
-      demande.onblocked = () => rejeter(new Error('La base est bloquée par un autre onglet. Ferme les autres onglets d\'omni-schema.'));
+      // Un autre onglet (ancienne version) garde la base ouverte : la mise à
+      // niveau attend qu'il se ferme. On prévient, sans abandonner : dès que
+      // l'autre onglet est fermé, tout repart tout seul.
+      demande.onblocked = () => { bloquee = true; signaler('bloquee'); };
     });
     // En cas d'échec, on permet un nouvel essai plus tard.
     promesseBase.catch(() => { promesseBase = null; });

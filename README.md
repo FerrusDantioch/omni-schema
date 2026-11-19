@@ -52,7 +52,7 @@ recadrage et la grille sont réunis dans le bouton **Vue**.
 | Dupliquer / supprimer | barre du bas | **Ctrl+D** / **Suppr** |
 | Copier / coller des blocs | **Copier** (bloc ou groupe choisi), puis **Coller** (rien de choisi), ici ou dans un autre schéma | **Ctrl+C** / **Ctrl+V** (et **Ctrl+X** pour couper) |
 | Coller un texte ou une image venus d'ailleurs | — | **Ctrl+V** : un nouveau bloc est créé |
-| Regrouper des blocs dans une zone | bouton **Zone** (ou **Aligner** → *Entourer d'une zone* avec plusieurs blocs choisis) ; on déplace la zone par son titre, ses blocs suivent ; toucher encore le titre pour le changer | **Z** ; **Entrée** pour le titre |
+| Regrouper des blocs dans une zone | bouton **Zone** (ou **Aligner** → *Entourer d'une zone* avec plusieurs blocs choisis) ; on déplace la zone par son titre, ses blocs suivent (ils sont entourés de pointillés quand la zone est choisie ; un bloc posé à cheval sur le bord agrandit la zone) ; toucher encore le titre pour le changer | **Z** ; **Entrée** pour le titre |
 | Aligner, répartir, même taille | plusieurs blocs choisis → **Aligner** | idem |
 | Écrire un titre ou une légende libre | **Style** → forme *Sans cadre*, et *Taille du texte* | idem |
 | Repartir d'un de mes schémas | Menu → *Enregistrer comme modèle*, puis *Nouveau schéma* → *Mes modèles* | idem |

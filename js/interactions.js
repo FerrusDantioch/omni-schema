@@ -21,7 +21,7 @@
 
 import {
   etat, demanderRendu, valider, abandonner, selectionner, ajouterBloc, relier,
-  borneZoom, zoomerAutour, basculerDansGroupe, entrerGroupe, annoncer, contenuZone,
+  borneZoom, zoomerAutour, basculerDansGroupe, entrerGroupe, annoncer, contenuZone, ajusterZones,
 } from './noyau.js';
 import { trouver, listeBlocs } from './modele.js';
 import { aimanter, surGrille } from './geometrie.js';
@@ -279,7 +279,7 @@ export function installerGestes(svg, { editerTexte, editerEtiquette, editerTitre
 
     switch (geste.mode) {
       case 'bloc':
-        if (geste.bouge) { if (annule) abandonner(); else valider(); }
+        if (geste.bouge) { if (annule) abandonner(); else poser([geste.idBloc]); }
         else if (!annule && geste.dejaChoisi) editerTexte(geste.idBloc); // 2e toucher : écrire
         break;
 
@@ -293,7 +293,7 @@ export function installerGestes(svg, { editerTexte, editerEtiquette, editerTitre
         break;
 
       case 'groupe':
-        if (geste.bouge) { if (annule) abandonner(); else valider(); }
+        if (geste.bouge) { if (annule) abandonner(); else poser([...geste.positions.keys()]); }
         else if (!annule && !geste.ajoute) basculerDansGroupe(geste.idBloc); // toucher un bloc choisi le retire
         break;
 
@@ -302,7 +302,9 @@ export function installerGestes(svg, { editerTexte, editerEtiquette, editerTitre
         break;
 
       case 'redim':
-        if (annule) abandonner(); else valider();
+        if (annule) abandonner();
+        else if (!geste.bouge && geste.min === ZONE_MIN) toucherFond(p); // simple toucher près du coin d'une zone
+        else valider();
         break;
 
       case 'relier':
@@ -322,6 +324,13 @@ export function installerGestes(svg, { editerTexte, editerEtiquette, editerTitre
   svg.addEventListener('pointerup', finPointeur);
   svg.addEventListener('pointercancel', finPointeur);
   svg.addEventListener('lostpointercapture', (e) => { if (pointeurs.has(e.pointerId)) finPointeur(e); });
+
+  /** Blocs lâchés après un glissement : les zones s'agrandissent au besoin (une seule action). */
+  function poser(ids) {
+    const n = ajusterZones(ids);
+    valider();
+    if (n) annoncer(n > 1 ? 'Zones agrandies pour contenir le bloc' : 'Zone agrandie pour contenir le bloc');
+  }
 
   /** Fin du rectangle : les blocs qu'il touche rejoignent la sélection multiple. */
   function choisirDansRectangle() {
