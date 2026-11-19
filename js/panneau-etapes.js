@@ -41,7 +41,7 @@ export function creerPanneauEtapes({ demanderConfirmation, presenter, presenterD
       const A = parId.get(f.de), B = parId.get(f.vers);
       return (f.etape || 0) > Math.max(A ? A.etape : 0, B ? B.etape : 0);
     };
-    const listee = (e) => e.type === 'bloc' || flecheRetardee(e);
+    const listee = (e) => e.type === 'bloc' || e.type === 'zone' || flecheRetardee(e);
 
     // Groupes : 0 (toujours visible), puis 1…max.
     for (let n = 0; n <= max; n++) {
@@ -82,7 +82,7 @@ export function creerPanneauEtapes({ demanderConfirmation, presenter, presenterD
         nom.addEventListener('click', () => {
           dialogue.close();
           selectionner(e.id);
-          if (e.type === 'bloc') rendreVisible(e.id);
+          if (e.type !== 'fleche') rendreVisible(e.id);
         });
         li.append(
           nom,

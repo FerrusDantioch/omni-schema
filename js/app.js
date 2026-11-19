@@ -10,7 +10,7 @@ import { creerSchemaAccueil, migrer } from './modele.js';
 import { listerSchemas, chargerSchema, enregistrerSchema, demanderStockagePersistant } from './stockage.js';
 import { installerGestes } from './interactions.js';
 import { creerEditeurTexte } from './editeur-texte.js';
-import { installerInterface, appliquerTheme, editerEtiquette, fermerChoix, demanderConfirmation, ouvrirAide } from './interface.js';
+import { installerInterface, appliquerTheme, editerEtiquette, editerTitreZone, fermerChoix, demanderConfirmation, ouvrirAide } from './interface.js';
 import { creerPresentation } from './presentation.js';
 import { creerPanneauEtapes } from './panneau-etapes.js';
 import { creerVuePresentateur, demarrerPublic } from './presentateur.js';
@@ -51,10 +51,11 @@ async function demarrer() {
   installerGestes(svg, {
     editerTexte: (id) => editeur.ouvrir(id),
     editerEtiquette,
+    editerTitreZone,
     avantGeste: () => { editeur.terminer(); fermerChoix(); },
   });
   installerClavier({
-    editeur, editerEtiquette, fermerChoix, ouvrirAide,
+    editeur, editerEtiquette, editerTitreZone, fermerChoix, ouvrirAide,
     presenter: () => document.getElementById('btn-presenter').click(),
     presenterDeuxEcrans,
   });

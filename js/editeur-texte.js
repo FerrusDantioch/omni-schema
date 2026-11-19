@@ -7,9 +7,9 @@
 // =====================================================================
 
 import { etat, demanderRendu, valider, rendreVisible, surRendu } from './noyau.js';
-import { trouver } from './modele.js';
+import { trouver, tailleTexte } from './modele.js';
 import { zoneTexte } from './geometrie.js';
-import { couleurBloc } from './couleurs.js';
+import { couleurBloc, couleursToile } from './couleurs.js';
 import { mettreEnPage, INTERLIGNE } from './texte.js';
 import { POLICE, GRAISSE } from './config.js';
 
@@ -43,7 +43,7 @@ export function creerEditeurTexte(champ) {
     const c = couleurBloc(etat.themeResolu, b.couleur);
     // Même taille de texte et même centrage vertical que dans le bloc :
     // ce que tu tapes est exactement ce que tu verras.
-    const mise = mettreEnPage(b.texte || 'a', zone.largeur, zone.hauteur);
+    const mise = mettreEnPage(b.texte || 'a', zone.largeur, zone.hauteur, tailleTexte(b));
     const nbLignes = Math.max(1, mise.lignes.length);
     const vide = Math.max(0, (zone.hauteur - nbLignes * mise.taille * INTERLIGNE) / 2);
     const s = champ.style;
@@ -56,7 +56,8 @@ export function creerEditeurTexte(champ) {
     s.fontFamily = POLICE;
     s.fontWeight = GRAISSE;
     s.color = c.texte;
-    s.background = c.fond;
+    // Bloc sans cadre : le champ prend la couleur du fond de la toile.
+    s.background = b.forme === 'texte' ? couleursToile(etat.themeResolu).fond : c.fond;
     s.caretColor = c.bord;
   }
 

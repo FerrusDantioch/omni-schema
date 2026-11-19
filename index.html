@@ -35,6 +35,9 @@
     <symbol id="i-dupliquer" viewBox="0 0 24 24"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
     <symbol id="i-copier" viewBox="0 0 24 24"><path d="M9 4H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2"/><rect x="9" y="2.5" width="6" height="3.5" rx="1"/><path d="M12 17v-7M9 13l3-3 3 3"/></symbol>
     <symbol id="i-coller" viewBox="0 0 24 24"><path d="M9 4H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2"/><rect x="9" y="2.5" width="6" height="3.5" rx="1"/><path d="M12 10v7M9 14l3 3 3-3"/></symbol>
+    <symbol id="i-zone" viewBox="0 0 24 24"><rect x="2.5" y="3.5" width="19" height="17" rx="3" stroke-dasharray="3 2.2"/><path d="M6 8h6"/></symbol>
+    <symbol id="i-aligner" viewBox="0 0 24 24"><path d="M4 3v18"/><rect x="7" y="5" width="12" height="5" rx="1"/><rect x="7" y="14" width="8" height="5" rx="1"/></symbol>
+    <symbol id="i-vue" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4M8 11h6M11 8v6"/></symbol>
     <symbol id="i-supprimer" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
     <symbol id="i-fermer" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
     <symbol id="i-etiquette" viewBox="0 0 24 24"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.5"/></symbol>
@@ -87,6 +90,7 @@
   <main class="zone" id="zone">
     <svg id="toile" class="toile" role="application" aria-label="Zone du schéma" aria-describedby="aide-toile" tabindex="0">
       <g id="monde">
+        <g id="calque-zones"></g>
         <g id="calque-fleches"></g>
         <g id="calque-blocs"></g>
         <g id="calque-guides"></g>
@@ -106,9 +110,13 @@
   </main>
 
   <!-- ===== Choix de forme et de couleur (s'ouvrent au-dessus de la barre du bas) ===== -->
-  <div class="choix" id="choix-style" hidden role="group" aria-label="Style du bloc">
-    <p class="etiquette-section">Forme</p>
-    <div class="options-choix" id="options-forme"></div>
+  <div class="choix" id="choix-style" hidden role="group" aria-label="Style">
+    <div id="section-forme">
+      <p class="etiquette-section">Forme</p>
+      <div class="options-choix" id="options-forme"></div>
+      <p class="etiquette-section">Taille du texte</p>
+      <div class="options-choix" id="options-taille"></div>
+    </div>
     <p class="etiquette-section">Couleur</p>
     <div class="options-choix" id="options-couleur"></div>
     <div id="section-image">
@@ -128,6 +136,30 @@
     <p class="etiquette-section">Pointes</p>
     <div class="options-choix" id="options-pointes"></div>
   </div>
+  <div class="choix" id="choix-aligner" hidden role="group" aria-label="Aligner et répartir">
+    <p class="etiquette-section">Aligner</p>
+    <div class="options-choix" id="options-aligner"></div>
+    <p class="etiquette-section">Répartir à intervalles égaux</p>
+    <div class="options-choix" id="options-repartir"></div>
+    <p class="etiquette-section">Même taille (la plus grande)</p>
+    <div class="options-choix" id="options-taille-groupe"></div>
+    <p class="etiquette-section">Regrouper</p>
+    <div class="boutons-etape">
+      <button type="button" class="bouton" id="btn-zone-autour"><svg class="icone" aria-hidden="true"><use href="#i-zone"/></svg>Entourer d'une zone</button>
+    </div>
+  </div>
+  <div class="choix" id="choix-vue" hidden role="group" aria-labelledby="titre-choix-vue">
+    <p class="etiquette-section" id="titre-choix-vue">Vue</p>
+    <div class="reglage-etape">
+      <button type="button" class="bouton-icone bouton-pas" id="btn-zoom-moins" aria-label="Dézoomer"><svg class="icone" aria-hidden="true"><use href="#i-zoom-moins"/></svg></button>
+      <output class="valeur-etape chiffres" id="zoom-valeur" aria-live="polite">100 %</output>
+      <button type="button" class="bouton-icone bouton-pas" id="btn-zoom-plus" aria-label="Zoomer"><svg class="icone" aria-hidden="true"><use href="#i-zoom-plus"/></svg></button>
+    </div>
+    <div class="boutons-etape">
+      <button type="button" class="bouton" id="btn-recentrer"><svg class="icone" aria-hidden="true"><use href="#i-recentrer"/></svg>Voir tout le schéma</button>
+      <button type="button" class="bouton" id="btn-grille" aria-pressed="false"><svg class="icone" aria-hidden="true"><use href="#i-grille"/></svg>Grille magnétique</button>
+    </div>
+  </div>
   <div class="choix" id="choix-etape" hidden role="group" aria-labelledby="titre-choix-etape">
     <p class="etiquette-section" id="titre-choix-etape">Apparition en présentation</p>
     <div class="reglage-etape">
@@ -146,12 +178,10 @@
   <nav class="barre-bas" aria-label="Outils">
     <div class="groupe-outils" data-pour="aucun">
       <button type="button" class="outil" id="btn-ajouter"><svg class="icone" aria-hidden="true"><use href="#i-bloc"/></svg><span>Bloc</span></button>
+      <button type="button" class="outil" id="btn-ajouter-zone"><svg class="icone" aria-hidden="true"><use href="#i-zone"/></svg><span>Zone</span></button>
       <button type="button" class="outil" id="btn-coller" disabled><svg class="icone" aria-hidden="true"><use href="#i-coller"/></svg><span>Coller</span></button>
       <button type="button" class="outil" id="btn-etapes"><svg class="icone" aria-hidden="true"><use href="#i-etapes"/></svg><span>Étapes</span></button>
-      <button type="button" class="outil" id="btn-grille" aria-pressed="false"><svg class="icone" aria-hidden="true"><use href="#i-grille"/></svg><span>Grille</span></button>
-      <button type="button" class="outil" id="btn-recentrer" aria-label="Recentrer"><svg class="icone" aria-hidden="true"><use href="#i-recentrer"/></svg><span data-court="Cadrer">Recentrer</span></button>
-      <button type="button" class="outil" id="btn-zoom-moins" aria-label="Dézoomer"><svg class="icone" aria-hidden="true"><use href="#i-zoom-moins"/></svg><span>Zoom −</span></button>
-      <button type="button" class="outil" id="btn-zoom-plus" aria-label="Zoomer"><svg class="icone" aria-hidden="true"><use href="#i-zoom-plus"/></svg><span>Zoom +</span></button>
+      <button type="button" class="outil" id="btn-vue" aria-expanded="false" aria-controls="choix-vue"><svg class="icone" aria-hidden="true"><use href="#i-vue"/></svg><span>Vue</span></button>
     </div>
     <div class="groupe-outils" data-pour="bloc" hidden>
       <button type="button" class="outil" id="btn-texte"><svg class="icone" aria-hidden="true"><use href="#i-texte"/></svg><span>Texte</span></button>
@@ -166,10 +196,18 @@
       <p class="compte-groupe" id="compte-groupe" aria-live="polite">2 blocs</p>
       <button type="button" class="outil" data-bouton-style aria-expanded="false" aria-controls="choix-style"><svg class="icone" aria-hidden="true"><use href="#i-couleur"/></svg><span>Style</span></button>
       <button type="button" class="outil" data-bouton-etape aria-expanded="false" aria-controls="choix-etape"><svg class="icone" aria-hidden="true"><use href="#i-etapes"/></svg><span>Étape</span></button>
+      <button type="button" class="outil" id="btn-aligner" aria-expanded="false" aria-controls="choix-aligner"><svg class="icone" aria-hidden="true"><use href="#i-aligner"/></svg><span>Aligner</span></button>
       <button type="button" class="outil" id="btn-copier-groupe"><svg class="icone" aria-hidden="true"><use href="#i-copier"/></svg><span>Copier</span></button>
       <button type="button" class="outil" id="btn-dupliquer-groupe" aria-label="Dupliquer"><svg class="icone" aria-hidden="true"><use href="#i-dupliquer"/></svg><span data-court="Doubler">Dupliquer</span></button>
       <button type="button" class="outil danger" id="btn-supprimer-groupe" aria-label="Supprimer"><svg class="icone" aria-hidden="true"><use href="#i-supprimer"/></svg><span data-court="Suppr.">Supprimer</span></button>
       <button type="button" class="outil" id="btn-fermer-groupe" aria-label="Terminer la sélection multiple"><svg class="icone" aria-hidden="true"><use href="#i-fermer"/></svg><span data-court="OK">Terminer</span></button>
+    </div>
+    <div class="groupe-outils" data-pour="zone" hidden>
+      <button type="button" class="outil" id="btn-titre-zone"><svg class="icone" aria-hidden="true"><use href="#i-texte"/></svg><span>Titre</span></button>
+      <button type="button" class="outil" data-bouton-style aria-expanded="false" aria-controls="choix-style"><svg class="icone" aria-hidden="true"><use href="#i-couleur"/></svg><span>Couleur</span></button>
+      <button type="button" class="outil" data-bouton-etape aria-expanded="false" aria-controls="choix-etape"><svg class="icone" aria-hidden="true"><use href="#i-etapes"/></svg><span>Étape</span></button>
+      <button type="button" class="outil" id="btn-dupliquer-zone" aria-label="Dupliquer la zone"><svg class="icone" aria-hidden="true"><use href="#i-dupliquer"/></svg><span data-court="Doubler">Dupliquer</span></button>
+      <button type="button" class="outil danger" id="btn-supprimer-zone" aria-label="Supprimer la zone"><svg class="icone" aria-hidden="true"><use href="#i-supprimer"/></svg><span data-court="Suppr.">Supprimer</span></button>
     </div>
     <div class="groupe-outils" data-pour="fleche" hidden>
       <button type="button" class="outil" id="btn-etiquette"><svg class="icone" aria-hidden="true"><use href="#i-etiquette"/></svg><span>Étiquette</span></button>
@@ -190,6 +228,7 @@
       <li class="etiquette-section">Schémas</li>
       <li><button type="button" data-menu="schemas"><svg class="icone" aria-hidden="true"><use href="#i-schemas"/></svg>Mes schémas</button></li>
       <li><button type="button" data-menu="nouveau"><svg class="icone" aria-hidden="true"><use href="#i-nouveau"/></svg>Nouveau schéma</button></li>
+      <li><button type="button" data-menu="modele"><svg class="icone" aria-hidden="true"><use href="#i-sauvegarde"/></svg>Enregistrer comme modèle</button></li>
       <li class="etiquette-section">Fichiers</li>
       <li><button type="button" data-menu="exporter"><svg class="icone" aria-hidden="true"><use href="#i-exporter"/></svg>Exporter ce schéma (.json)</button></li>
       <li><button type="button" data-menu="exporter-image"><svg class="icone" aria-hidden="true"><use href="#i-image"/></svg>Exporter (image, PDF, page HTML)</button></li>
@@ -285,6 +324,10 @@
       <fieldset class="groupe-choix modeles">
         <legend class="etiquette-section">Point de départ</legend>
         <div class="liste-modeles" id="liste-modeles"></div>
+      </fieldset>
+      <fieldset class="groupe-choix modeles" id="section-mes-modeles" hidden>
+        <legend class="etiquette-section">Mes modèles</legend>
+        <div class="liste-modeles" id="liste-mes-modeles"></div>
       </fieldset>
       <div class="boutons-fenetre">
         <button type="submit" class="bouton" value="non" formnovalidate>Annuler</button>
@@ -465,13 +508,18 @@
       <dt>Appui long sur le fond, puis glisser</dt><dd>entourer plusieurs blocs</dd>
       <dt>Copier, puis Coller</dt><dd>reprendre des blocs (avec leurs flèches et images) ici ou dans un autre schéma</dd>
       <dt>Trait (flèche choisie)</dt><dd>droite, angle droit ou courbe ; pointillés ; une, deux ou aucune pointe</dd>
+      <dt>Zone</dt><dd>grand cadre titré derrière des blocs ; la saisir par son titre la déplace avec ses blocs ; la toucher encore pour la renommer</dd>
+      <dt>Aligner (plusieurs blocs choisis)</dt><dd>aligner, répartir à intervalles égaux, même taille, entourer d'une zone</dd>
+      <dt>Vue</dt><dd>zoom, voir tout le schéma, grille magnétique</dd>
+      <dt>Style → Sans cadre, Taille du texte</dt><dd>titres, légendes et remarques libres</dd>
+      <dt>Menu → Enregistrer comme modèle</dt><dd>repartir de ce schéma dans « Nouveau schéma »</dd>
     </dl>
     <h3 class="etiquette-section">Au clavier</h3>
     <dl class="liste-aide">
       <dt><kbd>Tab</kbd> / <kbd>Maj</kbd>+<kbd>Tab</kbd></dt><dd>élément suivant / précédent</dd>
       <dt><kbd>Entrée</kbd> ou <kbd>F2</kbd></dt><dd>écrire dans le bloc (ou l'étiquette de la flèche)</dd>
       <dt><kbd>Échap</kbd></dt><dd>terminer l'écriture, fermer, désélectionner</dd>
-      <dt><kbd>N</kbd></dt><dd>nouveau bloc</dd>
+      <dt><kbd>N</kbd> · <kbd>Z</kbd></dt><dd>nouveau bloc · nouvelle zone (autour des blocs choisis)</dd>
       <dt><kbd>R</kbd> / <kbd>Maj</kbd>+<kbd>R</kbd></dt><dd>nouveau bloc relié à droite / en dessous</dd>
       <dt><kbd>L</kbd></dt><dd>relier à un autre bloc : <kbd>Tab</kbd> pour viser, <kbd>Entrée</kbd> pour valider</dd>
       <dt>Flèches</dt><dd>déplacer le bloc (<kbd>Maj</kbd> : finement)</dd>

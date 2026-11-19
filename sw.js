@@ -8,7 +8,7 @@
 // apparaît dans l'application.
 // =====================================================================
 
-const VERSION = '1.2.0';
+const VERSION = '1.3.0';
 const CACHE = `omni-schema-${VERSION}`;
 
 // Tous les fichiers de l'application (chemins relatifs : fonctionne dans
