@@ -59,7 +59,10 @@ export function surChangement(fn) { ecouteurs.add(fn); }
 /** Être prévenu après chaque dessin (ex. replacer le champ de texte). */
 export function surRendu(fn) { apresRendu.add(fn); }
 
-export function notifier() { for (const fn of ecouteurs) fn(); }
+export function notifier() {
+  selectionConnue = photoSelection(); // sélection « d'avant » pour la prochaine action
+  for (const fn of ecouteurs) fn();
+}
 
 /** Demande un dessin au prochain rafraîchissement d'écran (au plus 1 par image). */
 export function demanderRendu() {
@@ -79,6 +82,10 @@ export const tailleZone = () => (rendu ? rendu.tailleZone() : { largeur: 800, ha
 // ---------------------------------------------------------------------
 const photo = () => JSON.stringify(etat.schema.elements);
 
+// Sélection (simple ou multiple), retenue avec chaque action de l'historique.
+const photoSelection = () => ({ selection: etat.selection, groupe: etat.groupe ? [...etat.groupe] : null });
+let selectionConnue = { selection: null, groupe: null };
+
 /** Ouvre un schéma : remet l'historique à zéro et cadre la vue. */
 export function ouvrirSchema(schema) {
   etat.schema = schema;
@@ -88,6 +95,7 @@ export function ouvrirSchema(schema) {
   etat.editionId = null;
   etat.guides = [];
   etat.liaison = null;
+  selectionConnue = photoSelection();
   historique.reinitialiser(photo());
   if (rendu) rendu.vider();
   try { localStorage.setItem(CLE_DERNIER, schema.id); } catch { /* rien */ }
@@ -101,7 +109,7 @@ export function ouvrirSchema(schema) {
  */
 export function valider() {
   if (!etat.schema) return;
-  if (historique.valider(photo())) {
+  if (historique.valider(photo(), selectionConnue, photoSelection())) {
     etat.schema.modifie_le = new Date().toISOString();
     programmerSauvegarde();
   }
@@ -137,8 +145,12 @@ export function retablir() {
   annoncer('Action rétablie');
 }
 
-function restaurer(s) {
+function restaurer({ photo: s, selection }) {
   etat.schema.elements = JSON.parse(s);
+  if (selection) {
+    etat.selection = selection.selection;
+    etat.groupe = selection.groupe ? [...selection.groupe] : null;
+  }
   etat.schema.modifie_le = new Date().toISOString();
   verifierSelection();
   programmerSauvegarde();

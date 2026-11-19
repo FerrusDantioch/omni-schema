@@ -1025,8 +1025,17 @@ body.mode-public { display: block; }
 }
 
 /* ---------- Petits écrans ---------- */
+/* Téléphone : jusqu'à 7 outils dans la barre. Les mots longs prennent
+   une forme courte (data-court) ; le nom complet reste dans aria-label
+   pour les lecteurs d'écran. */
+@media (max-width: 440px) {
+  .groupe-outils { gap: 0.1rem; }
+  .outil { font-size: 0.68rem; padding-inline: 0; min-width: 44px; }
+  .compte-groupe { margin: 0 0.1rem; padding: 0.3rem 0.45rem; font-size: 0.75rem; }
+  .outil span[data-court] { font-size: 0; }
+  .outil span[data-court]::after { content: attr(data-court); font-size: 0.68rem; }
+}
 @media (max-width: 380px) {
-  .outil { font-size: 0.68rem; }
   .bouton-maj span { display: none; }
 }
 

@@ -8,7 +8,7 @@
 // apparaît dans l'application.
 // =====================================================================
 
-const VERSION = '1.1.0';
+const VERSION = '1.2.0';
 const CACHE = `omni-schema-${VERSION}`;
 
 // Tous les fichiers de l'application (chemins relatifs : fonctionne dans
@@ -40,6 +40,7 @@ const FICHIERS = [
   './js/polices.js',
   './js/presentateur.js',
   './js/presentation.js',
+  './js/presse-papiers.js',
   './js/rendu.js',
   './js/schema-svg.js',
   './js/stockage.js',

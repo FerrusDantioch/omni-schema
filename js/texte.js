@@ -112,3 +112,35 @@ export function mettreEnPage(texteBrut, largeurMax, hauteurMax) {
   cache.set(cle, resultat);
   return resultat;
 }
+
+// ---------------------------------------------------------------------
+// Étiquettes des flèches : taille fixe, retour à la ligne au-delà d'une
+// largeur raisonnable, et « … » au-delà de 3 lignes.
+// ---------------------------------------------------------------------
+export const TAILLE_ETIQUETTE = 14;
+export const LARGEUR_ETIQUETTE = 200;
+const LIGNES_ETIQUETTE = 3;
+
+/**
+ * Renvoie les lignes à afficher pour une étiquette de flèche.
+ * « largeurMax » : place disponible (plus étroite sur une flèche courte
+ * et horizontale, pour que l'étiquette ne passe pas sous les blocs).
+ */
+export function lignesEtiquette(texteBrut, largeurMax = LARGEUR_ETIQUETTE) {
+  const texte = String(texteBrut || '').trim();
+  if (!texte) return [];
+  const cle = `etiquette|${Math.round(largeurMax)}|${texte}`;
+  const memorise = cache.get(cle);
+  if (memorise) return memorise;
+  choisirTaille(TAILLE_ETIQUETTE);
+  let lignes = decouper(texte, largeurMax);
+  if (lignes.length > LIGNES_ETIQUETTE) {
+    lignes = lignes.slice(0, LIGNES_ETIQUETTE);
+    let derniere = lignes[LIGNES_ETIQUETTE - 1];
+    while (derniere && largeur(`${derniere}…`) > largeurMax) derniere = Array.from(derniere).slice(0, -1).join('');
+    lignes[LIGNES_ETIQUETTE - 1] = `${derniere.trimEnd()}…`;
+  }
+  if (cache.size > 800) cache.clear();
+  cache.set(cle, lignes);
+  return lignes;
+}

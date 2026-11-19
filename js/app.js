@@ -15,6 +15,7 @@ import { creerPresentation } from './presentation.js';
 import { creerPanneauEtapes } from './panneau-etapes.js';
 import { creerVuePresentateur, demarrerPublic } from './presentateur.js';
 import { installerClavier } from './clavier.js';
+import { installerPressePapiers } from './presse-papiers.js';
 import { installerMiseAJour } from './mise-a-jour.js';
 import { attendrePolices } from './polices.js';
 import { viderCacheTexte } from './texte.js';
@@ -56,6 +57,10 @@ async function demarrer() {
     editeur, editerEtiquette, fermerChoix, ouvrirAide,
     presenter: () => document.getElementById('btn-presenter').click(),
     presenterDeuxEcrans,
+  });
+  // Copier / couper / coller : seulement quand on travaille sur la toile.
+  installerPressePapiers({
+    actif: () => !editeur.actif() && !etat.presentation && !document.querySelector('dialog[open]'),
   });
   installerMiseAJour({
     bouton: document.getElementById('btn-maj'),

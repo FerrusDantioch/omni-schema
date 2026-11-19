@@ -91,7 +91,8 @@ function contourBloc(parent, b, couleur) {
 /** Halo doux sous une flèche. */
 function haloFleche(parent, item, couleur) {
   const points = traceFleche(item.donnees, item.A, item.B);
-  const d = `M${points.map((p) => `${p.x} ${p.y}`).join(' L')}`;
+  const r = (v) => Math.round(v * 10) / 10;
+  const d = `M${points.map((p) => `${r(p.x)} ${r(p.y)}`).join(' L')}`;
   return el('path', { d, fill: 'none', stroke: couleur, 'stroke-width': 12, 'stroke-opacity': 0.35, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, parent);
 }
 

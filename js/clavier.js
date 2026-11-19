@@ -9,6 +9,7 @@
 //   L : relier le bloc choisi à un autre (Tab pour viser, Entrée pour valider)
 //   E : étape de l'élément · P : présenter · ? : aide
 //   Suppr : supprimer · Ctrl+D : dupliquer · Échap : désélectionner
+//   Ctrl+C / Ctrl+X / Ctrl+V : copier / couper / coller (voir presse-papiers.js)
 //   + / − : zoom · 0 : recentrer
 // =====================================================================
 
