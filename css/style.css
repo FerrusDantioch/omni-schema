@@ -286,6 +286,11 @@ a { color: var(--accent); text-underline-offset: 0.18em; }
 @media (max-width: 440px) {
   .bouton-presenter { padding: 0.4rem 0.75rem; }
   .bouton-presenter span { display: none; }
+  /* Téléphone : un peu plus de place pour le nom du schéma. */
+  .barre-haut { gap: 0.1rem; padding-left: max(0.25rem, env(safe-area-inset-left)); padding-right: max(0.25rem, env(safe-area-inset-right)); }
+  .barre-haut .bouton-icone { min-width: 44px; padding: 0.4rem; }
+  .titre-schema { padding: 0 0.35rem; }
+  .titre-schema .icone.petite { display: none; }
 }
 
 .bouton-maj {
@@ -848,9 +853,10 @@ kbd {
   position: absolute;
   inset: 0;
   padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(4.5rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
-  touch-action: manipulation;
+  touch-action: none; /* glissements et pointeur gérés par l'app */
   user-select: none;
   -webkit-user-select: none;
+  -webkit-touch-callout: none;
   cursor: pointer;
 }
 .pres-scene svg { display: block; width: 100%; height: 100%; pointer-events: none; }
@@ -972,7 +978,7 @@ kbd {
 .pt-corps { display: grid; grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr); gap: 0.75rem; min-height: 0; }
 .pt-actuel, .pt-cote > section { display: flex; flex-direction: column; gap: 0.4rem; min-height: 0; }
 .pt-cote { display: grid; grid-template-rows: auto 1fr; gap: 0.75rem; min-height: 0; }
-.pt-scene { flex: 1 1 auto; min-height: 0; padding: 0.5rem; border: 1px solid var(--filet); border-radius: var(--rayon-carte); }
+.pt-scene { position: relative; touch-action: none; user-select: none; -webkit-user-select: none; flex: 1 1 auto; min-height: 0; padding: 0.5rem; border: 1px solid var(--filet); border-radius: var(--rayon-carte); }
 .pt-scene.petite { flex: 0 0 auto; height: 28vh; }
 .pt-scene svg { display: block; width: 100%; height: 100%; }
 .pt-fin { margin: 0; color: var(--texte-doux); font-style: italic; }
@@ -984,6 +990,57 @@ kbd {
   .pt-corps { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) auto; }
   .pt-scene.petite { height: 18vh; }
 }
+
+/* ---------- Barre de recherche (en haut de la zone de dessin) ---------- */
+.barre-recherche {
+  position: absolute;
+  top: 0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  width: min(34rem, calc(100% - 1rem));
+  padding: 0.25rem 0.25rem 0.25rem 0.75rem;
+  border: 1px solid var(--bord);
+  border-radius: var(--rayon);
+  background: var(--surface);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+  user-select: text;
+  -webkit-user-select: text;
+}
+.barre-recherche[hidden] { display: none; }
+#champ-recherche {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--texte);
+  font: inherit;
+  font-size: 1rem;
+}
+#champ-recherche:focus { outline: none; }
+.barre-recherche:focus-within { outline: 3px solid var(--focus); outline-offset: 2px; }
+.compte-recherche { flex: 0 0 auto; padding: 0 0.35rem; font-size: 0.85rem; color: var(--texte-doux); white-space: nowrap; }
+
+/* ---------- Pointeur lumineux (présentation) ---------- */
+/* Rose vif avec halo : visible sur les fonds clairs comme sombres. */
+.pointeur-laser {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  border-radius: 50%;
+  background: #ff2d6f;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 5px rgba(255, 45, 111, 0.35), 0 0 22px 8px rgba(255, 45, 111, 0.55);
+  pointer-events: none;
+  z-index: 5;
+}
+.pointeur-laser[hidden] { display: none; }
+.avec-pointeur { cursor: none; }
 
 /* ---------- Fenêtre « public » (deuxième écran) ---------- */
 body.mode-public > *:not(.public-scene):not(.public-aide) { display: none !important; }

@@ -38,6 +38,8 @@
     <symbol id="i-zone" viewBox="0 0 24 24"><rect x="2.5" y="3.5" width="19" height="17" rx="3" stroke-dasharray="3 2.2"/><path d="M6 8h6"/></symbol>
     <symbol id="i-aligner" viewBox="0 0 24 24"><path d="M4 3v18"/><rect x="7" y="5" width="12" height="5" rx="1"/><rect x="7" y="14" width="8" height="5" rx="1"/></symbol>
     <symbol id="i-vue" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4M8 11h6M11 8v6"/></symbol>
+    <symbol id="i-rechercher" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+    <symbol id="i-liste" viewBox="0 0 24 24"><path d="M9 6h11M12 12h8M12 18h8M4 6h.01M7 12h.01M7 18h.01"/></symbol>
     <symbol id="i-supprimer" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
     <symbol id="i-fermer" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
     <symbol id="i-etiquette" viewBox="0 0 24 24"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.5"/></symbol>
@@ -74,6 +76,9 @@
       <svg class="icone" aria-hidden="true"><use href="#i-maj"/></svg>
       <span>Mettre à jour</span>
     </button>
+    <button type="button" class="bouton-icone" id="btn-rechercher" aria-label="Rechercher dans le schéma" title="Rechercher (Ctrl+F)" aria-expanded="false" aria-controls="barre-recherche">
+      <svg class="icone" aria-hidden="true"><use href="#i-rechercher"/></svg>
+    </button>
     <button type="button" class="bouton-presenter" id="btn-presenter" title="Présenter (plein écran)">
       <svg class="icone" aria-hidden="true"><use href="#i-presenter"/></svg>
       <span>Présenter</span>
@@ -88,6 +93,14 @@
 
   <!-- ===== Zone de dessin ===== -->
   <main class="zone" id="zone">
+    <div class="barre-recherche" id="barre-recherche" role="search" hidden>
+      <label for="champ-recherche" class="lecteur-seul">Rechercher dans le schéma</label>
+      <input type="search" id="champ-recherche" placeholder="Rechercher un mot…" autocomplete="off" enterkeyhint="search">
+      <output id="compte-recherche" class="compte-recherche chiffres" aria-live="polite"></output>
+      <button type="button" class="bouton-icone" id="rech-precedent" aria-label="Résultat précédent" title="Précédent (Maj+Entrée)" disabled><svg class="icone" aria-hidden="true"><use href="#i-precedent"/></svg></button>
+      <button type="button" class="bouton-icone" id="rech-suivant" aria-label="Résultat suivant" title="Suivant (Entrée)" disabled><svg class="icone" aria-hidden="true"><use href="#i-suivant"/></svg></button>
+      <button type="button" class="bouton-icone" id="rech-fermer" aria-label="Fermer la recherche" title="Fermer (Échap)"><svg class="icone" aria-hidden="true"><use href="#i-fermer"/></svg></button>
+    </div>
     <svg id="toile" class="toile" role="application" aria-label="Zone du schéma" aria-describedby="aide-toile" tabindex="0">
       <g id="monde">
         <g id="calque-zones"></g>
@@ -228,10 +241,12 @@
       <li class="etiquette-section">Schémas</li>
       <li><button type="button" data-menu="schemas"><svg class="icone" aria-hidden="true"><use href="#i-schemas"/></svg>Mes schémas</button></li>
       <li><button type="button" data-menu="nouveau"><svg class="icone" aria-hidden="true"><use href="#i-nouveau"/></svg>Nouveau schéma</button></li>
+      <li><button type="button" data-menu="liste"><svg class="icone" aria-hidden="true"><use href="#i-liste"/></svg>Créer des blocs depuis une liste</button></li>
       <li><button type="button" data-menu="modele"><svg class="icone" aria-hidden="true"><use href="#i-sauvegarde"/></svg>Enregistrer comme modèle</button></li>
       <li class="etiquette-section">Fichiers</li>
       <li><button type="button" data-menu="exporter"><svg class="icone" aria-hidden="true"><use href="#i-exporter"/></svg>Exporter ce schéma (.json)</button></li>
       <li><button type="button" data-menu="exporter-image"><svg class="icone" aria-hidden="true"><use href="#i-image"/></svg>Exporter (image, PDF, page HTML)</button></li>
+      <li><button type="button" data-menu="plan"><svg class="icone" aria-hidden="true"><use href="#i-liste"/></svg>Plan du schéma en texte</button></li>
       <li><button type="button" data-menu="sauvegarder-tout"><svg class="icone" aria-hidden="true"><use href="#i-sauvegarde"/></svg>Sauvegarder tous mes schémas (.json)</button></li>
       <li><button type="button" data-menu="importer"><svg class="icone" aria-hidden="true"><use href="#i-importer"/></svg>Importer un fichier .json</button></li>
       <li class="etiquette-section">Application</li>
@@ -386,6 +401,54 @@
     </form>
   </dialog>
 
+  <!-- ===== Créer des blocs depuis une liste ===== -->
+  <dialog class="fenetre" id="dlg-liste" aria-labelledby="titre-liste">
+    <form method="dialog">
+      <div class="fenetre-entete">
+        <h2 id="titre-liste">Créer des blocs depuis une liste</h2>
+        <button type="button" class="bouton-icone" data-fermer aria-label="Fermer"><svg class="icone" aria-hidden="true"><use href="#i-fermer"/></svg></button>
+      </div>
+      <p class="texte-explication">Une ligne par bloc. Décale une ligne (espaces ou tabulation) pour en faire la suite de la ligne au-dessus : une flèche les reliera. Les puces et les titres #, ## marchent aussi. Une ligne qui commence par &gt; devient la note du présentateur du bloc au-dessus.</p>
+      <label for="liste-texte" class="etiquette-section etiquette-champ">Ta liste</label>
+      <textarea id="liste-texte" rows="9" spellcheck="true" placeholder="Mon projet
+  - Préparer
+    - Lister les besoins
+    - Choisir les outils
+  - Réaliser
+  - Présenter"></textarea>
+      <p class="aide-reglage" id="liste-compte" aria-live="polite"></p>
+      <fieldset class="groupe-choix">
+        <legend class="etiquette-section">Sens de l'arbre</legend>
+        <div class="pilules">
+          <label><input type="radio" name="liste-sens" value="droite" checked>Vers la droite</label>
+          <label><input type="radio" name="liste-sens" value="bas">Vers le bas</label>
+        </div>
+      </fieldset>
+      <fieldset class="groupe-choix cases">
+        <label><input type="checkbox" id="liste-etapes-une-par-une"> Faire apparaître les blocs un par un en présentation</label>
+      </fieldset>
+      <div class="boutons-fenetre">
+        <button type="submit" class="bouton" value="non" formnovalidate>Annuler</button>
+        <button type="submit" class="bouton" value="un" id="liste-un-bloc" hidden>Un seul bloc</button>
+        <button type="submit" class="bouton principal" value="oui" id="liste-creer">Créer les blocs</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ===== Plan du schéma en texte ===== -->
+  <dialog class="fenetre" id="dlg-plan" aria-labelledby="titre-plan">
+    <div class="fenetre-entete">
+      <h2 id="titre-plan">Plan du schéma</h2>
+      <button type="button" class="bouton-icone" data-fermer aria-label="Fermer"><svg class="icone" aria-hidden="true"><use href="#i-fermer"/></svg></button>
+    </div>
+    <p class="texte-explication">Le schéma en liste à retraits, en suivant les flèches. Colle-le dans un document, un message… ou dans « Créer des blocs depuis une liste ».</p>
+    <label for="plan-texte" class="lecteur-seul">Plan du schéma</label>
+    <textarea id="plan-texte" rows="12" readonly></textarea>
+    <div class="boutons-fenetre">
+      <button type="button" class="bouton principal" id="btn-copier-plan"><svg class="icone" aria-hidden="true"><use href="#i-copier"/></svg>Copier le plan</button>
+    </div>
+  </dialog>
+
   <!-- ===== Export en image ou PDF ===== -->
   <dialog class="fenetre" id="dlg-export" aria-labelledby="titre-export">
     <div class="fenetre-entete">
@@ -513,6 +576,9 @@
       <dt>Vue</dt><dd>zoom, voir tout le schéma, grille magnétique</dd>
       <dt>Style → Sans cadre, Taille du texte</dt><dd>titres, légendes et remarques libres</dd>
       <dt>Menu → Enregistrer comme modèle</dt><dd>repartir de ce schéma dans « Nouveau schéma »</dd>
+      <dt>Menu → Créer des blocs depuis une liste</dt><dd>une ligne par bloc, les lignes décalées deviennent la suite : l'arbre se range tout seul</dd>
+      <dt>Menu → Plan du schéma en texte</dt><dd>le schéma en liste à retraits, à copier</dd>
+      <dt>Loupe en haut</dt><dd>rechercher un mot dans les blocs, notes, zones et étiquettes</dd>
     </dl>
     <h3 class="etiquette-section">Au clavier</h3>
     <dl class="liste-aide">
@@ -531,6 +597,7 @@
       <dt><kbd>+</kbd> <kbd>−</kbd> · <kbd>0</kbd></dt><dd>zoomer, dézoomer · recentrer</dd>
       <dt><kbd>P</kbd> · <kbd>Maj</kbd>+<kbd>P</kbd></dt><dd>présenter · vue présentateur (2 écrans)</dd>
       <dt><kbd>Ctrl</kbd>+<kbd>A</kbd> · <kbd>Maj</kbd>+clic</dt><dd>tout sélectionner · ajouter un bloc à la sélection</dd>
+      <dt><kbd>Ctrl</kbd>+<kbd>F</kbd></dt><dd>rechercher (<kbd>Entrée</kbd> : résultat suivant, <kbd>Maj</kbd>+<kbd>Entrée</kbd> : précédent)</dd>
       <dt><kbd>?</kbd></dt><dd>cette aide</dd>
     </dl>
     <h3 class="etiquette-section">En présentation</h3>
@@ -539,6 +606,7 @@
       <dt>Toucher à gauche · <kbd>←</kbd> <kbd>Page préc.</kbd></dt><dd>étape précédente</dd>
       <dt><kbd>Début</kbd> · <kbd>Fin</kbd></dt><dd>première · dernière étape</dd>
       <dt><kbd>N</kbd></dt><dd>notes du présentateur</dd>
+      <dt>Appui long sur le schéma · <kbd>L</kbd></dt><dd>pointeur lumineux qui suit le doigt · qui suit la souris (aussi sur la fenêtre public, en mode deux écrans)</dd>
       <dt><kbd>Échap</kbd> ou geste « retour »</dt><dd>quitter</dd>
     </dl>
   </dialog>

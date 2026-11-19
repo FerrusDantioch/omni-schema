@@ -10,12 +10,13 @@ import { creerSchemaAccueil, migrer } from './modele.js';
 import { listerSchemas, chargerSchema, enregistrerSchema, demanderStockagePersistant } from './stockage.js';
 import { installerGestes } from './interactions.js';
 import { creerEditeurTexte } from './editeur-texte.js';
-import { installerInterface, appliquerTheme, editerEtiquette, editerTitreZone, fermerChoix, demanderConfirmation, ouvrirAide } from './interface.js';
+import { installerInterface, appliquerTheme, editerEtiquette, editerTitreZone, fermerChoix, demanderConfirmation, ouvrirAide, ouvrirListe } from './interface.js';
 import { creerPresentation } from './presentation.js';
 import { creerPanneauEtapes } from './panneau-etapes.js';
 import { creerVuePresentateur, demarrerPublic } from './presentateur.js';
 import { installerClavier } from './clavier.js';
 import { installerPressePapiers } from './presse-papiers.js';
+import { installerRecherche } from './recherche.js';
 import { installerMiseAJour } from './mise-a-jour.js';
 import { attendrePolices } from './polices.js';
 import { viderCacheTexte } from './texte.js';
@@ -54,7 +55,9 @@ async function demarrer() {
     editerTitreZone,
     avantGeste: () => { editeur.terminer(); fermerChoix(); },
   });
+  const recherche = installerRecherche({ avantOuverture: () => { editeur.terminer(); fermerChoix(); } });
   installerClavier({
+    rechercher: () => recherche.ouvrir(),
     editeur, editerEtiquette, editerTitreZone, fermerChoix, ouvrirAide,
     presenter: () => document.getElementById('btn-presenter').click(),
     presenterDeuxEcrans,
@@ -62,6 +65,7 @@ async function demarrer() {
   // Copier / couper / coller : seulement quand on travaille sur la toile.
   installerPressePapiers({
     actif: () => !editeur.actif() && !etat.presentation && !document.querySelector('dialog[open]'),
+    proposerListe: (texte) => ouvrirListe(texte),
   });
   installerMiseAJour({
     bouton: document.getElementById('btn-maj'),

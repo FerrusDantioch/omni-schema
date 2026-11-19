@@ -33,6 +33,10 @@ la sélection en place, polices complétées (Ÿ, espace fine insécable).
 sans cadre et taille du texte, modèles personnels (« Enregistrer comme modèle »). Le zoom, le
 recadrage et la grille sont réunis dans le bouton **Vue**.
 
+**Version 1.4.0** : créer des blocs depuis une liste à retraits (rangés en arbre), plan du schéma
+en texte, recherche (loupe ou Ctrl+F), pointeur lumineux en présentation (aussi sur la fenêtre
+public en mode deux écrans).
+
 ## Utilisation rapide
 
 | Je veux… | Au doigt | À la souris / au clavier |
@@ -55,6 +59,9 @@ recadrage et la grille sont réunis dans le bouton **Vue**.
 | Regrouper des blocs dans une zone | bouton **Zone** (ou **Aligner** → *Entourer d'une zone* avec plusieurs blocs choisis) ; on déplace la zone par son titre, ses blocs suivent (ils sont entourés de pointillés quand la zone est choisie ; un bloc posé à cheval sur le bord agrandit la zone) ; toucher encore le titre pour le changer | **Z** ; **Entrée** pour le titre |
 | Aligner, répartir, même taille | plusieurs blocs choisis → **Aligner** | idem |
 | Écrire un titre ou une légende libre | **Style** → forme *Sans cadre*, et *Taille du texte* | idem |
+| Créer des blocs depuis une liste | Menu → *Créer des blocs depuis une liste* (une ligne par bloc, les lignes décalées deviennent la suite) | idem, ou **Ctrl+V** d'une liste à puces |
+| Avoir le plan du schéma en texte | Menu → *Plan du schéma en texte* → *Copier le plan* | idem |
+| Rechercher un mot | loupe en haut | **Ctrl+F**, **Entrée** / **Maj+Entrée** pour suivant / précédent |
 | Repartir d'un de mes schémas | Menu → *Enregistrer comme modèle*, puis *Nouveau schéma* → *Mes modèles* | idem |
 | Changer le trait d'une flèche | toucher la flèche, puis **Trait** : droite, angle droit ou courbe ; plein ou pointillés ; une, deux ou aucune pointe | idem |
 | Créer un bloc relié | tirer le rond **+** vers le vide | **R** (à droite) / **Maj+R** (en dessous) |
@@ -75,6 +82,7 @@ recadrage et la grille sont réunis dans le bouton **Vue**.
 | Étape précédente | toucher le tiers gauche, ou glisser vers la droite | **←**, **Retour arrière**, **Page précédente** |
 | Début / fin | — | **Début** / **Fin** |
 | Notes du présentateur | bouton **Notes** en bas à gauche | **N** |
+| Pointeur lumineux | **appui long** sur le schéma, puis glisser | appui long à la souris, ou **L** (le point suit la souris) |
 | Quitter | croix en haut à droite, ou geste « retour » | **Échap** |
 
 À l'ouverture, si tu t'étais arrêté en cours de route, l'app propose **« Reprendre là »**
@@ -87,7 +95,9 @@ Pensée pour un ordinateur relié à un vidéoprojecteur ou à un second écran 
 1. une deuxième fenêtre s'ouvre : elle ne montre que le schéma. Place-la sur le vidéoprojecteur,
    puis clique dessus pour le plein écran ;
 2. ta fenêtre montre ce que voit le public, l'étape suivante, tes notes et un chronomètre ;
-3. tu avances depuis ta fenêtre (boutons, flèches, télécommande) : la fenêtre public suit.
+3. tu avances depuis ta fenêtre (boutons, flèches, télécommande) : la fenêtre public suit ;
+4. pour montrer un détail : appui long (ou touche **L**) sur l'aperçu « étape en cours » :
+   le pointeur lumineux apparaît au même endroit sur la fenêtre public.
 
 Les deux fenêtres se parlent à l'intérieur du navigateur (BroadcastChannel), sans réseau.
 Si le navigateur bloque la deuxième fenêtre, autorise les fenêtres surgissantes pour l'app.
@@ -168,6 +178,9 @@ js/
   texte.js             retour à la ligne et taille du texte
   historique.js        annuler / rétablir (avec la sélection)
   presse-papiers.js    copier, couper, coller
+  liste.js             blocs depuis une liste à retraits, plan en texte
+  recherche.js         rechercher dans le schéma
+  pointeur.js          pointeur lumineux en présentation
   stockage.js          IndexedDB
   fichiers.js          export / import .json
   interface.js         menus, fenêtres, réglages, liste des schémas

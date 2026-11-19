@@ -10,6 +10,7 @@
 //   E : étape de l'élément · P : présenter · ? : aide
 //   Suppr : supprimer · Ctrl+D : dupliquer · Échap : désélectionner
 //   Ctrl+C / Ctrl+X / Ctrl+V : copier / couper / coller (voir presse-papiers.js)
+//   Ctrl+F : rechercher (voir recherche.js)
 //   + / − : zoom · 0 : recentrer
 // =====================================================================
 
@@ -37,7 +38,7 @@ function decrire(e) {
   return `${nomElement(etat.schema, e, 80)}${etape}.`;
 }
 
-export function installerClavier({ editeur, editerEtiquette, editerTitreZone, fermerChoix, ouvrirAide, presenter, presenterDeuxEcrans }) {
+export function installerClavier({ editeur, editerEtiquette, editerTitreZone, fermerChoix, ouvrirAide, presenter, presenterDeuxEcrans, rechercher }) {
   let minuterieDeplacement = null;
   let liaison = null; // { de } pendant « L » : on choisit le bloc d'arrivée
 
@@ -105,7 +106,8 @@ export function installerClavier({ editeur, editerEtiquette, editerTitreZone, fe
 
     // --- Raccourcis avec Ctrl ---
     if (ctrl) {
-      if (touche === 'z' && !e.shiftKey) { e.preventDefault(); annuler(); }
+      if (touche === 'f') { e.preventDefault(); rechercher(); }
+      else if (touche === 'z' && !e.shiftKey) { e.preventDefault(); annuler(); }
       else if (touche === 'y' || (touche === 'z' && e.shiftKey)) { e.preventDefault(); retablir(); }
       else if (touche === 'd' && (sel || etat.groupe)) { e.preventDefault(); dupliquerSelection(); }
       else if (touche === 'a') {
