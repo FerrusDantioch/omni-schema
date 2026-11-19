@@ -33,6 +33,8 @@
     <symbol id="i-forme" viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1"/><circle cx="17" cy="7" r="4"/><path d="m7 14 4 4-4 4-4-4z"/><rect x="13" y="14" width="8" height="7" rx="3"/></symbol>
     <symbol id="i-couleur" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18c1.5 0 2-1 2-2s-1-1.5-1-2.5 1-1.5 2-1.5h2a4 4 0 0 0 4-4c0-4.4-4-8-9-8z"/><circle cx="7.5" cy="11" r="1.3"/><circle cx="10.5" cy="7" r="1.3"/><circle cx="15" cy="7.5" r="1.3"/></symbol>
     <symbol id="i-dupliquer" viewBox="0 0 24 24"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+    <symbol id="i-copier" viewBox="0 0 24 24"><path d="M9 4H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2"/><rect x="9" y="2.5" width="6" height="3.5" rx="1"/><path d="M12 17v-7M9 13l3-3 3 3"/></symbol>
+    <symbol id="i-coller" viewBox="0 0 24 24"><path d="M9 4H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2"/><rect x="9" y="2.5" width="6" height="3.5" rx="1"/><path d="M12 10v7M9 14l3 3 3-3"/></symbol>
     <symbol id="i-supprimer" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
     <symbol id="i-fermer" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
     <symbol id="i-etiquette" viewBox="0 0 24 24"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.5"/></symbol>
@@ -118,6 +120,14 @@
       <input type="file" id="fichier-image" accept="image/*" hidden>
     </div>
   </div>
+  <div class="choix" id="choix-trait" hidden role="group" aria-label="Trait de la flèche">
+    <p class="etiquette-section">Tracé</p>
+    <div class="options-choix" id="options-trace"></div>
+    <p class="etiquette-section">Trait</p>
+    <div class="options-choix" id="options-ligne"></div>
+    <p class="etiquette-section">Pointes</p>
+    <div class="options-choix" id="options-pointes"></div>
+  </div>
   <div class="choix" id="choix-etape" hidden role="group" aria-labelledby="titre-choix-etape">
     <p class="etiquette-section" id="titre-choix-etape">Apparition en présentation</p>
     <div class="reglage-etape">
@@ -136,9 +146,10 @@
   <nav class="barre-bas" aria-label="Outils">
     <div class="groupe-outils" data-pour="aucun">
       <button type="button" class="outil" id="btn-ajouter"><svg class="icone" aria-hidden="true"><use href="#i-bloc"/></svg><span>Bloc</span></button>
+      <button type="button" class="outil" id="btn-coller" disabled><svg class="icone" aria-hidden="true"><use href="#i-coller"/></svg><span>Coller</span></button>
       <button type="button" class="outil" id="btn-etapes"><svg class="icone" aria-hidden="true"><use href="#i-etapes"/></svg><span>Étapes</span></button>
       <button type="button" class="outil" id="btn-grille" aria-pressed="false"><svg class="icone" aria-hidden="true"><use href="#i-grille"/></svg><span>Grille</span></button>
-      <button type="button" class="outil" id="btn-recentrer"><svg class="icone" aria-hidden="true"><use href="#i-recentrer"/></svg><span>Recentrer</span></button>
+      <button type="button" class="outil" id="btn-recentrer" aria-label="Recentrer"><svg class="icone" aria-hidden="true"><use href="#i-recentrer"/></svg><span data-court="Cadrer">Recentrer</span></button>
       <button type="button" class="outil" id="btn-zoom-moins" aria-label="Dézoomer"><svg class="icone" aria-hidden="true"><use href="#i-zoom-moins"/></svg><span>Zoom −</span></button>
       <button type="button" class="outil" id="btn-zoom-plus" aria-label="Zoomer"><svg class="icone" aria-hidden="true"><use href="#i-zoom-plus"/></svg><span>Zoom +</span></button>
     </div>
@@ -147,23 +158,25 @@
       <button type="button" class="outil" id="btn-style" data-bouton-style aria-expanded="false" aria-controls="choix-style"><svg class="icone" aria-hidden="true"><use href="#i-couleur"/></svg><span>Style</span></button>
       <button type="button" class="outil" data-bouton-etape aria-expanded="false" aria-controls="choix-etape"><svg class="icone" aria-hidden="true"><use href="#i-etapes"/></svg><span>Étape</span></button>
       <button type="button" class="outil" id="btn-note"><svg class="icone" aria-hidden="true"><use href="#i-note"/></svg><span>Note</span></button>
-      <button type="button" class="outil" id="btn-dupliquer"><svg class="icone" aria-hidden="true"><use href="#i-dupliquer"/></svg><span>Dupliquer</span></button>
-      <button type="button" class="outil danger" id="btn-supprimer-bloc"><svg class="icone" aria-hidden="true"><use href="#i-supprimer"/></svg><span>Supprimer</span></button>
+      <button type="button" class="outil" id="btn-copier"><svg class="icone" aria-hidden="true"><use href="#i-copier"/></svg><span>Copier</span></button>
+      <button type="button" class="outil" id="btn-dupliquer" aria-label="Dupliquer"><svg class="icone" aria-hidden="true"><use href="#i-dupliquer"/></svg><span data-court="Doubler">Dupliquer</span></button>
+      <button type="button" class="outil danger" id="btn-supprimer-bloc" aria-label="Supprimer"><svg class="icone" aria-hidden="true"><use href="#i-supprimer"/></svg><span data-court="Suppr.">Supprimer</span></button>
     </div>
     <div class="groupe-outils" data-pour="groupe" hidden>
       <p class="compte-groupe" id="compte-groupe" aria-live="polite">2 blocs</p>
       <button type="button" class="outil" data-bouton-style aria-expanded="false" aria-controls="choix-style"><svg class="icone" aria-hidden="true"><use href="#i-couleur"/></svg><span>Style</span></button>
       <button type="button" class="outil" data-bouton-etape aria-expanded="false" aria-controls="choix-etape"><svg class="icone" aria-hidden="true"><use href="#i-etapes"/></svg><span>Étape</span></button>
-      <button type="button" class="outil" id="btn-dupliquer-groupe"><svg class="icone" aria-hidden="true"><use href="#i-dupliquer"/></svg><span>Dupliquer</span></button>
-      <button type="button" class="outil danger" id="btn-supprimer-groupe"><svg class="icone" aria-hidden="true"><use href="#i-supprimer"/></svg><span>Supprimer</span></button>
-      <button type="button" class="outil" id="btn-fermer-groupe"><svg class="icone" aria-hidden="true"><use href="#i-fermer"/></svg><span>Terminer</span></button>
+      <button type="button" class="outil" id="btn-copier-groupe"><svg class="icone" aria-hidden="true"><use href="#i-copier"/></svg><span>Copier</span></button>
+      <button type="button" class="outil" id="btn-dupliquer-groupe" aria-label="Dupliquer"><svg class="icone" aria-hidden="true"><use href="#i-dupliquer"/></svg><span data-court="Doubler">Dupliquer</span></button>
+      <button type="button" class="outil danger" id="btn-supprimer-groupe" aria-label="Supprimer"><svg class="icone" aria-hidden="true"><use href="#i-supprimer"/></svg><span data-court="Suppr.">Supprimer</span></button>
+      <button type="button" class="outil" id="btn-fermer-groupe" aria-label="Terminer la sélection multiple"><svg class="icone" aria-hidden="true"><use href="#i-fermer"/></svg><span data-court="OK">Terminer</span></button>
     </div>
     <div class="groupe-outils" data-pour="fleche" hidden>
       <button type="button" class="outil" id="btn-etiquette"><svg class="icone" aria-hidden="true"><use href="#i-etiquette"/></svg><span>Étiquette</span></button>
-      <button type="button" class="outil" id="btn-trace"><svg class="icone" aria-hidden="true"><use href="#i-style"/></svg><span id="libelle-trace">Angle droit</span></button>
+      <button type="button" class="outil" id="btn-trace" aria-expanded="false" aria-controls="choix-trait"><svg class="icone" aria-hidden="true"><use href="#i-style"/></svg><span>Trait</span></button>
       <button type="button" class="outil" id="btn-inverser"><svg class="icone" aria-hidden="true"><use href="#i-inverser"/></svg><span>Inverser</span></button>
       <button type="button" class="outil" data-bouton-etape aria-expanded="false" aria-controls="choix-etape"><svg class="icone" aria-hidden="true"><use href="#i-etapes"/></svg><span>Étape</span></button>
-      <button type="button" class="outil danger" id="btn-supprimer-fleche"><svg class="icone" aria-hidden="true"><use href="#i-supprimer"/></svg><span>Supprimer</span></button>
+      <button type="button" class="outil danger" id="btn-supprimer-fleche" aria-label="Supprimer"><svg class="icone" aria-hidden="true"><use href="#i-supprimer"/></svg><span>Supprimer</span></button>
     </div>
   </nav>
 
@@ -450,6 +463,8 @@
       <dt>Petit carré du bloc</dt><dd>changer sa taille</dd>
       <dt>Appui long sur un bloc</dt><dd>sélection multiple (puis toucher d'autres blocs)</dd>
       <dt>Appui long sur le fond, puis glisser</dt><dd>entourer plusieurs blocs</dd>
+      <dt>Copier, puis Coller</dt><dd>reprendre des blocs (avec leurs flèches et images) ici ou dans un autre schéma</dd>
+      <dt>Trait (flèche choisie)</dt><dd>droite, angle droit ou courbe ; pointillés ; une, deux ou aucune pointe</dd>
     </dl>
     <h3 class="etiquette-section">Au clavier</h3>
     <dl class="liste-aide">
@@ -463,6 +478,7 @@
       <dt><kbd>Alt</kbd>+flèches</dt><dd>changer la taille du bloc</dd>
       <dt><kbd>E</kbd></dt><dd>étape de l'élément choisi</dd>
       <dt><kbd>Suppr</kbd> · <kbd>Ctrl</kbd>+<kbd>D</kbd></dt><dd>supprimer · dupliquer</dd>
+      <dt><kbd>Ctrl</kbd>+<kbd>C</kbd> · <kbd>X</kbd> · <kbd>V</kbd></dt><dd>copier · couper · coller (un texte ou une image collés créent un bloc)</dd>
       <dt><kbd>Ctrl</kbd>+<kbd>Z</kbd> · <kbd>Ctrl</kbd>+<kbd>Y</kbd></dt><dd>annuler · rétablir</dd>
       <dt><kbd>+</kbd> <kbd>−</kbd> · <kbd>0</kbd></dt><dd>zoomer, dézoomer · recentrer</dd>
       <dt><kbd>P</kbd> · <kbd>Maj</kbd>+<kbd>P</kbd></dt><dd>présenter · vue présentateur (2 écrans)</dd>

@@ -5,7 +5,7 @@
 // Un schéma est un simple objet JSON :
 // {
 //   format: 'omni-schema',      // pour reconnaître nos fichiers
-//   version_format: 1,          // version de la structure (voir migrer)
+//   version_format: 3,          // version de la structure (voir migrer)
 //   id, titre, cree_le, modifie_le,
 //   theme: 'auto',              // thème de présentation (auto = celui de l'app)
 //   elements: [ blocs et flèches ],
@@ -13,7 +13,9 @@
 // }
 // Bloc   : { type:'bloc', id, x, y, largeur, hauteur, texte, forme, couleur, etape, note, image }
 //          (image = identifiant dans « images », ou '' s'il n'y en a pas)
-// Flèche : { type:'fleche', id, de, vers, style, etiquette, etape }
+// Flèche : { type:'fleche', id, de, vers, style, trait, pointes, etiquette, etape }
+//          style : droite / angle / courbe ; trait : plein / pointille ;
+//          pointes : fin (une, au bout) / deux / aucune (format 3)
 // etape = 0 : toujours visible ; sinon numéro d'apparition en présentation.
 // =====================================================================
 
@@ -30,6 +32,18 @@ export const FORMES = [
 export const STYLES_FLECHE = [
   { id: 'droite', nom: 'Droite' },
   { id: 'angle', nom: 'Angle droit' },
+  { id: 'courbe', nom: 'Courbe' },
+];
+
+export const TRAITS = [
+  { id: 'plein', nom: 'Plein' },
+  { id: 'pointille', nom: 'Pointillés' },
+];
+
+export const POINTES = [
+  { id: 'fin', nom: 'Une pointe' },
+  { id: 'deux', nom: 'Deux pointes' },
+  { id: 'aucune', nom: 'Sans pointe' },
 ];
 
 // Longueurs maximales des textes (garde-fou contre les fichiers abîmés).
@@ -91,6 +105,8 @@ export function creerFleche(de, vers, proprietes = {}) {
     de,
     vers,
     style: 'droite',
+    trait: 'plein',
+    pointes: 'fin',
     etiquette: '',
     etape: 0,
     ...proprietes,
@@ -127,6 +143,14 @@ const MIGRATIONS = {
     doc.images = {};
     for (const e of doc.elements) if (e && e.type === 'bloc') e.image = '';
     doc.version_format = 2;
+    return doc;
+  },
+  // 2 → 3 : les flèches ont un trait (plein / pointillés) et des pointes.
+  2: (doc) => {
+    for (const e of doc.elements) {
+      if (e && e.type === 'fleche') { e.trait = 'plein'; e.pointes = 'fin'; }
+    }
+    doc.version_format = 3;
     return doc;
   },
 };
@@ -233,6 +257,8 @@ export function normaliser(doc) {
       de,
       vers,
       style: parmi(e.style, STYLES_FLECHE, 'droite'),
+      trait: parmi(e.trait, TRAITS, 'plein'),
+      pointes: parmi(e.pointes, POINTES, 'fin'),
       etiquette: texte(e.etiquette, MAX_ETIQUETTE),
       etape: entierPositif(e.etape),
     });

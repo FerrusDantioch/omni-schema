@@ -5,7 +5,7 @@
 
 import { APP_VERSION } from './config.js';
 import { COULEURS, couleurBloc, couleursToile } from './couleurs.js';
-import { FORMES, trouver, creerSchema, migrer, nouvelId } from './modele.js';
+import { FORMES, STYLES_FLECHE, TRAITS, POINTES, trouver, creerSchema, migrer, nouvelId } from './modele.js';
 import {
   etat, notifier, surChangement, demanderRendu, annuler, retablir, peutAnnuler, peutRetablir,
   ajouterBloc, dupliquerSelection, supprimerSelection, modifierSelection, modifierChaque, blocsSelectionnes, selectionner,
@@ -19,6 +19,7 @@ import { exporterPng, exporterSvg, imprimerEtapes } from './exports.js';
 import { exporterHtml } from './export-html.js';
 import { themePresentation } from './presentation.js';
 import { preparerImage } from './images.js';
+import { copierDepuisBouton, coller, pressePapiersRempli } from './presse-papiers.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -126,6 +127,9 @@ export function installerInterface({ editeur, presentation, panneauEtapes }) {
   });
   $('btn-etapes').addEventListener('click', () => panneauEtapes.ouvrir());
   $('btn-recentrer').addEventListener('click', recentrer);
+  $('btn-coller').addEventListener('click', () => coller());
+  $('btn-copier').addEventListener('click', copierDepuisBouton);
+  $('btn-copier-groupe').addEventListener('click', copierDepuisBouton);
   $('btn-zoom-plus').addEventListener('click', () => zoomerCentre(1.25));
   $('btn-zoom-moins').addEventListener('click', () => zoomerCentre(0.8));
 
@@ -147,10 +151,7 @@ export function installerInterface({ editeur, presentation, panneauEtapes }) {
 
   // --- Barre du bas : flèche choisie ---
   $('btn-etiquette').addEventListener('click', () => editerEtiquette(etat.selection));
-  $('btn-trace').addEventListener('click', () => {
-    const f = trouver(etat.schema, etat.selection);
-    if (f) modifierSelection({ style: f.style === 'angle' ? 'droite' : 'angle' });
-  });
+  $('btn-trace').addEventListener('click', (e) => basculerChoix('choix-trait', e.currentTarget));
   $('btn-inverser').addEventListener('click', () => {
     const f = trouver(etat.schema, etat.selection);
     if (f) modifierSelection({ de: f.vers, vers: f.de });
@@ -201,6 +202,7 @@ export function installerInterface({ editeur, presentation, panneauEtapes }) {
   });
 
   construireChoix();
+  construireChoixTrait();
   installerNouveau();
   installerExport();
   installerMenu();
@@ -285,6 +287,49 @@ function construireChoix() {
   }
 }
 
+// ---------------------------------------------------------------------
+// Panneau « Trait » d'une flèche : tracé, trait et pointes
+// ---------------------------------------------------------------------
+function construireChoixTrait() {
+  const options = [
+    ['options-trace', 'style', STYLES_FLECHE],
+    ['options-ligne', 'trait', TRAITS],
+    ['options-pointes', 'pointes', POINTES],
+  ];
+  for (const [idPanneau, cle, liste] of options) {
+    const panneau = $(idPanneau);
+    for (const o of liste) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'option-choix';
+      b.dataset.cle = cle;
+      b.dataset.valeur = o.id;
+      b.innerHTML = `<svg viewBox="0 0 40 28" class="apercu-forme" aria-hidden="true">${apercuFleche(cle, o.id)}</svg><span>${o.nom}</span>`;
+      b.addEventListener('click', () => modifierSelection({ [cle]: o.id }));
+      panneau.appendChild(b);
+    }
+  }
+}
+
+/** Petit dessin d'aperçu pour chaque option du panneau « Trait ». */
+function apercuFleche(cle, valeur) {
+  const trait = 'fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"';
+  const pointeDroite = '<polygon points="38,14 30,9.5 30,18.5" fill="currentColor"/>';
+  const pointeGauche = '<polygon points="2,14 10,9.5 10,18.5" fill="currentColor"/>';
+  if (cle === 'style') {
+    if (valeur === 'angle') return `<path d="M3 5 H18 V23 H30" ${trait}/><polygon points="38,23 30,18.5 30,27.5" fill="currentColor"/>`;
+    if (valeur === 'courbe') return `<path d="M3 5 C20 5 14 23 30 23" ${trait}/><polygon points="38,23 30,18.5 30,27.5" fill="currentColor"/>`;
+    return `<path d="M3 14 H30" ${trait}/>${pointeDroite}`;
+  }
+  if (cle === 'trait') {
+    if (valeur === 'pointille') return `<path d="M3 14 H30" ${trait} stroke-linecap="butt" stroke-dasharray="5 4"/>${pointeDroite}`;
+    return `<path d="M3 14 H30" ${trait}/>${pointeDroite}`;
+  }
+  if (valeur === 'deux') return `<path d="M10 14 H30" ${trait}/>${pointeGauche}${pointeDroite}`;
+  if (valeur === 'aucune') return `<path d="M3 14 H37" ${trait}/>`;
+  return `<path d="M3 14 H30" ${trait}/>${pointeDroite}`;
+}
+
 function apercuForme(forme) {
   const style = 'fill="none" stroke="currentColor" stroke-width="2.5"';
   switch (forme) {
@@ -322,6 +367,7 @@ function mettreAJourInterface() {
   $('btn-annuler').disabled = !peutAnnuler();
   $('btn-retablir').disabled = !peutRetablir();
   $('btn-grille').setAttribute('aria-pressed', String(!!etat.reglages.grille));
+  $('btn-coller').disabled = !pressePapiersRempli();
 
   const sel = trouver(etat.schema, etat.selection);
   const type = etat.groupe ? 'groupe' : (sel ? sel.type : 'aucun');
@@ -330,6 +376,7 @@ function mettreAJourInterface() {
   }
   if (type === 'aucun') fermerChoix();
   else if (type === 'fleche') $('choix-style').hidden = true;
+  else $('choix-trait').hidden = true;
 
   if (etat.groupe) {
     const blocs = blocsSelectionnes();
@@ -364,8 +411,9 @@ function mettreAJourInterface() {
     }
   }
   if (sel && sel.type === 'fleche') {
-    $('libelle-trace').textContent = sel.style === 'angle' ? 'Droite' : 'Angle droit';
-    $('btn-trace').setAttribute('aria-label', sel.style === 'angle' ? 'Passer en flèche droite' : 'Passer en flèche à angle droit');
+    for (const b of document.querySelectorAll('#choix-trait [data-cle]')) {
+      b.setAttribute('aria-pressed', String(sel[b.dataset.cle] === b.dataset.valeur));
+    }
   }
   if (sel) {
     // Panneau « Étape » : valeur actuelle et explications.

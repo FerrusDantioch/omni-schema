@@ -4,8 +4,10 @@ Polices embarquées dans omni-schema
 Ces polices ne sont PAS couvertes par la licence CC BY-NC-ND 4.0 de
 l'application : elles restent sous leur propre licence libre, la
 SIL Open Font License 1.1, reproduite ci-dessous pour chacune.
-Fichiers : sous-ensemble « latin » distribué par Fontsource
-(https://fontsource.org), identique aux fichiers de Google Fonts.
+Fichiers : sous-ensembles (latin, latin étendu A, flèches et quelques
+symboles) tirés des polices originales du dépôt google/fonts
+(https://github.com/google/fonts), réduits avec fontTools. Seul ajout :
+l'espace fine insécable (U+202F) utilise le glyphe d'une espace existante.
 
 - oxanium.woff2           Oxanium (graisses 200 à 800)
 - literata.woff2          Literata, normale 400

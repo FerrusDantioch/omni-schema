@@ -88,15 +88,60 @@ function simplifier(points) {
   return res;
 }
 
+// Nombre de petits segments qui dessinent une courbe (assez pour qu'elle paraisse lisse).
+const SEGMENTS_COURBE = 32;
+
+/** Points d'une courbe de Bézier cubique (p0 → p3, attirée par c1 et c2). */
+function bezier(p0, c1, c2, p3) {
+  const points = [];
+  for (let i = 0; i <= SEGMENTS_COURBE; i++) {
+    const t = i / SEGMENTS_COURBE;
+    const u = 1 - t;
+    const a = u * u * u, b = 3 * u * u * t, c = 3 * u * t * t, d = t * t * t;
+    points.push({
+      x: a * p0.x + b * c1.x + c * c2.x + d * p3.x,
+      y: a * p0.y + b * c1.y + c * c2.y + d * p3.y,
+    });
+  }
+  return points;
+}
+
+/**
+ * Courbe en « S » doux : elle sort du bloc A par le côté qui fait face
+ * à B (comme la flèche à angle droit), puis s'incurve jusqu'à B.
+ */
+function courbe(A, B) {
+  const ca = centre(A);
+  const cb = centre(B);
+  const dx = cb.x - ca.x;
+  const dy = cb.y - ca.y;
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    const s = Math.sign(dx) || 1;
+    const p1 = { x: ca.x + (s * A.largeur) / 2, y: ca.y };
+    const p2 = { x: cb.x - (s * B.largeur) / 2, y: cb.y };
+    const tension = Math.max(30, Math.abs(p2.x - p1.x) / 2);
+    return bezier(p1, { x: p1.x + s * tension, y: p1.y }, { x: p2.x - s * tension, y: p2.y }, p2);
+  }
+  const s = Math.sign(dy) || 1;
+  const p1 = { x: ca.x, y: ca.y + (s * A.hauteur) / 2 };
+  const p2 = { x: cb.x, y: cb.y - (s * B.hauteur) / 2 };
+  const tension = Math.max(30, Math.abs(p2.y - p1.y) / 2);
+  return bezier(p1, { x: p1.x, y: p1.y + s * tension }, { x: p2.x, y: p2.y - s * tension }, p2);
+}
+
 /**
  * Liste des points du trajet d'une flèche entre deux blocs.
  * - « droite » : segment entre les deux bords, dans l'axe des centres ;
  * - « angle »  : trajet en équerre (horizontal / vertical / horizontal,
- *   ou l'inverse), sans contournement des obstacles.
+ *   ou l'inverse), sans contournement des obstacles ;
+ * - « courbe » : même départ que l'angle droit, mais en courbe douce
+ *   (une suite de petits segments, ce qui simplifie tout le reste :
+ *   milieu pour l'étiquette, pointe, zone à toucher, halo).
  */
 export function traceFleche(fleche, A, B) {
   const ca = centre(A);
   const cb = centre(B);
+  if (fleche.style === 'courbe') return courbe(A, B);
   if (fleche.style !== 'angle') {
     return simplifier([pointBord(A, cb), pointBord(B, ca)]);
   }

@@ -25,6 +25,10 @@ ordinateur), avec les polices et le logo de l'Omni-système.
 **Version 1.1.0** (jalon 4) : sélection multiple, images dans les blocs, reprise de la présentation
 là où on s'était arrêté, vue présentateur sur deux écrans.
 
+**Version 1.2.0** : copier-coller (aussi d'un schéma à l'autre), flèches courbes, en pointillés,
+à deux pointes ou sans pointe, étiquettes de flèche sur plusieurs lignes, « Annuler » qui remet
+la sélection en place, polices complétées (Ÿ, espace fine insécable).
+
 ## Utilisation rapide
 
 | Je veux… | Au doigt | À la souris / au clavier |
@@ -41,6 +45,9 @@ là où on s'était arrêté, vue présentateur sur deux écrans.
 | Zoomer | pincer à deux doigts | molette, ou **+** / **−** ; **0** pour recentrer |
 | Annuler / rétablir | flèches en haut à droite | **Ctrl+Z** / **Ctrl+Y** (ou Ctrl+Maj+Z) |
 | Dupliquer / supprimer | barre du bas | **Ctrl+D** / **Suppr** |
+| Copier / coller des blocs | **Copier** (bloc ou groupe choisi), puis **Coller** (rien de choisi), ici ou dans un autre schéma | **Ctrl+C** / **Ctrl+V** (et **Ctrl+X** pour couper) |
+| Coller un texte ou une image venus d'ailleurs | — | **Ctrl+V** : un nouveau bloc est créé |
+| Changer le trait d'une flèche | toucher la flèche, puis **Trait** : droite, angle droit ou courbe ; plein ou pointillés ; une, deux ou aucune pointe | idem |
 | Créer un bloc relié | tirer le rond **+** vers le vide | **R** (à droite) / **Maj+R** (en dessous) |
 | Relier deux blocs existants | tirer le rond **+** vers l'autre bloc | **L**, puis **Tab** pour viser, **Entrée** |
 | Voir tous les raccourcis | Menu → Aide et raccourcis | **?** |
@@ -86,8 +93,9 @@ filets `#262435`, violet `#a777ff` avec texte sombre sur les boutons, petites é
 en MAJUSCULES espacées, chiffres en police à chasse fixe, texte de lecture à empattements,
 choix en « pilules ».
 
-Polices : les mêmes que le portfolio, **embarquées** dans le dossier `polices/` (environ 95 Ko,
-rien n'est téléchargé depuis internet) :
+Polices : les mêmes que le portfolio, **embarquées** dans le dossier `polices/` (environ 130 Ko,
+rien n'est téléchargé depuis internet). Elles couvrent le français complet (dont Œ, Ÿ et
+l'espace fine insécable), les langues latines d'Europe, les flèches et quelques symboles :
 
 | Police | Usage |
 |---|---|
@@ -149,7 +157,8 @@ js/
   modeles.js           modèles de départ
   geometrie.js         calculs : bords, flèches, aimantation
   texte.js             retour à la ligne et taille du texte
-  historique.js        annuler / rétablir
+  historique.js        annuler / rétablir (avec la sélection)
+  presse-papiers.js    copier, couper, coller
   stockage.js          IndexedDB
   fichiers.js          export / import .json
   interface.js         menus, fenêtres, réglages, liste des schémas
@@ -170,7 +179,7 @@ Un schéma est un fichier JSON simple et lisible :
 ```json
 {
   "format": "omni-schema",
-  "version_format": 2,
+  "version_format": 3,
   "id": "s-…", "titre": "Mon schéma",
   "cree_le": "2026-11-18T09:00:00.000Z", "modifie_le": "…",
   "theme": "auto",
@@ -178,14 +187,15 @@ Un schéma est un fichier JSON simple et lisible :
     { "type": "bloc", "id": "b-…", "x": 0, "y": 0, "largeur": 160, "hauteur": 80,
       "texte": "…", "forme": "arrondi", "couleur": "violet", "etape": 0, "note": "", "image": "" },
     { "type": "fleche", "id": "f-…", "de": "b-…", "vers": "b-…",
-      "style": "droite", "etiquette": "", "etape": 0 }
+      "style": "droite", "trait": "plein", "pointes": "fin", "etiquette": "", "etape": 0 }
   ]
 }
 ```
 
 - `forme` : `rectangle`, `arrondi`, `ovale`, `losange`.
 - `couleur` : `neutre`, `violet`, `bleu`, `vert`, `jaune`, `rouge`.
-- `style` d'une flèche : `droite` ou `angle` (angle droit).
+- `style` d'une flèche : `droite`, `angle` (angle droit) ou `courbe`.
+- `trait` (format 3) : `plein` ou `pointille` ; `pointes` : `fin` (une, au bout), `deux` ou `aucune`.
 - `etape` : `0` = toujours visible ; sinon numéro d'apparition en présentation.
 - `images` (format 2) : les images des blocs, `{ "i-…": "data:image/webp;base64,…" }` ; un bloc
   y fait référence par son champ `image`. Elles sont réduites à 1200 pixels et compressées à l'import.

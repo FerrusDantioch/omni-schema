@@ -8,7 +8,7 @@
 
 import { couleurBloc, couleursToile } from './couleurs.js';
 import { POLICE, POLICE_CHIFFRES, GRAISSE, GRILLE } from './config.js';
-import { mettreEnPage, INTERLIGNE } from './texte.js';
+import { mettreEnPage, INTERLIGNE, lignesEtiquette, TAILLE_ETIQUETTE, LARGEUR_ETIQUETTE } from './texte.js';
 import { zoneTexte, zoneImage, traceFleche, milieu, pointe, pointBord, centre } from './geometrie.js';
 import { listeBlocs, listeFleches, trouver } from './modele.js';
 
@@ -92,7 +92,15 @@ export function dessinerBloc(g, b, theme, { masquerTexte = false, badge = false,
   if (pastille) g.appendChild(pastille); // au premier plan, devant le texte
 }
 
-/** Dessine une flèche (trait, pointe, étiquette) dans le groupe « g ». */
+/** Liste de points → attribut « d » d'un tracé SVG. */
+const chemin = (points) => `M${points.map((p) => `${arrondir(p.x)} ${arrondir(p.y)}`).join(' L')}`;
+const triangleSvg = (triangle) => triangle.map((p) => `${arrondir(p.x)},${arrondir(p.y)}`).join(' ');
+
+/**
+ * Dessine une flèche (trait, pointes, étiquette) dans le groupe « g ».
+ * Options de la flèche : trait « plein » ou « pointille », pointes
+ * « fin » (une, au bout), « deux » (aux deux bouts) ou « aucune ».
+ */
 export function dessinerFleche(g, f, A, B, theme, { selectionnee = false, zoneClic = true, badge = false } = {}) {
   g.replaceChildren();
   const T = couleursToile(theme);
@@ -100,33 +108,65 @@ export function dessinerFleche(g, f, A, B, theme, { selectionnee = false, zoneCl
   if (points.length < 2) return;
   const couleur = selectionnee ? T.selection : T.trait;
   const epaisseur = selectionnee ? 3 : 2;
-  const { triangle, trajet } = pointe(points, 12);
-  const d = `M${trajet.map((p) => `${arrondir(p.x)} ${arrondir(p.y)}`).join(' L')}`;
+
+  // Pointes : on raccourcit le trait à chaque bout qui porte une pointe,
+  // pour qu'il ne dépasse pas du triangle.
+  let trajet = points;
+  const triangles = [];
+  if (f.pointes !== 'aucune') {
+    const fin = pointe(trajet, 12);
+    trajet = fin.trajet;
+    triangles.push(fin.triangle);
+    if (f.pointes === 'deux') {
+      const debut = pointe([...trajet].reverse(), 12);
+      trajet = debut.trajet.reverse();
+      triangles.push(debut.triangle);
+    }
+  }
   if (zoneClic) {
     // Trait invisible et épais : plus facile à toucher au doigt.
-    el('path', { d: `M${points.map((p) => `${arrondir(p.x)} ${arrondir(p.y)}`).join(' L')}`, class: 'zone-clic', fill: 'none', stroke: 'transparent', 'stroke-width': 24 }, g);
+    el('path', { d: chemin(points), class: 'zone-clic', fill: 'none', stroke: 'transparent', 'stroke-width': 24 }, g);
   }
-  el('path', { d, fill: 'none', stroke: couleur, 'stroke-width': epaisseur, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, g);
-  el('polygon', { points: triangle.map((p) => `${arrondir(p.x)},${arrondir(p.y)}`).join(' '), fill: couleur }, g);
-  if (f.etiquette) {
+  el('path', {
+    d: chemin(trajet), fill: 'none', stroke: couleur, 'stroke-width': epaisseur,
+    'stroke-linejoin': 'round', 'stroke-linecap': f.trait === 'pointille' ? 'butt' : 'round',
+    'stroke-dasharray': f.trait === 'pointille' ? '9 7' : null,
+  }, g);
+  for (const triangle of triangles) el('polygon', { points: triangleSvg(triangle), fill: couleur }, g);
+
+  // Étiquette : centrée sur le milieu du trajet, sur une à trois lignes,
+  // avec un contour de la couleur du fond pour rester lisible sur le trait.
+  // Flèche plutôt horizontale : l'étiquette ne doit pas être plus large
+  // que l'espace entre les deux blocs (sinon elle passerait dessous).
+  const debut = points[0];
+  const bout = points[points.length - 1];
+  let place = LARGEUR_ETIQUETTE;
+  if (Math.abs(bout.x - debut.x) > Math.abs(bout.y - debut.y)) {
+    place = Math.max(90, Math.min(LARGEUR_ETIQUETTE, Math.abs(bout.x - debut.x) - 24));
+  }
+  const lignes = lignesEtiquette(f.etiquette, place);
+  if (lignes.length) {
     const m = milieu(points);
+    const hauteurLigne = TAILLE_ETIQUETTE * INTERLIGNE;
+    const haut = m.y - ((lignes.length - 1) * hauteurLigne) / 2 + TAILLE_ETIQUETTE * 0.35;
     const t = el('text', {
-      x: arrondir(m.x),
-      y: arrondir(m.y + 5),
       fill: couleur,
       stroke: T.fond,
       'stroke-width': 6,
       'stroke-linejoin': 'round',
       'paint-order': 'stroke',
-      'font-size': 14,
+      'font-size': TAILLE_ETIQUETTE,
       'font-family': POLICE,
       'font-weight': GRAISSE,
       'text-anchor': 'middle',
     }, g);
-    t.textContent = f.etiquette;
+    lignes.forEach((ligne, i) => {
+      const ts = el('tspan', { x: arrondir(m.x), y: arrondir(haut + i * hauteurLigne) }, t);
+      ts.textContent = ligne;
+    });
   }
   if (badge && f.etape > 0) {
-    const p = milieu(points, f.etiquette ? 0.25 : 0.5);
+    const p = milieu(points, lignes.length ? 0.25 : 0.5);
     pastilleEtape(g, arrondir(p.x), arrondir(p.y), f.etape, theme);
   }
 }
@@ -220,7 +260,7 @@ export function creerRendu(svg) {
       const n = noeudPour(f.id, 'fleche', calqueFleches);
       const selectionnee = etat.selection === f.id;
       const signature = [A.x, A.y, A.largeur, A.hauteur, A.forme, B.x, B.y, B.largeur, B.hauteur, B.forme,
-        f.style, f.etiquette, theme, selectionnee, f.etape, etat.reglages.pastilles].join('|');
+        f.style, f.trait, f.pointes, f.etiquette, theme, selectionnee, f.etape, etat.reglages.pastilles].join('|');
       if (signature !== n.signature) {
         dessinerFleche(n.g, f, A, B, theme, { selectionnee, badge: etat.reglages.pastilles });
         n.signature = signature;
