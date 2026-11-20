@@ -406,6 +406,12 @@ function apercuForme(forme) {
     case 'ovale': return `<ellipse cx="20" cy="14" rx="17" ry="11" ${style}/>`;
     case 'losange': return `<polygon points="20,2 38,14 20,26 2,14" ${style}/>`;
     case 'texte': return '<text x="20" y="20" text-anchor="middle" font-size="15" font-weight="700" fill="currentColor">Abc</text>';
+    case 'cercle': return `<circle cx="20" cy="14" r="12" ${style}/>`;
+    case 'hexagone': return `<polygon points="9,3 31,3 38,14 31,25 9,25 2,14" ${style}/>`;
+    case 'parallelogramme': return `<polygon points="9,3 38,3 31,25 2,25" ${style}/>`;
+    case 'cylindre': return `<path d="M4 7V21A16 4 0 0 0 36 21V7" ${style}/><ellipse cx="20" cy="7" rx="16" ry="4" ${style}/>`;
+    case 'document': return `<path d="M4 3H36V21Q28 16 20 21T4 21Z" ${style}/>`;
+    case 'nuage': return `<path d="M11 25C4 25 2 19 5 15C1 11 5 5 11 7C12 2 19 1 23 5C26 1 33 2 34 7C39 6 40 12 37 16C40 21 35 25 30 24C27 27 16 27 11 25Z" ${style}/>`;
     default: return `<rect x="3" y="3" width="34" height="22" rx="7" ${style}/>`;
   }
 }
@@ -595,10 +601,14 @@ function installerMenu() {
       case 'plan': afficherPlan(); break;
       case 'exporter-image': afficherExport(); break;
       case 'exporter':
+      {
         await sauvegarderMaintenant();
-        exporterSchema(etat.schema);
-        annoncer('Fichier .json créé : regarde dans tes téléchargements.');
+        const n = await exporterSchema(etat.schema);
+        annoncer(n
+          ? `Fichier .json créé, avec ${n} sous-schéma${n > 1 ? 's' : ''} : regarde dans tes téléchargements.`
+          : 'Fichier .json créé : regarde dans tes téléchargements.', 4000);
         break;
+      }
       case 'sauvegarder-tout': {
         await sauvegarderMaintenant();
         const n = await exporterTout();
@@ -620,11 +630,12 @@ function installerMenu() {
     if (!fichier) return;
     try {
       await sauvegarderMaintenant();
-      const { importes, erreurs, modelesImportes } = await importerFichier(fichier);
+      const { importes, erreurs, modelesImportes, sousImportes } = await importerFichier(fichier);
       if (importes.length) ouvrirSchema(importes[0]);
       let message = importes.length === 1
         ? `« ${importes[0].titre} » importé et ouvert.`
         : `${importes.length} schémas importés. Retrouve-les dans « Mes schémas ».`;
+      if (sousImportes) message = message.replace(/\.$/, '') + ` (avec ${sousImportes} sous-schéma${sousImportes > 1 ? 's' : ''}).`;
       if (modelesImportes) message += ` ${modelesImportes} modèle${modelesImportes > 1 ? 's' : ''} ajouté${modelesImportes > 1 ? 's' : ''}.`;
       if (erreurs.length) message += ` (${erreurs.length} n'ont pas pu être lus.)`;
       annoncer(message, 4500);

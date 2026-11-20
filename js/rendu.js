@@ -9,7 +9,9 @@
 import { couleurBloc, couleursToile } from './couleurs.js';
 import { POLICE, POLICE_CHIFFRES, GRAISSE, GRILLE, BANDE_ZONE } from './config.js';
 import { mettreEnPage, INTERLIGNE, lignesEtiquette, TAILLE_ETIQUETTE, LARGEUR_ETIQUETTE, ligneCoupee } from './texte.js';
-import { zoneTexte, zoneImage, traceFleche, milieu, pointe, pointBord, centre, contenuZone } from './geometrie.js';
+import {
+  zoneTexte, zoneImage, traceFleche, milieu, pointe, pointBord, centre, contenuZone, sommetsForme, hauteurCouvercle, hauteurVague,
+} from './geometrie.js';
 import { listeBlocs, listeFleches, listeZones, trouver, tailleTexte } from './modele.js';
 import { pictogramme } from './pictogrammes.js';
 
@@ -35,6 +37,16 @@ function pastilleEtape(parent, x, y, numero, theme) {
     x, y: y + 4.5, fill: T.fond, 'font-size': 13, 'font-weight': 700, 'text-anchor': 'middle', 'font-family': POLICE_CHIFFRES,
   }, g);
   t.textContent = String(numero);
+}
+
+// Nuage dessiné dans une boîte de 100 × 60, mis à l'échelle du bloc.
+const NUAGE = 'M25 56C9 56 3 45 9 36C1 29 7 15 20 17C22 6 36 2 45 9C52 1 68 2 72 12C85 8 97 18 91 30C100 38 94 53 80 52C77 59 65 60 57 55C49 61 33 61 25 56Z';
+function cheminNuage(w, h) {
+  let i = 0;
+  return NUAGE.replace(/-?\d+(\.\d+)?/g, (n) => {
+    const v = Number(n) * (i++ % 2 === 0 ? w / 100 : h / 60);
+    return String(Math.round(v * 10) / 10);
+  });
 }
 
 /** Badge d'un bloc relié à un sous-schéma (coin bas droit). */
@@ -66,6 +78,29 @@ export function dessinerBloc(g, b, theme, { masquerTexte = false, badge = false,
       break;
     case 'losange':
       el('polygon', { points: `${w / 2},0 ${w},${h / 2} ${w / 2},${h} 0,${h / 2}`, ...style }, g);
+      break;
+    case 'cercle':
+      el('circle', { cx: w / 2, cy: h / 2, r: Math.min(w, h) / 2, ...style }, g);
+      break;
+    case 'hexagone':
+    case 'parallelogramme':
+      el('polygon', { points: sommetsForme(b.forme, w, h).map(([x, y]) => `${arrondir(x)},${arrondir(y)}`).join(' '), ...style }, g);
+      break;
+    case 'cylindre': {
+      // Base de données : un corps et un « couvercle » ovale par-dessus.
+      const ry = hauteurCouvercle(h);
+      el('path', { d: `M0 ${ry}V${arrondir(h - ry)}A${w / 2} ${ry} 0 0 0 ${w} ${arrondir(h - ry)}V${ry}`, ...style }, g);
+      el('ellipse', { cx: w / 2, cy: ry, rx: w / 2, ry, ...style }, g);
+      break;
+    }
+    case 'document': {
+      // Document : bas ondulé.
+      const a = hauteurVague(h);
+      el('path', { d: `M0 0H${w}V${arrondir(h - a)}Q${arrondir(w * 0.75)} ${arrondir(h - 3 * a)} ${arrondir(w / 2)} ${arrondir(h - a)}T0 ${arrondir(h - a)}Z`, ...style }, g);
+      break;
+    }
+    case 'nuage':
+      el('path', { d: cheminNuage(w, h), ...style }, g);
       break;
     case 'texte': {
       // Sans cadre : surface invisible (pour pouvoir le toucher), contour fantôme en édition.

@@ -5,10 +5,12 @@
 // - « Sauvegarder tous mes schémas » : un seul fichier avec tout.
 // L'import accepte les deux. Un schéma importé ne remplace JAMAIS un
 // schéma existant : en cas de doublon, on crée une copie.
+// Un schéma exporté emporte ses sous-schémas (champ « sous_schemas ») :
+// à l'import, ils sont recréés et les liens des blocs restent justes.
 // =====================================================================
 
 import { APP_VERSION, VERSION_FORMAT } from './config.js';
-import { migrer, nouvelId } from './modele.js';
+import { migrer, nouvelId, listeBlocs } from './modele.js';
 import { listerSchemas, enregistrerSchema, chargerSchema, listerModeles, enregistrerModele, chargerModele } from './stockage.js';
 
 /** Fabrique un nom de fichier sûr à partir d'un titre. */
@@ -42,9 +44,43 @@ export function sansImagesInutiles(schema) {
   return { ...schema, images };
 }
 
-export function exporterSchema(schema) {
-  const contenu = JSON.stringify(sansImagesInutiles(schema), null, 2);
-  telecharger(nomFichier(schema.titre, 'json'), contenu, 'application/json');
+/**
+ * Les sous-schémas atteignables depuis « schema » (en suivant les liens
+ * des blocs, sur plusieurs niveaux), au plus « max ». Les schémas
+ * introuvables ou vides sont ignorés.
+ */
+export async function chargerSousSchemas(schema, max = 30) {
+  const trouves = new Map();
+  const aVisiter = [schema];
+  const vus = new Set([schema.id]);
+  while (aVisiter.length && trouves.size < max) {
+    const s = aVisiter.shift();
+    for (const b of listeBlocs(s)) {
+      if (!b.lien || vus.has(b.lien) || trouves.size >= max) continue;
+      vus.add(b.lien);
+      try {
+        const brut = await chargerSchema(b.lien);
+        if (!brut) continue;
+        const sous = migrer(brut);
+        if (!listeBlocs(sous).length) continue;
+        trouves.set(sous.id, sous);
+        aVisiter.push(sous);
+      } catch { /* sous-schéma illisible : ignoré */ }
+    }
+  }
+  return [...trouves.values()];
+}
+
+/**
+ * Exporte un schéma en .json, avec ses sous-schémas (sur plusieurs
+ * niveaux). Renvoie le nombre de sous-schémas emportés.
+ */
+export async function exporterSchema(schema) {
+  const sous = await chargerSousSchemas(schema);
+  const contenu = { ...sansImagesInutiles(schema) };
+  if (sous.length) contenu.sous_schemas = sous.map(sansImagesInutiles);
+  telecharger(nomFichier(schema.titre, 'json'), JSON.stringify(contenu, null, 2), 'application/json');
+  return sous.length;
 }
 
 export async function exporterTout() {
@@ -76,9 +112,13 @@ export async function importerFichier(fichier) {
   }
 
   let bruts;
+  let sousSchemas = [];
   if (donnees && donnees.format === 'omni-schema-sauvegarde' && Array.isArray(donnees.schemas)) bruts = donnees.schemas;
-  else if (donnees && Array.isArray(donnees.elements)) bruts = [donnees];
-  else throw new Error('Ce fichier ne vient pas d\'omni-schema.');
+  else if (donnees && Array.isArray(donnees.elements)) {
+    bruts = [donnees];
+    // Schéma partagé avec ses sous-schémas (depuis la version 1.7.0).
+    if (Array.isArray(donnees.sous_schemas)) sousSchemas = donnees.sous_schemas.slice(0, 100);
+  } else throw new Error('Ce fichier ne vient pas d\'omni-schema.');
 
   const importes = [];
   const erreurs = [];
@@ -98,21 +138,37 @@ export async function importerFichier(fichier) {
       }
     }
   }
-  for (const brut of bruts) {
+  // Les schémas du fichier, convertis ; ceux dont l'identifiant existe
+  // déjà ici reçoivent un nouvel identifiant (jamais d'écrasement), et les
+  // liens des blocs vers eux sont rebranchés.
+  const lus = [];
+  for (const [i, brut] of [...bruts, ...sousSchemas].entries()) {
     try {
-      const schema = migrer(brut);
-      // Ne jamais écraser : si l'identifiant existe déjà, on fait une copie.
-      if (await chargerSchema(schema.id)) {
-        schema.id = nouvelId('s');
-        schema.titre = `${schema.titre} (importé)`;
-      }
-      schema.modifie_le = new Date().toISOString();
+      lus.push({ schema: migrer(brut), principal: i < bruts.length });
+    } catch (erreur) {
+      erreurs.push(erreur.message);
+    }
+  }
+  const nouveauxIds = new Map();
+  for (const { schema, principal } of lus) {
+    if (await chargerSchema(schema.id) || nouveauxIds.has(schema.id)) {
+      const ancien = schema.id;
+      schema.id = nouvelId('s');
+      nouveauxIds.set(ancien, schema.id);
+      if (principal) schema.titre = `${schema.titre} (importé)`;
+    }
+  }
+  let sousImportes = 0;
+  for (const { schema, principal } of lus) {
+    for (const b of listeBlocs(schema)) if (b.lien && nouveauxIds.has(b.lien)) b.lien = nouveauxIds.get(b.lien);
+    schema.modifie_le = new Date().toISOString();
+    try {
       await enregistrerSchema(schema);
-      importes.push(schema);
+      if (principal) importes.push(schema); else sousImportes++;
     } catch (erreur) {
       erreurs.push(erreur.message);
     }
   }
   if (!importes.length && !modelesImportes) throw new Error(erreurs[0] || 'Aucun schéma n\'a pu être importé.');
-  return { importes, erreurs, modelesImportes };
+  return { importes, erreurs, modelesImportes, sousImportes };
 }

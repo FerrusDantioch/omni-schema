@@ -8,19 +8,58 @@ import { GRILLE } from './config.js';
 
 export const centre = (b) => ({ x: b.x + b.largeur / 2, y: b.y + b.hauteur / 2 });
 
-/** Intérieur utile d'un bloc (plus petit pour un ovale ou un losange). */
+// ---------------------------------------------------------------------
+// Formes : sommets des formes « polygones », hauteurs des courbes.
+// (Le dessin, dans rendu.js, et les calculs ci-dessous partagent ces
+// valeurs : la flèche s'accroche exactement sur le bord dessiné.)
+// ---------------------------------------------------------------------
+
+/** Sommets (relatifs au coin haut gauche) d'un hexagone, d'un parallélogramme ou d'un losange. */
+export function sommetsForme(forme, w, h) {
+  if (forme === 'hexagone') {
+    const i = Math.min(w * 0.2, h * 0.45);
+    return [[i, 0], [w - i, 0], [w, h / 2], [w - i, h], [i, h], [0, h / 2]];
+  }
+  if (forme === 'parallelogramme') {
+    const i = Math.min(w * 0.18, h * 0.6);
+    return [[i, 0], [w, 0], [w - i, h], [0, h]];
+  }
+  if (forme === 'losange') return [[w / 2, 0], [w, h / 2], [w / 2, h], [0, h / 2]];
+  return null;
+}
+
+/** Hauteur de l'ellipse du haut d'une « base de données » (cylindre). */
+export const hauteurCouvercle = (h) => Math.min(h * 0.16, 16);
+/** Hauteur de la vague du bas d'un « document ». */
+export const hauteurVague = (h) => Math.min(h * 0.14, 14);
+
+/** Intérieur utile d'un bloc (là où le texte tient sans déborder de la forme). */
 function zoneInterieure(b) {
+  const w = b.largeur;
+  const h = b.hauteur;
+  // [part de la largeur, part de la hauteur, marge, décalage vertical]
   const proportions = {
-    rectangle: [1, 1, 10],
-    arrondi: [1, 1, 12],
-    ovale: [0.72, 0.72, 4],
-    losange: [0.52, 0.52, 2],
-  }[b.forme] || [1, 1, 10];
-  const largeur = Math.max(10, b.largeur * proportions[0] - 2 * proportions[2]);
-  const hauteur = Math.max(10, b.hauteur * proportions[1] - 2 * proportions[2]);
+    rectangle: [1, 1, 10, 0],
+    arrondi: [1, 1, 12, 0],
+    ovale: [0.72, 0.72, 4, 0],
+    losange: [0.52, 0.52, 2, 0],
+    hexagone: [1 - (2 * Math.min(w * 0.2, h * 0.45)) / w, 1, 6, 0],
+    parallelogramme: [1 - (2 * Math.min(w * 0.18, h * 0.6)) / w, 1, 6, 0],
+    cylindre: [1, 1 - (3 * hauteurCouvercle(h)) / h, 8, hauteurCouvercle(h) / 2],
+    document: [1, 1 - (2 * hauteurVague(h)) / h, 8, -hauteurVague(h) / 2],
+    nuage: [0.66, 0.6, 2, 0.03 * h],
+  }[b.forme] || [1, 1, 10, 0];
+  let largeur = Math.max(10, w * proportions[0] - 2 * proportions[2]);
+  let hauteur = Math.max(10, h * proportions[1] - 2 * proportions[2]);
+  if (b.forme === 'cercle') {
+    // Carré inscrit dans le cercle (le cercle a pour diamètre le plus petit côté).
+    const cote = Math.max(10, Math.min(w, h) * 0.7 - 4);
+    largeur = cote;
+    hauteur = cote;
+  }
   return {
-    x: b.x + (b.largeur - largeur) / 2,
-    y: b.y + (b.hauteur - hauteur) / 2,
+    x: b.x + (w - largeur) / 2,
+    y: b.y + (h - hauteur) / 2 + proportions[3],
     largeur,
     hauteur,
   };
@@ -64,14 +103,45 @@ export function pointBord(b, cible) {
   const dx = cible.x - c.x;
   const dy = cible.y - c.y;
   if (dx === 0 && dy === 0) return c;
-  const a = b.largeur / 2;
-  const h = b.hauteur / 2;
+  let a = b.largeur / 2;
+  let h = b.hauteur / 2;
   let t;
-  if (b.forme === 'ovale') t = 1 / Math.sqrt((dx * dx) / (a * a) + (dy * dy) / (h * h));
-  else if (b.forme === 'losange') t = 1 / (Math.abs(dx) / a + Math.abs(dy) / h);
+  if (b.forme === 'cercle') t = Math.min(a, h) / Math.hypot(dx, dy);
+  else if (b.forme === 'ovale' || b.forme === 'nuage') {
+    if (b.forme === 'nuage') { a *= 0.95; h *= 0.92; } // un nuage ressemble à une ellipse un peu plus petite
+    t = 1 / Math.sqrt((dx * dx) / (a * a) + (dy * dy) / (h * h));
+  } else if (b.forme === 'losange') t = 1 / (Math.abs(dx) / a + Math.abs(dy) / h);
+  else if (sommetsForme(b.forme, 1, 1)) t = rayonPolygone(b, dx, dy);
   else t = Math.min(dx ? a / Math.abs(dx) : Infinity, dy ? h / Math.abs(dy) : Infinity);
   return { x: c.x + dx * t, y: c.y + dy * t };
 }
+
+/**
+ * Le rayon (centre + t × direction) qui touche le bord d'un polygone :
+ * on garde le plus petit t positif parmi tous les côtés.
+ */
+function rayonPolygone(b, dx, dy) {
+  const s = sommetsForme(b.forme, b.largeur, b.hauteur).map(([x, y]) => [x - b.largeur / 2, y - b.hauteur / 2]);
+  let meilleur = Infinity;
+  for (let i = 0; i < s.length; i++) {
+    const [x1, y1] = s[i];
+    const [x2, y2] = s[(i + 1) % s.length];
+    const ex = x2 - x1;
+    const ey = y2 - y1;
+    const det = dx * ey - dy * ex;
+    if (Math.abs(det) < 1e-9) continue; // côté parallèle au rayon
+    const t = (x1 * ey - y1 * ex) / det;
+    const u = (x1 * dy - y1 * dx) / det;
+    if (t > 0 && u >= -1e-9 && u <= 1 + 1e-9) meilleur = Math.min(meilleur, t);
+  }
+  return Number.isFinite(meilleur) ? meilleur : 1;
+}
+
+/** Point du bord d'où sort une flèche horizontale (s = ±1) ou verticale. */
+const sortie = (b, axe, s) => {
+  const c = centre(b);
+  return pointBord(b, axe === 'x' ? { x: c.x + s * 1e4, y: c.y } : { x: c.x, y: c.y + s * 1e4 });
+};
 
 /** Retire les points en double et les points alignés inutiles. */
 function simplifier(points) {
@@ -120,14 +190,14 @@ function courbe(A, B) {
   const dy = cb.y - ca.y;
   if (Math.abs(dx) >= Math.abs(dy)) {
     const s = Math.sign(dx) || 1;
-    const p1 = { x: ca.x + (s * A.largeur) / 2, y: ca.y };
-    const p2 = { x: cb.x - (s * B.largeur) / 2, y: cb.y };
+    const p1 = sortie(A, 'x', s);
+    const p2 = sortie(B, 'x', -s);
     const tension = Math.max(30, Math.abs(p2.x - p1.x) / 2);
     return bezier(p1, { x: p1.x + s * tension, y: p1.y }, { x: p2.x - s * tension, y: p2.y }, p2);
   }
   const s = Math.sign(dy) || 1;
-  const p1 = { x: ca.x, y: ca.y + (s * A.hauteur) / 2 };
-  const p2 = { x: cb.x, y: cb.y - (s * B.hauteur) / 2 };
+  const p1 = sortie(A, 'y', s);
+  const p2 = sortie(B, 'y', -s);
   const tension = Math.max(30, Math.abs(p2.y - p1.y) / 2);
   return bezier(p1, { x: p1.x, y: p1.y + s * tension }, { x: p2.x, y: p2.y - s * tension }, p2);
 }
@@ -153,15 +223,15 @@ export function traceFleche(fleche, A, B) {
   if (Math.abs(dx) >= Math.abs(dy)) {
     // Sortie par le côté gauche ou droit.
     const s = Math.sign(dx) || 1;
-    const p1 = { x: ca.x + (s * A.largeur) / 2, y: ca.y };
-    const p2 = { x: cb.x - (s * B.largeur) / 2, y: cb.y };
+    const p1 = sortie(A, 'x', s);
+    const p2 = sortie(B, 'x', -s);
     const mx = (p1.x + p2.x) / 2;
     return simplifier([p1, { x: mx, y: p1.y }, { x: mx, y: p2.y }, p2]);
   }
   // Sortie par le haut ou le bas.
   const s = Math.sign(dy) || 1;
-  const p1 = { x: ca.x, y: ca.y + (s * A.hauteur) / 2 };
-  const p2 = { x: cb.x, y: cb.y - (s * B.hauteur) / 2 };
+  const p1 = sortie(A, 'y', s);
+  const p2 = sortie(B, 'y', -s);
   const my = (p1.y + p2.y) / 2;
   return simplifier([p1, { x: p1.x, y: my }, { x: p2.x, y: my }, p2]);
 }

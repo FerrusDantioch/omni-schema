@@ -16,11 +16,10 @@
 
 import { APP_VERSION } from './config.js';
 import { couleursToile } from './couleurs.js';
-import { listeBlocs, migrer } from './modele.js';
-import { chargerSchema } from './stockage.js';
+import { listeBlocs } from './modele.js';
 import { arrets, nomElement } from './etapes.js';
 import { construireSvg, dessinerSurlignage } from './schema-svg.js';
-import { telecharger, nomFichier } from './fichiers.js';
+import { telecharger, nomFichier, chargerSousSchemas } from './fichiers.js';
 import { cssPolicesIntegrees } from './polices.js';
 
 // Couleurs de l'interface du lecteur, selon le thème choisi.
@@ -157,33 +156,6 @@ ${notes ? '<section id="notes" hidden aria-labelledby="titre-notes"><h2 id="titr
 </body>
 </html>
 `;
-}
-
-/**
- * Les sous-schémas atteignables depuis « schema » (en suivant les liens
- * des blocs, sur plusieurs niveaux), au plus « max ». Les schémas
- * introuvables ou vides sont ignorés.
- */
-export async function chargerSousSchemas(schema, max = 30) {
-  const trouves = new Map();
-  const aVisiter = [schema];
-  const vus = new Set([schema.id]);
-  while (aVisiter.length && trouves.size < max) {
-    const s = aVisiter.shift();
-    for (const b of listeBlocs(s)) {
-      if (!b.lien || vus.has(b.lien) || trouves.size >= max) continue;
-      vus.add(b.lien);
-      try {
-        const brut = await chargerSchema(b.lien);
-        if (!brut) continue;
-        const sous = migrer(brut);
-        if (!listeBlocs(sous).length) continue;
-        trouves.set(sous.id, sous);
-        aVisiter.push(sous);
-      } catch { /* sous-schéma illisible : ignoré */ }
-    }
-  }
-  return [...trouves.values()];
 }
 
 /** Crée le fichier .html (polices comprises, sous-schémas inclus) et propose de le télécharger. */

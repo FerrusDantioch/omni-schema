@@ -9,7 +9,7 @@
 import { couleursToile } from './couleurs.js';
 import { POLICE } from './config.js';
 import { listeBlocs, listeFleches, listeZones, listeCadres } from './modele.js';
-import { englobant, traceFleche } from './geometrie.js';
+import { englobant, traceFleche, sommetsForme } from './geometrie.js';
 import { etapesEffectives } from './etapes.js';
 import { el, dessinerBloc, dessinerFleche, dessinerZone } from './rendu.js';
 
@@ -91,6 +91,13 @@ function contourBloc(parent, b, couleur) {
       return el('rect', { x, y, width: w, height: h, rx: 4, ...style }, parent);
     case 'zone':
       return el('rect', { x, y, width: w, height: h, rx: 18 + d, ...style }, parent);
+    case 'cercle':
+      return el('circle', { cx: b.x + b.largeur / 2, cy: b.y + b.hauteur / 2, r: Math.min(b.largeur, b.hauteur) / 2 + d, ...style }, parent);
+    case 'nuage':
+      return el('ellipse', { cx: b.x + b.largeur / 2, cy: b.y + b.hauteur / 2, rx: w / 2, ry: h / 2, ...style }, parent);
+    case 'hexagone':
+    case 'parallelogramme':
+      return el('polygon', { points: sommetsForme(b.forme, w, h).map(([px, py]) => `${x + px},${y + py}`).join(' '), ...style }, parent);
     default:
       return el('rect', { x, y, width: w, height: h, rx: Math.min(14, b.hauteur / 3) + d, ...style }, parent);
   }
