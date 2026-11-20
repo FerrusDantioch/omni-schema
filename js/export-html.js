@@ -9,11 +9,15 @@
 //   le fichier ne contient donc AUCUN code d'édition, seulement un
 //   lecteur d'une centaine de lignes qui montre/cache les étapes.
 // - Sans JavaScript, la page affiche quand même le schéma complet.
+// - Les sous-schémas (blocs marqués ↗) sont inclus : chacun est une
+//   « page » du fichier ; toucher le bloc y entre, et on revient au
+//   schéma de départ à la fin (ou avec « Retour »).
 // =====================================================================
 
 import { APP_VERSION } from './config.js';
 import { couleursToile } from './couleurs.js';
-import { listeBlocs } from './modele.js';
+import { listeBlocs, migrer } from './modele.js';
+import { chargerSchema } from './stockage.js';
 import { arrets, nomElement } from './etapes.js';
 import { construireSvg, dessinerSurlignage } from './schema-svg.js';
 import { telecharger, nomFichier } from './fichiers.js';
@@ -28,15 +32,21 @@ const INTERFACE = {
 
 const echapper = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-/** Fabrique le texte complet du fichier HTML. */
-export function construireHtml(schema, theme, { notes = false, fondu = false, css = '' } = {}) {
-  if (!listeBlocs(schema).length) throw new Error('Ce schéma est vide : ajoute au moins un bloc.');
+/**
+ * Prépare une « page » du fichier : le SVG d'un schéma (avec ses
+ * surlignages cachés), ses arrêts et ses notes. « inclus » : les
+ * identifiants des schémas présents dans le fichier (un lien vers un
+ * schéma absent est ignoré).
+ */
+function preparerPage(schema, theme, { notes, inclus }) {
   const T = couleursToile(theme);
-  const I = INTERFACE[theme] || INTERFACE.clair;
-  const rendu = construireSvg(schema, theme);
+  // Les liens vers des schémas absents du fichier sont retirés (pas de badge trompeur).
+  const copie = { ...schema, elements: schema.elements.map((e) => (e.type === 'bloc' && e.lien && !inclus.has(e.lien) ? { ...e, lien: '' } : e)) };
+  const rendu = construireSvg(copie, theme, { liens: true });
 
   // Surlignages préparés d'avance (cachés), un par élément ayant une étape.
   for (const item of rendu.elements) {
+    if (item.type === 'bloc' && item.donnees.lien) item.g.setAttribute('data-lien', item.donnees.lien);
     if (item.etape <= 0) continue;
     const forme = dessinerSurlignage(rendu.calqueSurlignage, item, T.selection);
     forme.setAttribute('data-etape', item.etape);
@@ -47,10 +57,7 @@ export function construireHtml(schema, theme, { notes = false, fondu = false, cs
   rendu.svg.setAttribute('height', '100%');
   rendu.svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
   rendu.svg.setAttribute('aria-label', schema.titre);
-  const svgTexte = new XMLSerializer().serializeToString(rendu.svg);
 
-  // Données pour le lecteur : les arrêts et (option) les notes.
-  const liste = arrets(schema);
   const donneesNotes = {};
   if (notes) {
     for (const item of rendu.elements) {
@@ -58,8 +65,34 @@ export function construireHtml(schema, theme, { notes = false, fondu = false, cs
       (donneesNotes[item.etape] = donneesNotes[item.etape] || []).push({ bloc: nomElement(schema, item.donnees, 60), texte: item.donnees.note });
     }
   }
-  const donnees = JSON.stringify({ arrets: liste, notes: notes ? donneesNotes : null, fondu })
-    .replace(/</g, '\\u003c'); // empêche de fermer la balise <script> par accident
+  return {
+    svgTexte: new XMLSerializer().serializeToString(rendu.svg),
+    donnees: { titre: schema.titre, arrets: arrets(schema), notes: notes ? donneesNotes : null },
+  };
+}
+
+/**
+ * Fabrique le texte complet du fichier HTML.
+ * « sousSchemas » : les sous-schémas à inclure (déjà chargés).
+ */
+export function construireHtml(schema, theme, { notes = false, fondu = false, css = '', sousSchemas = [] } = {}) {
+  if (!listeBlocs(schema).length) throw new Error('Ce schéma est vide : ajoute au moins un bloc.');
+  const T = couleursToile(theme);
+  const I = INTERFACE[theme] || INTERFACE.clair;
+  const tous = [schema, ...sousSchemas.filter((s) => s.id !== schema.id)];
+  const inclus = new Set(tous.map((s) => s.id));
+  const pages = tous.map((s) => ({ id: s.id, ...preparerPage(s, theme, { notes, inclus }) }));
+  // Chaque page est un bloc HTML ; seule la première est visible au départ (et sans JavaScript).
+  const svgTexte = pages.map((p, i) => `<div class="page" data-schema="${echapper(p.id)}"${i ? ' hidden' : ''}>${p.svgTexte}</div>`).join('');
+  const liste = pages[0].donnees.arrets;
+
+  // Données pour le lecteur : pour chaque page, les arrêts et (option) les notes.
+  const donnees = JSON.stringify({
+    principal: schema.id,
+    pages: Object.fromEntries(pages.map((p) => [p.id, p.donnees])),
+    notes: !!notes,
+    fondu,
+  }).replace(/</g, '\\u003c'); // empêche de fermer la balise <script> par accident
 
   const icone = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
 
@@ -77,7 +110,10 @@ ${css}
 html,body{height:100%;margin:0}
 body{background:${T.fond};color:${I.texte};font-family:"Oxanium",system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif;overflow:hidden;overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
 #scene{position:fixed;inset:0;padding:max(1rem,env(safe-area-inset-top)) max(1rem,env(safe-area-inset-right)) max(4.5rem,env(safe-area-inset-bottom)) max(1rem,env(safe-area-inset-left));cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation}
-#scene svg{display:block;width:100%;height:100%;pointer-events:none}
+#scene .page,#scene svg{display:block;width:100%;height:100%}
+#scene svg{pointer-events:none}
+#retour{position:fixed;top:max(.5rem,env(safe-area-inset-top));left:max(.5rem,env(safe-area-inset-left));max-width:calc(100% - 1rem);opacity:.85;background:${I.surface}}
+#retour span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 button{font:inherit;color:inherit;display:inline-flex;align-items:center;justify-content:center;gap:.35rem;min-width:48px;min-height:48px;padding:.4rem .6rem;border:0;border-radius:12px;background:transparent;opacity:.6;cursor:pointer;touch-action:manipulation;font-weight:650}
 button:hover,button:focus-visible,button[aria-expanded="true"]{opacity:1;background:${I.surface}}
 button:disabled{opacity:.2;cursor:default}
@@ -114,6 +150,7 @@ ${notes ? `<button type="button" id="bouton-notes" aria-expanded="false" aria-co
 <button type="button" id="suivant" aria-label="Étape suivante">${icone('m9 5 7 7-7 7')}</button>
 </nav>
 <p id="signature">Fait avec omni-schema — Ferrus Dantioch</p>
+<button type="button" id="retour" hidden>${icone('M10 6l-6 6 6 6M4 12h16')}<span id="retour-texte">Retour</span></button>
 ${notes ? '<section id="notes" hidden aria-labelledby="titre-notes"><h2 id="titre-notes">Notes</h2><div id="contenu-notes"></div></section>' : ''}
 <script type="application/json" id="donnees">${donnees}</script>
 <script>(${lecteurAutonome.toString()})();</script>
@@ -122,11 +159,39 @@ ${notes ? '<section id="notes" hidden aria-labelledby="titre-notes"><h2 id="titr
 `;
 }
 
-/** Crée le fichier .html (polices comprises) et propose de le télécharger. */
+/**
+ * Les sous-schémas atteignables depuis « schema » (en suivant les liens
+ * des blocs, sur plusieurs niveaux), au plus « max ». Les schémas
+ * introuvables ou vides sont ignorés.
+ */
+export async function chargerSousSchemas(schema, max = 30) {
+  const trouves = new Map();
+  const aVisiter = [schema];
+  const vus = new Set([schema.id]);
+  while (aVisiter.length && trouves.size < max) {
+    const s = aVisiter.shift();
+    for (const b of listeBlocs(s)) {
+      if (!b.lien || vus.has(b.lien) || trouves.size >= max) continue;
+      vus.add(b.lien);
+      try {
+        const brut = await chargerSchema(b.lien);
+        if (!brut) continue;
+        const sous = migrer(brut);
+        if (!listeBlocs(sous).length) continue;
+        trouves.set(sous.id, sous);
+        aVisiter.push(sous);
+      } catch { /* sous-schéma illisible : ignoré */ }
+    }
+  }
+  return [...trouves.values()];
+}
+
+/** Crée le fichier .html (polices comprises, sous-schémas inclus) et propose de le télécharger. */
 export async function exporterHtml(schema, theme, options = {}) {
   // Oxanium pour le schéma et les boutons ; Literata seulement si les notes sont incluses.
   const css = await cssPolicesIntegrees(options.notes ? ['oxanium', 'literata'] : ['oxanium']);
-  const html = construireHtml(schema, theme, { ...options, css });
+  const sousSchemas = await chargerSousSchemas(schema);
+  const html = construireHtml(schema, theme, { ...options, css, sousSchemas });
   telecharger(nomFichier(schema.titre, 'html'), html, 'text/html');
 }
 
@@ -137,15 +202,34 @@ export async function exporterHtml(schema, theme, options = {}) {
 // ---------------------------------------------------------------------
 function lecteurAutonome() {
   const donnees = JSON.parse(document.getElementById('donnees').textContent);
-  const arrets = donnees.arrets;
-  const elements = Array.from(document.querySelectorAll('#scene [data-etape]'));
   const scene = document.getElementById('scene');
   const compteur = document.getElementById('compteur');
   const precedentBouton = document.getElementById('precedent');
   const suivantBouton = document.getElementById('suivant');
   const boutonNotes = document.getElementById('bouton-notes');
   const panneauNotes = document.getElementById('notes');
+  const retour = document.getElementById('retour');
+  // Page affichée (schéma principal ou sous-schéma) et pile des pages parentes.
+  let courant = donnees.principal;
+  let pile = [];
   let index = 0;
+  let page = null;
+  let elements = [];
+  let arrets = [];
+
+  /** Montre la page « id » (et cache les autres) à l'arrêt « i ». */
+  function ouvrirPage(id, i) {
+    courant = id;
+    for (const p of scene.querySelectorAll('.page')) p.hidden = p.getAttribute('data-schema') !== id;
+    page = scene.querySelector('.page:not([hidden])');
+    elements = Array.from(page.querySelectorAll('[data-etape]'));
+    arrets = donnees.pages[id].arrets;
+    index = Math.max(0, Math.min(arrets.length - 1, i));
+    const parent = pile[pile.length - 1];
+    retour.hidden = !parent;
+    if (parent) document.getElementById('retour-texte').textContent = 'Retour : ' + donnees.pages[parent.id].titre;
+    afficher(null);
+  }
 
   function afficher(arretPrecedent) {
     const arret = arrets[index];
@@ -165,8 +249,9 @@ function lecteurAutonome() {
     }
     compteur.textContent = (index + 1) + ' / ' + arrets.length;
     compteur.setAttribute('aria-label', 'Étape ' + (index + 1) + ' sur ' + arrets.length);
-    precedentBouton.disabled = index === 0;
-    suivantBouton.disabled = index === arrets.length - 1;
+    // Dans un sous-schéma, « précédent » au début et « suivant » à la fin ramènent au parent.
+    precedentBouton.disabled = index === 0 && !pile.length;
+    suivantBouton.disabled = index === arrets.length - 1 && !pile.length;
     if (panneauNotes) remplirNotes(arret);
   }
 
@@ -174,7 +259,8 @@ function lecteurAutonome() {
     document.getElementById('titre-notes').textContent = arret === 0 ? 'Notes — début' : 'Notes — étape ' + (index + 1);
     const contenu = document.getElementById('contenu-notes');
     contenu.replaceChildren();
-    const liste = (donnees.notes && donnees.notes[arret]) || [];
+    const notes = donnees.pages[courant].notes;
+    const liste = (notes && notes[arret]) || [];
     if (!liste.length) {
       const p = document.createElement('p');
       p.className = 'sans-note';
@@ -195,9 +281,30 @@ function lecteurAutonome() {
     }
   }
 
-  const suivant = () => { if (index < arrets.length - 1) { const avant = arrets[index]; index++; afficher(avant); } };
-  const precedent = () => { if (index > 0) { index--; afficher(null); } };
+  const entrer = (id) => { if (!donnees.pages[id]) return; pile.push({ id: courant, index: index }); ouvrirPage(id, 0); };
+  const revenir = () => { const parent = pile.pop(); if (parent) ouvrirPage(parent.id, parent.index); };
+  const suivant = () => {
+    if (index < arrets.length - 1) { const avant = arrets[index]; index++; afficher(avant); } else if (pile.length) revenir();
+  };
+  const precedent = () => { if (index > 0) { index--; afficher(null); } else if (pile.length) revenir(); };
   const allerA = (i) => { index = Math.max(0, Math.min(arrets.length - 1, i)); afficher(null); };
+  /** Bloc relié (visible) sous le doigt, ou null. */
+  const lienSous = (x, y) => {
+    const blocs = Array.from(page.querySelectorAll('[data-lien]')).reverse();
+    for (const g of blocs) {
+      if (g.style.display === 'none') continue;
+      const r = g.getBoundingClientRect();
+      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return g.getAttribute('data-lien');
+    }
+    return null;
+  };
+  /** Touche O : le sous-schéma de l'étape (celui qui vient d'apparaître, sinon le premier visible). */
+  const entrerAuClavier = () => {
+    const visibles = Array.from(page.querySelectorAll('[data-lien]')).filter((g) => g.style.display !== 'none');
+    const deCetteEtape = visibles.filter((g) => Number(g.getAttribute('data-etape')) === arrets[index]);
+    const choix = deCetteEtape[0] || visibles[0];
+    if (choix) entrer(choix.getAttribute('data-lien'));
+  };
   const basculerNotes = () => {
     if (!panneauNotes) return;
     panneauNotes.hidden = !panneauNotes.hidden;
@@ -208,7 +315,8 @@ function lecteurAutonome() {
     else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
   };
 
-  // Toucher / clic : tiers gauche = retour, reste = suivant ; glisser = changer de page.
+  // Toucher / clic : un bloc ↗ = entrer dans son sous-schéma ; tiers gauche = retour,
+  // reste = suivant ; glisser = changer de page.
   let depart = null;
   scene.addEventListener('pointerdown', (e) => { if (e.button === 0) depart = { x: e.clientX, y: e.clientY }; });
   scene.addEventListener('pointerup', (e) => {
@@ -218,12 +326,15 @@ function lecteurAutonome() {
     depart = null;
     if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) { if (dx < 0) suivant(); else precedent(); return; }
     if (Math.hypot(dx, dy) > 20) return;
+    const lien = lienSous(e.clientX, e.clientY);
+    if (lien) { entrer(lien); return; }
     if (e.clientX < scene.clientWidth / 3) precedent(); else suivant();
   });
   scene.addEventListener('pointercancel', () => { depart = null; });
 
   precedentBouton.addEventListener('click', precedent);
   suivantBouton.addEventListener('click', suivant);
+  retour.addEventListener('click', revenir);
   if (boutonNotes) boutonNotes.addEventListener('click', basculerNotes);
   document.getElementById('bouton-plein-ecran').addEventListener('click', basculerPleinEcran);
 
@@ -238,10 +349,11 @@ function lecteurAutonome() {
       case 'End': allerA(arrets.length - 1); break;
       case 'n': case 'N': basculerNotes(); break;
       case 'f': case 'F': basculerPleinEcran(); break;
+      case 'o': case 'O': entrerAuClavier(); break;
       default: return;
     }
     e.preventDefault();
   });
 
-  afficher(null);
+  ouvrirPage(courant, 0);
 }

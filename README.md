@@ -40,6 +40,9 @@ public en mode deux écrans).
 **Version 1.5.0** : sous-schémas (un bloc ouvre un autre schéma, aussi en présentation),
 47 pictogrammes embarqués, corbeille (un schéma supprimé reste récupérable 30 jours).
 
+**Version 1.6.0** : ranger automatiquement (arbre ou grille), feutre en présentation (aussi sur la
+fenêtre public), sous-schémas dans la vue à deux écrans et dans la page HTML autonome.
+
 ## Utilisation rapide
 
 | Je veux… | Au doigt | À la souris / au clavier |
@@ -61,6 +64,7 @@ public en mode deux écrans).
 | Coller un texte ou une image venus d'ailleurs | — | **Ctrl+V** : un nouveau bloc est créé |
 | Regrouper des blocs dans une zone | bouton **Zone** (ou **Aligner** → *Entourer d'une zone* avec plusieurs blocs choisis) ; on déplace la zone par son titre, ses blocs suivent (ils sont entourés de pointillés quand la zone est choisie ; un bloc posé à cheval sur le bord agrandit la zone) ; toucher encore le titre pour le changer | **Z** ; **Entrée** pour le titre |
 | Aligner, répartir, même taille | plusieurs blocs choisis → **Aligner** | idem |
+| Ranger automatiquement | plusieurs blocs choisis → **Aligner** → *Ranger* ; ou **Vue** → *Ranger tout le schéma* (arbre →, arbre ↓, grille) | idem |
 | Écrire un titre ou une légende libre | **Style** → forme *Sans cadre*, et *Taille du texte* | idem |
 | Créer des blocs depuis une liste | Menu → *Créer des blocs depuis une liste* (une ligne par bloc, les lignes décalées deviennent la suite) | idem, ou **Ctrl+V** d'une liste à puces |
 | Avoir le plan du schéma en texte | Menu → *Plan du schéma en texte* → *Copier le plan* | idem |
@@ -89,6 +93,7 @@ public en mode deux écrans).
 | Début / fin | — | **Début** / **Fin** |
 | Notes du présentateur | bouton **Notes** en bas à gauche | **N** |
 | Entrer dans un sous-schéma | toucher le bloc marqué ↗ ; à la fin (ou bouton **Retour**), on revient où on en était | **O** |
+| Dessiner au feutre | bouton **Feutre** (en bas à gauche), puis dessiner ; **Effacer** ; les traits partent à l'étape suivante | **D** (feutre), **E** (effacer) |
 | Pointeur lumineux | **appui long** sur le schéma, puis glisser | appui long à la souris, ou **L** (le point suit la souris) |
 | Quitter | croix en haut à droite, ou geste « retour » | **Échap** |
 
@@ -104,7 +109,10 @@ Pensée pour un ordinateur relié à un vidéoprojecteur ou à un second écran 
 2. ta fenêtre montre ce que voit le public, l'étape suivante, tes notes et un chronomètre ;
 3. tu avances depuis ta fenêtre (boutons, flèches, télécommande) : la fenêtre public suit ;
 4. pour montrer un détail : appui long (ou touche **L**) sur l'aperçu « étape en cours » :
-   le pointeur lumineux apparaît au même endroit sur la fenêtre public.
+   le pointeur lumineux apparaît au même endroit sur la fenêtre public ; le **Feutre** (touche **D**)
+   y dessine aussi ;
+5. un bloc ↗ : clic dessus, bouton **Entrer** ou touche **O** pour entrer dans son sous-schéma ;
+   la fenêtre public suit, et « Suivant » à la fin (ou **Retour**) ramène au schéma principal.
 
 Les deux fenêtres se parlent à l'intérieur du navigateur (BroadcastChannel), sans réseau.
 Si le navigateur bloque la deuxième fenêtre, autorise les fenêtres surgissantes pour l'app.
@@ -145,7 +153,9 @@ que tu peux envoyer par e-mail ou mettre sur une clé USB :
 - il ne contient **aucun code d'édition** : le schéma y est déjà dessiné, seul un petit lecteur l'accompagne ;
 - une règle de sécurité intégrée lui interdit tout accès à internet ;
 - les notes du présentateur n'y sont incluses que si tu le demandes ;
-- sans JavaScript, il affiche quand même le schéma complet.
+- sans JavaScript, il affiche quand même le schéma complet ;
+- les sous-schémas (blocs ↗) sont inclus : on y entre en touchant le bloc (ou touche **O**),
+  et on revient au schéma de départ à la fin ou avec « Retour ».
 
 La police Oxanium est incluse dans le fichier : le texte s'affiche exactement comme dans l'application,
 sur tous les appareils (environ 20 Ko de plus ; 50 Ko avec les notes, qui utilisent Literata).
@@ -189,6 +199,8 @@ js/
   recherche.js         rechercher dans le schéma
   pointeur.js          pointeur lumineux en présentation
   pictogrammes.js      les 47 pictogrammes (dessins au trait, embarqués)
+  ranger.js            ranger automatiquement (arbre, grille)
+  feutre.js            feutre de présentation
   stockage.js          IndexedDB
   fichiers.js          export / import .json
   interface.js         menus, fenêtres, réglages, liste des schémas

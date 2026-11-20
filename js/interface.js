@@ -18,6 +18,7 @@ import {
   mettreALaCorbeille, listerCorbeille, recupererDeCorbeille, supprimerDeCorbeille, viderCorbeille, chargerDeCorbeille, JOURS_CORBEILLE,
 } from './stockage.js';
 import { PICTOGRAMMES } from './pictogrammes.js';
+import { ranger } from './ranger.js';
 import { exporterSchema, exporterTout, importerFichier, sansImagesInutiles } from './fichiers.js';
 import { etapeMax, etapesEffectives } from './etapes.js';
 import { MODELES, creerDepuisModele } from './modeles.js';
@@ -444,6 +445,16 @@ function construireChoixAligner() {
   ajouter('options-repartir', 'vertical', 'En hauteur', () => repartirSelection('vertical'));
   ajouter('options-taille-groupe', 'largeur', 'Largeur', () => memeTailleSelection('largeur'));
   ajouter('options-taille-groupe', 'hauteur', 'Hauteur', () => memeTailleSelection('hauteur'));
+
+  // Ranger automatiquement : les blocs choisis (panneau Aligner) ou tout le schéma (panneau Vue).
+  dessins.arbreDroite = `<rect x="2" y="11" width="9" height="6" rx="1.5" ${plein}/><rect x="27" y="3" width="11" height="6" rx="1.5" ${plein}/><rect x="27" y="19" width="11" height="6" rx="1.5" ${plein}/><path d="M11 14h6M17 6v16M17 6h10M17 22h10" ${trait}/>`;
+  dessins.arbreBas = `<rect x="14" y="1" width="12" height="6" rx="1.5" ${plein}/><rect x="3" y="21" width="12" height="6" rx="1.5" ${plein}/><rect x="25" y="21" width="12" height="6" rx="1.5" ${plein}/><path d="M20 7v6M9 13h22M9 13v8M31 13v8" ${trait}/>`;
+  dessins.grille = `<rect x="4" y="2" width="9" height="7" rx="1.5" ${plein}/><rect x="16" y="2" width="9" height="7" rx="1.5" ${plein}/><rect x="28" y="2" width="9" height="7" rx="1.5" ${plein}/><rect x="4" y="13" width="9" height="7" rx="1.5" ${plein}/><rect x="16" y="13" width="9" height="7" rx="1.5" ${plein}/><rect x="28" y="13" width="9" height="7" rx="1.5" ${plein}/>`;
+  const sens = [['droite', 'arbreDroite', 'Arbre →'], ['bas', 'arbreBas', 'Arbre ↓'], ['grille', 'grille', 'Grille']];
+  for (const [valeur, dessin, nom] of sens) {
+    ajouter('options-ranger', dessin, nom, () => { fermerChoix(); ranger(valeur, blocsSelectionnes().map((b) => b.id)); });
+    ajouter('options-ranger-tout', dessin, nom, () => { fermerChoix(); ranger(valeur); });
+  }
 }
 
 function basculerChoix(idPanneau, bouton) {
