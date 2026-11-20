@@ -40,6 +40,10 @@
     <symbol id="i-vue" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4M8 11h6M11 8v6"/></symbol>
     <symbol id="i-rechercher" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
     <symbol id="i-liste" viewBox="0 0 24 24"><path d="M9 6h11M12 12h8M12 18h8M4 6h.01M7 12h.01M7 18h.01"/></symbol>
+    <symbol id="i-picto" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 14a5 5 0 0 0 8 0M9 9.5v.01M15 9.5v.01"/></symbol>
+    <symbol id="i-sous-schema" viewBox="0 0 24 24"><rect x="3" y="3" width="9" height="7" rx="1.5"/><rect x="12" y="14" width="9" height="7" rx="1.5"/><path d="M7.5 10v7.5H12"/></symbol>
+    <symbol id="i-corbeille" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+    <symbol id="i-retour" viewBox="0 0 24 24"><path d="M10 6l-6 6 6 6M4 12h16"/></symbol>
     <symbol id="i-supprimer" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
     <symbol id="i-fermer" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
     <symbol id="i-etiquette" viewBox="0 0 24 24"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.5"/></symbol>
@@ -93,6 +97,7 @@
 
   <!-- ===== Zone de dessin ===== -->
   <main class="zone" id="zone">
+    <button type="button" class="bouton retour-parent" id="btn-retour-parent" hidden><svg class="icone" aria-hidden="true"><use href="#i-retour"/></svg><span id="libelle-retour-parent">Retour</span></button>
     <div class="barre-recherche" id="barre-recherche" role="search" hidden>
       <label for="champ-recherche" class="lecteur-seul">Rechercher dans le schéma</label>
       <input type="search" id="champ-recherche" placeholder="Rechercher un mot…" autocomplete="off" enterkeyhint="search">
@@ -133,12 +138,20 @@
     <p class="etiquette-section">Couleur</p>
     <div class="options-choix" id="options-couleur"></div>
     <div id="section-image">
-      <p class="etiquette-section">Image</p>
+      <p class="etiquette-section">Image ou pictogramme</p>
       <div class="boutons-etape">
         <button type="button" class="bouton" id="btn-image-ajouter"><svg class="icone" aria-hidden="true"><use href="#i-image"/></svg><span id="libelle-image-ajouter">Ajouter une image</span></button>
-        <button type="button" class="bouton danger-texte" id="btn-image-retirer"><svg class="icone" aria-hidden="true"><use href="#i-supprimer"/></svg>Retirer l'image</button>
+        <button type="button" class="bouton" id="btn-picto"><svg class="icone" aria-hidden="true"><use href="#i-picto"/></svg><span id="libelle-picto">Pictogramme</span></button>
+        <button type="button" class="bouton danger-texte" id="btn-image-retirer"><svg class="icone" aria-hidden="true"><use href="#i-supprimer"/></svg><span id="libelle-image-retirer">Retirer l'image</span></button>
       </div>
       <input type="file" id="fichier-image" accept="image/*" hidden>
+      <p class="etiquette-section">Sous-schéma</p>
+      <p class="aide-reglage" id="info-lien">Ce bloc peut ouvrir un autre de tes schémas (le détail d'une étape).</p>
+      <div class="boutons-etape">
+        <button type="button" class="bouton" id="btn-lien-ouvrir" hidden><svg class="icone" aria-hidden="true"><use href="#i-sous-schema"/></svg>Ouvrir</button>
+        <button type="button" class="bouton" id="btn-lien"><svg class="icone" aria-hidden="true"><use href="#i-sous-schema"/></svg><span id="libelle-lien">Relier à un schéma</span></button>
+        <button type="button" class="bouton danger-texte" id="btn-lien-retirer" hidden><svg class="icone" aria-hidden="true"><use href="#i-supprimer"/></svg>Retirer le lien</button>
+      </div>
     </div>
   </div>
   <div class="choix" id="choix-trait" hidden role="group" aria-label="Trait de la flèche">
@@ -267,6 +280,40 @@
       <svg class="icone" aria-hidden="true"><use href="#i-plus"/></svg>Nouveau schéma
     </button>
     <ul class="liste-schemas" id="liste-schemas"></ul>
+    <button type="button" class="bouton pleine-largeur" id="btn-corbeille" hidden><svg class="icone" aria-hidden="true"><use href="#i-corbeille"/></svg><span id="libelle-corbeille">Corbeille</span></button>
+  </dialog>
+
+  <!-- ===== Corbeille ===== -->
+  <dialog class="fenetre" id="dlg-corbeille" aria-labelledby="titre-corbeille">
+    <div class="fenetre-entete">
+      <h2 id="titre-corbeille">Corbeille</h2>
+      <button type="button" class="bouton-icone" data-fermer aria-label="Fermer"><svg class="icone" aria-hidden="true"><use href="#i-fermer"/></svg></button>
+    </div>
+    <p class="texte-explication">Les schémas supprimés restent ici 30 jours, puis sont effacés pour de bon.</p>
+    <ul class="liste-schemas" id="liste-corbeille"></ul>
+    <p class="aide-reglage" id="corbeille-vide" hidden>La corbeille est vide.</p>
+    <button type="button" class="bouton danger-texte pleine-largeur" id="btn-vider-corbeille"><svg class="icone" aria-hidden="true"><use href="#i-supprimer"/></svg>Vider la corbeille</button>
+  </dialog>
+
+  <!-- ===== Choisir un pictogramme ===== -->
+  <dialog class="fenetre" id="dlg-picto" aria-labelledby="titre-picto">
+    <div class="fenetre-entete">
+      <h2 id="titre-picto">Pictogramme</h2>
+      <button type="button" class="bouton-icone" data-fermer aria-label="Fermer"><svg class="icone" aria-hidden="true"><use href="#i-fermer"/></svg></button>
+    </div>
+    <p class="texte-explication">Un petit dessin dans le bloc, aux couleurs du bloc. Il remplace l'image, s'il y en a une.</p>
+    <div class="grille-pictos" id="grille-pictos"></div>
+  </dialog>
+
+  <!-- ===== Relier un bloc à un sous-schéma ===== -->
+  <dialog class="fenetre" id="dlg-lien" aria-labelledby="titre-lien">
+    <div class="fenetre-entete">
+      <h2 id="titre-lien">Relier à un schéma</h2>
+      <button type="button" class="bouton-icone" data-fermer aria-label="Fermer"><svg class="icone" aria-hidden="true"><use href="#i-fermer"/></svg></button>
+    </div>
+    <p class="texte-explication">Ce bloc ouvrira le schéma choisi. En présentation, toucher le bloc entre dans ce schéma ; à la fin, on revient ici.</p>
+    <button type="button" class="bouton principal pleine-largeur" id="btn-lien-nouveau"><svg class="icone" aria-hidden="true"><use href="#i-plus"/></svg>Créer un nouveau sous-schéma</button>
+    <ul class="liste-schemas" id="liste-lien"></ul>
   </dialog>
 
   <!-- ===== Réglages ===== -->
@@ -489,6 +536,8 @@
   <!-- ===== Mode présentation (plein écran, interface masquée) ===== -->
   <div class="presentation" id="presentation" hidden role="region" aria-label="Présentation" tabindex="-1">
     <div class="pres-scene" id="pres-scene"></div>
+    <button type="button" class="pres-bouton pres-retour" id="pres-retour" hidden><svg class="icone" aria-hidden="true"><use href="#i-retour"/></svg><span id="pres-retour-texte">Retour</span></button>
+    <p class="pres-message" id="pres-message" role="status" hidden></p>
     <button type="button" class="pres-bouton pres-quitter" id="pres-quitter" aria-label="Quitter la présentation" title="Quitter (Échap)">
       <svg class="icone" aria-hidden="true"><use href="#i-fermer"/></svg>
     </button>
@@ -579,6 +628,9 @@
       <dt>Menu → Créer des blocs depuis une liste</dt><dd>une ligne par bloc, les lignes décalées deviennent la suite : l'arbre se range tout seul</dd>
       <dt>Menu → Plan du schéma en texte</dt><dd>le schéma en liste à retraits, à copier</dd>
       <dt>Loupe en haut</dt><dd>rechercher un mot dans les blocs, notes, zones et étiquettes</dd>
+      <dt>Style → Pictogramme</dt><dd>un petit dessin dans le bloc, à ses couleurs</dd>
+      <dt>Style → Sous-schéma</dt><dd>le bloc ouvre un autre de tes schémas (marqué ↗) ; « Retour » en haut à gauche pour revenir</dd>
+      <dt>Mes schémas → Corbeille</dt><dd>un schéma supprimé y reste 30 jours, récupérable</dd>
     </dl>
     <h3 class="etiquette-section">Au clavier</h3>
     <dl class="liste-aide">
@@ -591,6 +643,7 @@
       <dt>Flèches</dt><dd>déplacer le bloc (<kbd>Maj</kbd> : finement)</dd>
       <dt><kbd>Alt</kbd>+flèches</dt><dd>changer la taille du bloc</dd>
       <dt><kbd>E</kbd></dt><dd>étape de l'élément choisi</dd>
+      <dt><kbd>O</kbd></dt><dd>ouvrir le sous-schéma du bloc choisi</dd>
       <dt><kbd>Suppr</kbd> · <kbd>Ctrl</kbd>+<kbd>D</kbd></dt><dd>supprimer · dupliquer</dd>
       <dt><kbd>Ctrl</kbd>+<kbd>C</kbd> · <kbd>X</kbd> · <kbd>V</kbd></dt><dd>copier · couper · coller (un texte ou une image collés créent un bloc)</dd>
       <dt><kbd>Ctrl</kbd>+<kbd>Z</kbd> · <kbd>Ctrl</kbd>+<kbd>Y</kbd></dt><dd>annuler · rétablir</dd>
@@ -606,6 +659,7 @@
       <dt>Toucher à gauche · <kbd>←</kbd> <kbd>Page préc.</kbd></dt><dd>étape précédente</dd>
       <dt><kbd>Début</kbd> · <kbd>Fin</kbd></dt><dd>première · dernière étape</dd>
       <dt><kbd>N</kbd></dt><dd>notes du présentateur</dd>
+      <dt>Toucher un bloc marqué ↗ · <kbd>O</kbd></dt><dd>entrer dans son sous-schéma ; à la fin (ou « Retour »), on revient où on en était</dd>
       <dt>Appui long sur le schéma · <kbd>L</kbd></dt><dd>pointeur lumineux qui suit le doigt · qui suit la souris (aussi sur la fenêtre public, en mode deux écrans)</dd>
       <dt><kbd>Échap</kbd> ou geste « retour »</dt><dd>quitter</dd>
     </dl>

@@ -31,6 +31,7 @@ export const etat = {
   groupe: null,          // sélection multiple : tableau d'ids de blocs (null = inactive)
   rectangle: null,       // rectangle de sélection en cours { x1, y1, x2, y2 }
   recherche: null,       // résultats de la recherche { ids: Set, actuel } (null = pas de recherche)
+  pile: [],              // sous-schémas : schémas parents ouverts avant celui-ci [{ id, titre }]
 };
 
 const historique = creerHistorique();
@@ -87,9 +88,14 @@ const photo = () => JSON.stringify(etat.schema.elements);
 const photoSelection = () => ({ selection: etat.selection, groupe: etat.groupe ? [...etat.groupe] : null });
 let selectionConnue = { selection: null, groupe: null };
 
-/** Ouvre un schéma : remet l'historique à zéro et cadre la vue. */
-export function ouvrirSchema(schema) {
+/**
+ * Ouvre un schéma : remet l'historique à zéro et cadre la vue.
+ * « pile » : les schémas parents quand on entre dans un sous-schéma
+ * (sinon on repart d'une pile vide).
+ */
+export function ouvrirSchema(schema, { pile = [] } = {}) {
   etat.schema = schema;
+  etat.pile = pile;
   etat.selection = null;
   etat.groupe = null;
   etat.rectangle = null;

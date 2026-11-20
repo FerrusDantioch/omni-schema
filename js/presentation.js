@@ -6,7 +6,9 @@
 //   - toucher la partie gauche (ou glisser vers la droite), flèche
 //     gauche, Retour arrière, Page précédente → étape précédente ;
 //   - Début / Fin : première / dernière étape ; N : notes ; Échap : quitter ;
-//   - appui long sur le schéma : pointeur lumineux ; L : pointeur qui suit la souris.
+//   - appui long sur le schéma : pointeur lumineux ; L : pointeur qui suit la souris ;
+//   - toucher un bloc marqué ↗ (ou touche O) : entrer dans son sous-schéma ;
+//     à la fin du sous-schéma (ou avec « Retour »), on revient où on était.
 // Les télécommandes de présentation envoient Page suivante / précédente :
 // elles fonctionnent donc aussi.
 // =====================================================================
@@ -15,7 +17,8 @@ import { etat } from './noyau.js';
 import { arrets, nomElement } from './etapes.js';
 import { construireSvg, appliquerArret } from './schema-svg.js';
 import { couleursToile } from './couleurs.js';
-import { listeBlocs } from './modele.js';
+import { listeBlocs, migrer } from './modele.js';
+import { chargerSchema, chargerDeCorbeille } from './stockage.js';
 import { creerPoint, brancherPointeur } from './pointeur.js';
 
 const $ = (id) => document.getElementById(id);
@@ -63,6 +66,9 @@ export function creerPresentation({ apresFermeture }) {
   let rendu = null;
   let liste = [];
   let index = 0;
+  let schemaCourant = null; // schéma affiché (le principal, ou un sous-schéma)
+  let pile = [];            // sous-schémas : [{ schema, index }] des schémas parents
+  let minuterieMessage = null;
   let pleinEcranActif = false;
   let verrouEcran = null;
   let depart = null;
@@ -72,23 +78,95 @@ export function creerPresentation({ apresFermeture }) {
   const pointeur = brancherPointeur(scene, point, { actif: () => etat.presentation && !racine.hidden });
 
   // ------------------------------------------------------------------
-  async function ouvrir() {
-    const schema = etat.schema;
-    if (!schema || !listeBlocs(schema).length) return false;
+  /** Affiche un schéma (le principal ou un sous-schéma) à l'arrêt n° i. */
+  function charger(schema, i) {
+    schemaCourant = schema;
     const theme = themePresentation(schema);
-    rendu = construireSvg(schema, theme);
+    rendu = construireSvg(schema, theme, { liens: true });
     rendu.svg.setAttribute('width', '100%');
     rendu.svg.setAttribute('height', '100%');
     rendu.svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
     scene.replaceChildren(rendu.svg, point.element);
-
     racine.dataset.theme = theme; // les couleurs des boutons suivent le thème de présentation
     racine.style.background = couleursToile(theme).fond;
-    racine.classList.toggle('avec-fondu', !!etat.reglages.fondu);
     liste = arrets(schema);
-    index = 0;
-    // Reprise proposée si on s'était arrêté en cours de route.
+    index = Math.max(0, Math.min(liste.length - 1, i));
+    const parent = pile[pile.length - 1];
+    $('pres-retour').hidden = !parent;
+    if (parent) $('pres-retour-texte').textContent = `Retour : ${courtTitre(parent.schema.titre)}`;
+    afficher(null);
+  }
+
+  const courtTitre = (t) => (t.length > 28 ? `${t.slice(0, 27)}…` : t);
+
+  /** Petit message sur l'écran de présentation (quelques secondes). */
+  function montrerMessage(texte) {
+    const m = $('pres-message');
+    m.textContent = texte;
+    m.hidden = false;
+    clearTimeout(minuterieMessage);
+    minuterieMessage = setTimeout(() => { m.hidden = true; }, 4000);
+  }
+
+  /** Entre dans le sous-schéma d'un bloc. */
+  async function entrer(id) {
+    let brut = null;
+    try { brut = await chargerSchema(id); } catch { brut = null; }
+    if (!brut) {
+      let dansCorbeille = false;
+      try { dansCorbeille = !!(await chargerDeCorbeille(id)); } catch { /* rien */ }
+      montrerMessage(dansCorbeille ? 'Ce sous-schéma est dans la corbeille.' : 'Ce sous-schéma n\'existe plus.');
+      return;
+    }
+    let sous;
+    try { sous = migrer(brut); } catch (erreur) { montrerMessage(erreur.message); return; }
+    if (!listeBlocs(sous).length) { montrerMessage(`« ${courtTitre(sous.titre)} » est vide.`); return; }
+    pile.push({ schema: schemaCourant, index });
+    bandeauReprise.hidden = true;
+    aide.hidden = true;
+    charger(sous, 0);
+    montrerMessage(`Sous-schéma « ${courtTitre(sous.titre)} »`);
+  }
+
+  /** Revient au schéma parent, à l'étape où on l'avait quitté. */
+  function revenir() {
+    const parent = pile.pop();
+    if (!parent) return;
+    charger(parent.schema, parent.index);
+  }
+
+  /** Bloc relié à un sous-schéma, visible, sous ce point de l'écran (ou null). */
+  function lienSous(clientX, clientY) {
+    const ctm = rendu && rendu.svg.getScreenCTM();
+    if (!ctm) return null;
+    const p = rendu.svg.createSVGPoint();
+    p.x = clientX;
+    p.y = clientY;
+    const m = p.matrixTransform(ctm.inverse());
+    const item = rendu.elements.slice().reverse().find((e) => e.type === 'bloc' && e.donnees.lien && e.g.style.display !== 'none'
+      && m.x >= e.donnees.x && m.x <= e.donnees.x + e.donnees.largeur && m.y >= e.donnees.y && m.y <= e.donnees.y + e.donnees.hauteur);
+    return item ? item.donnees.lien : null;
+  }
+
+  /** Touche O : le sous-schéma de l'étape (celui qui vient d'apparaître, sinon le seul visible). */
+  function lienAuClavier() {
+    const visibles = rendu.elements.filter((e) => e.type === 'bloc' && e.donnees.lien && e.g.style.display !== 'none');
+    const deCetteEtape = visibles.filter((e) => e.etape === liste[index]);
+    const choix = deCetteEtape[0] || (visibles.length === 1 ? visibles[0] : null);
+    if (choix) entrer(choix.donnees.lien);
+    else montrerMessage(visibles.length ? 'Touche le bloc marqué ↗ pour entrer dans son sous-schéma.' : 'Pas de sous-schéma à cette étape.');
+  }
+
+  // ------------------------------------------------------------------
+  async function ouvrir() {
+    const schema = etat.schema;
+    if (!schema || !listeBlocs(schema).length) return false;
+    pile = [];
+    racine.classList.toggle('avec-fondu', !!etat.reglages.fondu);
+    // Reprise proposée si on s'était arrêté en cours de route
+    // (à lire AVANT d'afficher, car l'affichage note l'étape atteinte).
     const reprise = lireReprise(schema.id);
+    charger(schema, 0);
     bandeauReprise.hidden = !repriseUtile(reprise, liste.length);
     $('pres-reprise-texte').textContent = `La dernière fois, tu en étais à l'étape ${reprise + 1} sur ${liste.length}.`;
     $('pres-reprendre').onclick = () => { bandeauReprise.hidden = true; aide.hidden = true; allerA(reprise); racine.focus({ preventScroll: true }); };
@@ -99,7 +177,6 @@ export function creerPresentation({ apresFermeture }) {
 
     etat.presentation = true;
     racine.hidden = false;
-    afficher(null);
     racine.focus({ preventScroll: true });
 
     // Plein écran (si le navigateur le permet).
@@ -120,6 +197,9 @@ export function creerPresentation({ apresFermeture }) {
     pointeur.reinitialiser();
     scene.replaceChildren(point.element);
     rendu = null;
+    pile = [];
+    schemaCourant = null;
+    $('pres-message').hidden = true;
     if (pleinEcranActif && document.fullscreenElement) document.exitFullscreen().catch(() => {});
     pleinEcranActif = false;
     if (verrouEcran) { verrouEcran.release().catch(() => {}); verrouEcran = null; }
@@ -147,15 +227,16 @@ export function creerPresentation({ apresFermeture }) {
     }
     compteur.textContent = `${index + 1} / ${liste.length}`;
     compteur.setAttribute('aria-label', `Étape ${index + 1} sur ${liste.length}`);
-    boutonPrecedent.disabled = index === 0;
-    boutonSuivant.disabled = index === liste.length - 1;
+    // Dans un sous-schéma, « précédent » au début et « suivant » à la fin ramènent au parent.
+    boutonPrecedent.disabled = index === 0 && !pile.length;
+    boutonSuivant.disabled = index === liste.length - 1 && !pile.length;
     remplirNotes(arret);
-    ecrireReprise(etat.schema.id, index);
+    if (!pile.length) ecrireReprise(schemaCourant.id, index); // la reprise vaut pour le schéma principal
   }
 
   function suivant() {
     bandeauReprise.hidden = true;
-    if (index >= liste.length - 1) return;
+    if (index >= liste.length - 1) { if (pile.length) revenir(); return; }
     const avant = liste[index];
     index++;
     aide.hidden = true;
@@ -164,7 +245,7 @@ export function creerPresentation({ apresFermeture }) {
 
   function precedent() {
     bandeauReprise.hidden = true;
-    if (index <= 0) return;
+    if (index <= 0) { if (pile.length) revenir(); return; }
     index--;
     aide.hidden = true;
     afficher(null);
@@ -195,7 +276,7 @@ export function creerPresentation({ apresFermeture }) {
       bloc.className = 'pres-note';
       const nom = document.createElement('p');
       nom.className = 'pres-note-bloc';
-      nom.textContent = nomElement(etat.schema, e.donnees, 60);
+      nom.textContent = nomElement(schemaCourant, e.donnees, 60);
       const texte = document.createElement('p');
       texte.className = 'pres-note-texte';
       texte.textContent = e.donnees.note;
@@ -226,6 +307,9 @@ export function creerPresentation({ apresFermeture }) {
       return;
     }
     if (Math.hypot(dx, dy) > 20) return; // ni toucher ni glissement net
+    // Toucher un bloc relié (marqué ↗) : on entre dans son sous-schéma.
+    const lien = lienSous(e.clientX, e.clientY);
+    if (lien) { entrer(lien); return; }
     const largeur = scene.clientWidth || window.innerWidth;
     if (e.clientX - scene.getBoundingClientRect().left < largeur / 3) precedent();
     else suivant();
@@ -237,6 +321,7 @@ export function creerPresentation({ apresFermeture }) {
   boutonSuivant.addEventListener('click', suivant);
   boutonNotes.addEventListener('click', basculerNotes);
   $('pres-quitter').addEventListener('click', fermer);
+  $('pres-retour').addEventListener('click', revenir);
 
   // Clavier (prioritaire pendant la présentation).
   document.addEventListener('keydown', (e) => {
@@ -257,6 +342,7 @@ export function creerPresentation({ apresFermeture }) {
       case 'Escape': fermer(); break;
       case 'n': case 'N': basculerNotes(); break;
       case 'l': case 'L': pointeur.basculerSouris(); break;
+      case 'o': case 'O': lienAuClavier(); break;
       case 'Tab': geree = false; break;
       default: geree = false;
     }

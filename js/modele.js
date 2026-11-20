@@ -5,15 +5,16 @@
 // Un schéma est un simple objet JSON :
 // {
 //   format: 'omni-schema',      // pour reconnaître nos fichiers
-//   version_format: 4,          // version de la structure (voir migrer)
+//   version_format: 5,          // version de la structure (voir migrer)
 //   id, titre, cree_le, modifie_le,
 //   theme: 'auto',              // thème de présentation (auto = celui de l'app)
 //   elements: [ blocs et flèches ],
 //   images: { id: 'data:image/…' } // images des blocs (format 2)
 // }
-// Bloc   : { type:'bloc', id, x, y, largeur, hauteur, texte, forme, couleur, taille, etape, note, image }
+// Bloc   : { type:'bloc', id, x, y, largeur, hauteur, texte, forme, couleur, taille, etape, note, image, picto, lien }
 //          (image = identifiant dans « images », ou '' s'il n'y en a pas ;
-//           forme « texte » = sans cadre ; taille du texte : petit / normal / grand)
+//           forme « texte » = sans cadre ; taille du texte : petit / normal / grand ;
+//           picto = pictogramme embarqué (format 5) ; lien = id d'un sous-schéma (format 5))
 // Flèche : { type:'fleche', id, de, vers, style, trait, pointes, etiquette, etape }
 //          style : droite / angle / courbe ; trait : plein / pointille ;
 //          pointes : fin (une, au bout) / deux / aucune (format 3)
@@ -24,6 +25,7 @@
 
 import { VERSION_FORMAT, BLOC_DEFAUT, BLOC_MIN, ZONE_MIN } from './config.js';
 import { COULEURS } from './couleurs.js';
+import { pictogramme } from './pictogrammes.js';
 
 export const FORMES = [
   { id: 'rectangle', nom: 'Rectangle' },
@@ -106,6 +108,8 @@ export function creerBloc(proprietes = {}) {
     etape: 0,
     note: '',
     image: '',
+    picto: '',
+    lien: '',
     ...proprietes,
   };
 }
@@ -193,6 +197,12 @@ const MIGRATIONS = {
     doc.version_format = 4;
     return doc;
   },
+  // 4 → 5 : pictogramme et lien vers un sous-schéma dans les blocs.
+  4: (doc) => {
+    for (const e of doc.elements) if (e && e.type === 'bloc') { e.picto = ''; e.lien = ''; }
+    doc.version_format = 5;
+    return doc;
+  },
 };
 
 // Une image valide : une adresse « data: » d'image, de taille raisonnable.
@@ -278,6 +288,8 @@ export function normaliser(doc) {
       etape: entierPositif(e.etape),
       note: texte(e.note, MAX_NOTE),
       image: '',
+      picto: pictogramme(e.picto) ? e.picto : '',
+      lien: typeof e.lien === 'string' && /^[\w-]{1,80}$/.test(e.lien) ? e.lien : '',
     });
     // Image : gardée seulement si elle existe et qu'elle est valide.
     const idImage = typeof e.image === 'string' ? e.image : '';

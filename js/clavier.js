@@ -7,7 +7,7 @@
 //   Flèches : déplacer le bloc (Maj : finement) · Alt+flèches : taille
 //   N : nouveau bloc · Z : nouvelle zone · R : bloc relié à droite · Maj+R : relié en dessous
 //   L : relier le bloc choisi à un autre (Tab pour viser, Entrée pour valider)
-//   E : étape de l'élément · P : présenter · ? : aide
+//   E : étape de l'élément · P : présenter · ? : aide · O : ouvrir le sous-schéma du bloc
 //   Suppr : supprimer · Ctrl+D : dupliquer · Échap : désélectionner
 //   Ctrl+C / Ctrl+X / Ctrl+V : copier / couper / coller (voir presse-papiers.js)
 //   Ctrl+F : rechercher (voir recherche.js)
@@ -38,7 +38,7 @@ function decrire(e) {
   return `${nomElement(etat.schema, e, 80)}${etape}.`;
 }
 
-export function installerClavier({ editeur, editerEtiquette, editerTitreZone, fermerChoix, ouvrirAide, presenter, presenterDeuxEcrans, rechercher }) {
+export function installerClavier({ editeur, editerEtiquette, editerTitreZone, fermerChoix, ouvrirAide, presenter, presenterDeuxEcrans, rechercher, ouvrirSousSchema }) {
   let minuterieDeplacement = null;
   let liaison = null; // { de } pendant « L » : on choisit le bloc d'arrivée
 
@@ -223,6 +223,12 @@ export function installerClavier({ editeur, editerEtiquette, editerTitreZone, fe
         if (bouton) { e.preventDefault(); bouton.click(); }
         break;
       }
+      case 'o':
+        // O : ouvrir le sous-schéma du bloc choisi
+        if (!sel || sel.type !== 'bloc' || !sel.lien) return;
+        e.preventDefault();
+        ouvrirSousSchema(sel.lien);
+        break;
       case 'p':
         e.preventDefault();
         if (e.shiftKey) presenterDeuxEcrans(); else presenter();

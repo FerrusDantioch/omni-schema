@@ -7,10 +7,12 @@ import { CLE_DERNIER } from './config.js';
 import { creerRendu } from './rendu.js';
 import { etat, brancherRendu, ouvrirSchema, sauvegarderMaintenant, demanderRendu, annoncer } from './noyau.js';
 import { creerSchemaAccueil, migrer } from './modele.js';
-import { listerSchemas, chargerSchema, enregistrerSchema, demanderStockagePersistant } from './stockage.js';
+import { listerSchemas, chargerSchema, enregistrerSchema, demanderStockagePersistant, purgerCorbeille } from './stockage.js';
 import { installerGestes } from './interactions.js';
 import { creerEditeurTexte } from './editeur-texte.js';
-import { installerInterface, appliquerTheme, editerEtiquette, editerTitreZone, fermerChoix, demanderConfirmation, ouvrirAide, ouvrirListe } from './interface.js';
+import {
+  installerInterface, appliquerTheme, editerEtiquette, editerTitreZone, fermerChoix, demanderConfirmation, ouvrirAide, ouvrirListe, ouvrirSousSchema,
+} from './interface.js';
 import { creerPresentation } from './presentation.js';
 import { creerPanneauEtapes } from './panneau-etapes.js';
 import { creerVuePresentateur, demarrerPublic } from './presentateur.js';
@@ -58,6 +60,7 @@ async function demarrer() {
   const recherche = installerRecherche({ avantOuverture: () => { editeur.terminer(); fermerChoix(); } });
   installerClavier({
     rechercher: () => recherche.ouvrir(),
+    ouvrirSousSchema,
     editeur, editerEtiquette, editerTitreZone, fermerChoix, ouvrirAide,
     presenter: () => document.getElementById('btn-presenter').click(),
     presenterDeuxEcrans,
@@ -89,6 +92,8 @@ async function demarrer() {
   }
   await ouvrirPremierSchema();
   demanderStockagePersistant();
+  // Corbeille : ce qui y est depuis plus de 30 jours est effacé pour de bon.
+  purgerCorbeille().catch((erreur) => console.error(erreur));
 }
 
 /** Ouvre le dernier schéma utilisé, sinon le plus récent, sinon le schéma d'accueil. */

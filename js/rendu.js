@@ -11,6 +11,7 @@ import { POLICE, POLICE_CHIFFRES, GRAISSE, GRILLE, BANDE_ZONE } from './config.j
 import { mettreEnPage, INTERLIGNE, lignesEtiquette, TAILLE_ETIQUETTE, LARGEUR_ETIQUETTE, ligneCoupee } from './texte.js';
 import { zoneTexte, zoneImage, traceFleche, milieu, pointe, pointBord, centre, contenuZone } from './geometrie.js';
 import { listeBlocs, listeFleches, listeZones, trouver, tailleTexte } from './modele.js';
+import { pictogramme } from './pictogrammes.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 const arrondir = (v) => Math.round(v * 10) / 10;
@@ -36,12 +37,21 @@ function pastilleEtape(parent, x, y, numero, theme) {
   t.textContent = String(numero);
 }
 
+/** Badge d'un bloc relié à un sous-schéma (coin bas droit). */
+function badgeLien(g, w, h, c) {
+  const x = w - 4;
+  const y = h - 4;
+  const b = el('g', { class: 'badge-lien', 'pointer-events': 'none' }, g);
+  el('circle', { cx: x, cy: y, r: 11, fill: c.bord, stroke: c.fond, 'stroke-width': 2 }, b);
+  el('path', { d: `M${x - 4} ${y + 4}L${x + 4} ${y - 4}M${x - 2} ${y - 4}H${x + 4}V${y + 2}`, fill: 'none', stroke: c.fond, 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, b);
+}
+
 /**
  * Dessine la forme et le texte d'un bloc dans le groupe « g » (coordonnées locales).
  * « fantome » : pour un bloc sans cadre, un contour très discret dans
  * l'éditeur seulement (pour le retrouver), jamais dans les exports.
  */
-export function dessinerBloc(g, b, theme, { masquerTexte = false, badge = false, images = null, fantome = false } = {}) {
+export function dessinerBloc(g, b, theme, { masquerTexte = false, badge = false, images = null, fantome = false, liens = false } = {}) {
   g.replaceChildren();
   const c = couleurBloc(theme, b.couleur);
   const w = b.largeur;
@@ -77,7 +87,20 @@ export function dessinerBloc(g, b, theme, { masquerTexte = false, badge = false,
       href: source, x: arrondir(zi.x), y: arrondir(zi.y), width: arrondir(zi.largeur), height: arrondir(zi.hauteur),
       preserveAspectRatio: 'xMidYMid meet', 'pointer-events': 'none',
     }, g);
+  } else if (pictogramme(b.picto)) {
+    // Pictogramme : dessin au trait, carré, centré dans la zone, couleur du bord du bloc.
+    const zi = zoneImage({ ...b, x: 0, y: 0 });
+    const cote = Math.max(8, Math.min(zi.largeur, zi.hauteur) * 0.9);
+    const echelle = cote / 24;
+    el('path', {
+      d: pictogramme(b.picto).d,
+      transform: `translate(${arrondir(zi.x + (zi.largeur - cote) / 2)} ${arrondir(zi.y + (zi.hauteur - cote) / 2)}) scale(${Math.round(echelle * 100) / 100})`,
+      fill: 'none', stroke: b.forme === 'texte' ? c.texte : c.bord, 'stroke-width': 1.8,
+      'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'pointer-events': 'none', class: 'picto',
+    }, g);
   }
+  // Bloc qui ouvre un sous-schéma : petit badge « ↗ » dans le coin bas droit.
+  if (liens && b.lien) badgeLien(g, w, h, c);
   if (badge && b.etape > 0) pastilleEtape(g, 0, 0, b.etape, theme);
   if (masquerTexte) return;
 
@@ -298,9 +321,9 @@ export function creerRendu(svg) {
       const n = noeudPour(b.id, 'bloc', calqueBlocs);
       const enEdition = etat.editionId === b.id;
       const badge = etat.reglages.pastilles;
-      const signature = `${b.largeur}|${b.hauteur}|${b.forme}|${b.couleur}|${b.taille}|${theme}|${enEdition}|${badge}|${b.etape}|${b.image}|${b.texte}`;
+      const signature = `${b.largeur}|${b.hauteur}|${b.forme}|${b.couleur}|${b.taille}|${theme}|${enEdition}|${badge}|${b.etape}|${b.image}|${b.picto}|${b.lien}|${b.texte}`;
       if (signature !== n.signature) {
-        dessinerBloc(n.g, b, theme, { masquerTexte: enEdition, badge, images: schema.images, fantome: true });
+        dessinerBloc(n.g, b, theme, { masquerTexte: enEdition, badge, images: schema.images, fantome: true, liens: true });
         n.signature = signature;
         n.g.setAttribute('aria-label', b.texte || 'Bloc vide');
       }
