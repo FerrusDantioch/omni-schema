@@ -21,7 +21,7 @@ const MARGE = 48;
  * Renvoie { svg, elements, calqueSurlignage, theme } ; « elements » liste
  * chaque élément avec son groupe SVG et son étape effective.
  */
-export function construireSvg(schema, theme, { css = '' } = {}) {
+export function construireSvg(schema, theme, { css = '', liens = false } = {}) {
   const T = couleursToile(theme);
   const blocs = listeBlocs(schema);
   const parId = new Map(blocs.map((b) => [b.id, b]));
@@ -67,7 +67,7 @@ export function construireSvg(schema, theme, { css = '' } = {}) {
   }
   for (const b of blocs) {
     const g = el('g', { 'data-id': b.id, 'data-etape': effectives.get(b.id), transform: `translate(${b.x} ${b.y})` }, calqueBlocs);
-    dessinerBloc(g, b, theme, { images: schema.images });
+    dessinerBloc(g, b, theme, { images: schema.images, liens });
     elements.push({ id: b.id, type: 'bloc', donnees: b, g, etape: effectives.get(b.id) });
   }
   return { svg, elements, calqueSurlignage, theme, cadre: vb };

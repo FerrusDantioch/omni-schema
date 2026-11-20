@@ -13,9 +13,11 @@ import {
   ajouterZone, alignerSelection, repartirSelection, memeTailleSelection, surRendu,
 } from './noyau.js';
 import {
-  listerSchemas, chargerSchema, enregistrerSchema, supprimerSchema,
+  listerSchemas, chargerSchema, enregistrerSchema,
   listerModeles, chargerModele, enregistrerModele, supprimerModele,
+  mettreALaCorbeille, listerCorbeille, recupererDeCorbeille, supprimerDeCorbeille, viderCorbeille, chargerDeCorbeille, JOURS_CORBEILLE,
 } from './stockage.js';
+import { PICTOGRAMMES } from './pictogrammes.js';
 import { exporterSchema, exporterTout, importerFichier, sansImagesInutiles } from './fichiers.js';
 import { etapeMax, etapesEffectives } from './etapes.js';
 import { MODELES, creerDepuisModele } from './modeles.js';
@@ -192,9 +194,31 @@ export function installerInterface({ editeur, presentation, panneauEtapes }) {
   // --- Image du bloc (panneau Style) ---
   $('btn-image-ajouter').addEventListener('click', () => $('fichier-image').click());
   $('btn-image-retirer').addEventListener('click', () => {
-    modifierSelection({ image: '' });
-    annoncer('Image retirée (Annuler pour la récupérer)');
+    const b = trouver(etat.schema, etat.selection);
+    const etaitPicto = b && b.picto;
+    modifierSelection({ image: '', picto: '' });
+    annoncer(etaitPicto ? 'Pictogramme retiré' : 'Image retirée (Annuler pour la récupérer)');
   });
+  $('btn-picto').addEventListener('click', ouvrirPictos);
+  // --- Sous-schéma du bloc (panneau Style) ---
+  $('btn-lien').addEventListener('click', choisirLien);
+  $('btn-lien-retirer').addEventListener('click', () => { modifierSelection({ lien: '' }); annoncer('Lien retiré : le sous-schéma, lui, est toujours là.'); });
+  $('btn-lien-ouvrir').addEventListener('click', () => {
+    const b = trouver(etat.schema, etat.selection);
+    if (b && b.lien) ouvrirSousSchema(b.lien);
+  });
+  $('btn-lien-nouveau').addEventListener('click', creerSousSchema);
+  $('btn-retour-parent').addEventListener('click', revenirAuParent);
+  // --- Corbeille ---
+  $('btn-corbeille').addEventListener('click', afficherCorbeille);
+  $('btn-vider-corbeille').addEventListener('click', async () => {
+    const ok = await demanderConfirmation('Vider la corbeille ? Les schémas qu\'elle contient seront effacés pour de bon.', 'Vider');
+    if (!ok) return;
+    await viderCorbeille();
+    annoncer('Corbeille vidée.');
+    await remplirCorbeille();
+  });
+  $('dlg-corbeille').addEventListener('close', () => { if ($('dlg-schemas').open) remplirListe(); });
   $('fichier-image').addEventListener('change', async () => {
     const fichier = $('fichier-image').files[0];
     $('fichier-image').value = '';
@@ -209,7 +233,7 @@ export function installerInterface({ editeur, presentation, panneauEtapes }) {
       // Un bloc trop petit pour une image est agrandi un peu.
       const taille = b.hauteur < 140 ? { hauteur: 160, largeur: Math.max(b.largeur, 180) } : {};
       etat.selection = b.id;
-      modifierSelection({ image: id, ...taille });
+      modifierSelection({ image: id, picto: '', ...taille });
       annoncer('Image ajoutée.');
     } catch (erreur) {
       annoncer(erreur.message, 6000);
@@ -224,6 +248,7 @@ export function installerInterface({ editeur, presentation, panneauEtapes }) {
   construireChoix();
   construireChoixTrait();
   construireChoixAligner();
+  construirePictos();
   installerListe();
   installerNouveau();
   installerExport();
@@ -498,7 +523,10 @@ function mettreAJourInterface() {
   }
   if (sel && sel.type === 'bloc') {
     $('libelle-image-ajouter').textContent = sel.image ? 'Remplacer l\'image' : 'Ajouter une image';
-    $('btn-image-retirer').hidden = !sel.image;
+    $('libelle-picto').textContent = sel.picto ? 'Changer de pictogramme' : 'Pictogramme';
+    $('libelle-image-retirer').textContent = sel.picto ? 'Retirer le pictogramme' : 'Retirer l\'image';
+    $('btn-image-retirer').hidden = !(sel.image || sel.picto);
+    majInfoLien(sel);
     for (const b of document.querySelectorAll('[data-forme]')) b.setAttribute('aria-pressed', String(b.dataset.forme === sel.forme));
     for (const b of document.querySelectorAll('[data-taille]')) b.setAttribute('aria-pressed', String(b.dataset.taille === (sel.taille || 'normal')));
     for (const b of document.querySelectorAll('[data-couleur]')) {
@@ -527,6 +555,13 @@ function mettreAJourInterface() {
   }
 
   $('aide-vide').hidden = etat.schema.elements.length > 0;
+  // Sous-schéma ouvert depuis un bloc : bouton « Retour » vers le schéma parent.
+  const parent = etat.pile[etat.pile.length - 1];
+  $('btn-retour-parent').hidden = !parent;
+  if (parent) {
+    $('libelle-retour-parent').textContent = `Retour : ${titreCourt(parent.titre, 24)}`;
+    $('btn-retour-parent').setAttribute('aria-label', `Revenir au schéma « ${parent.titre} »`);
+  }
 }
 
 // ---------------------------------------------------------------------
@@ -622,6 +657,197 @@ function installerNouveau() {
     champ.value = nomPropose;
   });
   $('dlg-nouveau').addEventListener('close', () => { nomPropose = 'Nouveau schéma'; });
+}
+
+// ---------------------------------------------------------------------
+// Pictogrammes
+// ---------------------------------------------------------------------
+function construirePictos() {
+  const grille = $('grille-pictos');
+  for (const p of PICTOGRAMMES) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'option-choix';
+    b.dataset.picto = p.id;
+    b.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${p.d}"/></svg><span></span>`;
+    b.querySelector('span').textContent = p.nom;
+    b.addEventListener('click', () => {
+      const bloc = trouver(etat.schema, etat.selection);
+      $('dlg-picto').close();
+      if (!bloc || bloc.type !== 'bloc') return;
+      // Avec du texte, un bloc bas est un peu agrandi pour que le dessin reste lisible.
+      const taille = bloc.texte.trim() && bloc.hauteur < 110 ? { hauteur: 120 } : {};
+      modifierSelection({ picto: p.id, image: '', ...taille });
+      annoncer(`Pictogramme « ${p.nom} » ajouté.`);
+    });
+    grille.appendChild(b);
+  }
+}
+
+function ouvrirPictos() {
+  const b = trouver(etat.schema, etat.selection);
+  if (!b || b.type !== 'bloc') return;
+  for (const bouton of $('grille-pictos').children) bouton.setAttribute('aria-pressed', String(bouton.dataset.picto === b.picto));
+  fermerChoix();
+  ouvrirFenetre($('dlg-picto'));
+  const actif = $('grille-pictos').querySelector('[aria-pressed="true"]') || $('grille-pictos').firstElementChild;
+  if (actif) actif.focus();
+}
+
+// ---------------------------------------------------------------------
+// Sous-schémas : un bloc qui ouvre un autre schéma
+// ---------------------------------------------------------------------
+const titreCourt = (t, n = 30) => (t.length > n ? `${t.slice(0, n - 1)}…` : t);
+
+/** Fenêtre « Relier à un schéma » : tous les schémas, sauf celui-ci. */
+async function choisirLien() {
+  const bloc = trouver(etat.schema, etat.selection);
+  if (!bloc || bloc.type !== 'bloc') return;
+  await sauvegarderMaintenant();
+  const liste = $('liste-lien');
+  liste.replaceChildren();
+  const autres = (await listerSchemas()).filter((s) => s.id !== etat.schema.id);
+  for (const s of autres) {
+    const li = document.createElement('li');
+    li.className = 'carte-schema';
+    if (s.id === bloc.lien) li.classList.add('courant');
+    const choisir = document.createElement('button');
+    choisir.type = 'button';
+    choisir.className = 'ouvrir-schema';
+    const titre = document.createElement('span');
+    titre.className = 'titre-carte';
+    titre.textContent = s.titre;
+    const details = document.createElement('span');
+    details.className = 'details-carte';
+    const nb = (s.elements || []).filter((e) => e.type === 'bloc').length;
+    details.textContent = `${nb} bloc${nb > 1 ? 's' : ''}${s.id === bloc.lien ? ' · relié à ce bloc' : ''}`;
+    choisir.append(titre, details);
+    choisir.addEventListener('click', () => {
+      $('dlg-lien').close();
+      etat.selection = bloc.id;
+      modifierSelection({ lien: s.id });
+      annoncer(`Ce bloc ouvre maintenant « ${titreCourt(s.titre)} ».`);
+    });
+    li.appendChild(choisir);
+    liste.appendChild(li);
+  }
+  fermerChoix();
+  ouvrirFenetre($('dlg-lien'));
+}
+
+/** « Créer un nouveau sous-schéma » : il porte le texte du bloc, il est relié et ouvert. */
+async function creerSousSchema() {
+  const bloc = trouver(etat.schema, etat.selection);
+  $('dlg-lien').close();
+  if (!bloc || bloc.type !== 'bloc') return;
+  const titre = bloc.texte.replace(/\s+/g, ' ').trim().slice(0, 200) || `Détail de « ${titreCourt(etat.schema.titre)} »`;
+  const sous = creerSchema(titre);
+  await enregistrerSchema(sous);
+  etat.selection = bloc.id;
+  modifierSelection({ lien: sous.id });
+  await ouvrirSousSchema(sous.id);
+}
+
+/** Ouvre le sous-schéma « id » ; le schéma actuel devient le parent (bouton « Retour »). */
+export async function ouvrirSousSchema(id) {
+  fermerChoix();
+  await sauvegarderMaintenant();
+  const brut = await chargerSchema(id);
+  if (!brut) {
+    const dansCorbeille = await chargerDeCorbeille(id).catch(() => null);
+    annoncer(dansCorbeille
+      ? 'Ce sous-schéma est dans la corbeille : récupère-le depuis « Mes schémas » → Corbeille.'
+      : 'Ce sous-schéma n\'existe plus. Tu peux retirer le lien (Style → Retirer le lien).', 6000);
+    return;
+  }
+  let sous;
+  try { sous = migrer(brut); } catch (erreur) { annoncer(erreur.message, 5000); return; }
+  const pile = [...etat.pile, { id: etat.schema.id, titre: etat.schema.titre, bloc: etat.selection }];
+  ouvrirSchema(sous, { pile });
+  annoncer(`Sous-schéma « ${titreCourt(sous.titre)} » : « Retour » pour revenir.`, 3500);
+}
+
+/** Revient au schéma parent (et rechoisit le bloc qui menait ici). */
+async function revenirAuParent() {
+  const pile = [...etat.pile];
+  const parent = pile.pop();
+  if (!parent) return;
+  await sauvegarderMaintenant();
+  const brut = await chargerSchema(parent.id);
+  if (!brut) { annoncer('Le schéma parent n\'existe plus.', 5000); etat.pile = []; notifier(); return; }
+  ouvrirSchema(migrer(brut), { pile });
+  if (parent.bloc && trouver(etat.schema, parent.bloc)) selectionner(parent.bloc);
+}
+
+/** Affiche le titre du sous-schéma relié au bloc choisi (lu dans la base, sans bloquer). */
+let lienAffiche = null;
+function majInfoLien(bloc) {
+  const info = $('info-lien');
+  $('btn-lien-ouvrir').hidden = !bloc.lien;
+  $('btn-lien-retirer').hidden = !bloc.lien;
+  $('libelle-lien').textContent = bloc.lien ? 'Changer de schéma' : 'Relier à un schéma';
+  if (!bloc.lien) { info.textContent = 'Ce bloc peut ouvrir un autre de tes schémas (le détail d\'une étape).'; lienAffiche = null; return; }
+  if (lienAffiche === bloc.lien) return;
+  lienAffiche = bloc.lien;
+  info.textContent = 'Ce bloc ouvre un sous-schéma.';
+  chargerSchema(bloc.lien).then((s) => {
+    if (lienAffiche !== bloc.lien) return;
+    info.textContent = s ? `Ce bloc ouvre « ${titreCourt(s.titre, 40)} ».` : 'Le schéma relié n\'existe plus (ou est dans la corbeille).';
+  }).catch(() => {});
+}
+
+// ---------------------------------------------------------------------
+// Corbeille
+// ---------------------------------------------------------------------
+async function afficherCorbeille() {
+  await remplirCorbeille();
+  ouvrirFenetre($('dlg-corbeille'));
+}
+
+async function remplirCorbeille() {
+  const liste = $('liste-corbeille');
+  const tous = await listerCorbeille();
+  liste.replaceChildren();
+  $('corbeille-vide').hidden = tous.length > 0;
+  $('btn-vider-corbeille').hidden = !tous.length;
+  for (const s of tous) {
+    const li = document.createElement('li');
+    li.className = 'carte-schema';
+    const infos = document.createElement('div');
+    infos.className = 'ouvrir-schema';
+    const titre = document.createElement('span');
+    titre.className = 'titre-carte';
+    titre.textContent = s.titre;
+    const details = document.createElement('span');
+    details.className = 'details-carte';
+    const quand = new Date(s.supprime_le);
+    if (!Number.isNaN(quand.getTime())) {
+      const fin = new Date(quand.getTime() + JOURS_CORBEILLE * 24 * 3600 * 1000);
+      details.textContent = `supprimé le ${formatDate.format(quand)} · effacé le ${formatJour.format(fin)}`;
+    }
+    infos.append(titre, details);
+    const actions = document.createElement('div');
+    actions.className = 'actions-carte';
+    const recuperer = document.createElement('button');
+    recuperer.type = 'button';
+    recuperer.className = 'bouton';
+    recuperer.textContent = 'Récupérer';
+    recuperer.setAttribute('aria-label', `Récupérer « ${s.titre} »`);
+    recuperer.addEventListener('click', async () => {
+      const remis = await recupererDeCorbeille(s.id);
+      annoncer(remis ? `« ${titreCourt(remis.titre)} » est de retour dans « Mes schémas ».` : 'Ce schéma n\'est plus dans la corbeille.', 4000);
+      await remplirCorbeille();
+    });
+    actions.append(recuperer, boutonIcone('i-supprimer', `Supprimer définitivement « ${s.titre} »`, async () => {
+      const ok = await demanderConfirmation(`Supprimer définitivement « ${s.titre} » ? Il ne pourra plus être récupéré.`, 'Supprimer');
+      if (!ok) return;
+      await supprimerDeCorbeille(s.id);
+      annoncer('Schéma effacé pour de bon.');
+      await remplirCorbeille();
+    }, 'danger'));
+    li.append(infos, actions);
+    liste.appendChild(li);
+  }
 }
 
 // ---------------------------------------------------------------------
@@ -829,6 +1055,7 @@ function installerExport() {
 // Liste « Mes schémas »
 // ---------------------------------------------------------------------
 const formatDate = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' });
+const formatJour = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium' });
 
 async function afficherListe() {
   await sauvegarderMaintenant();
@@ -876,6 +1103,9 @@ async function remplirListe() {
     li.append(ouvrir, actions);
     liste.appendChild(li);
   }
+  const corbeille = await listerCorbeille().catch(() => []);
+  $('btn-corbeille').hidden = !corbeille.length;
+  $('libelle-corbeille').textContent = `Corbeille (${corbeille.length})`;
 }
 
 function boutonIcone(icone, libelle, action, classe = '') {
@@ -915,9 +1145,10 @@ async function dupliquerDepuisListe(s) {
 }
 
 async function supprimerDepuisListe(s) {
-  const ok = await demanderConfirmation(`Supprimer définitivement « ${s.titre} » ? Cette action ne peut pas être annulée.`, 'Supprimer');
+  const ok = await demanderConfirmation(`Mettre « ${s.titre} » à la corbeille ? Tu pourras le récupérer pendant ${JOURS_CORBEILLE} jours.`, 'Mettre à la corbeille');
   if (!ok) return;
-  await supprimerSchema(s.id);
+  if (s.id === etat.schema.id) await sauvegarderMaintenant();
+  await mettreALaCorbeille(s.id);
   if (s.id === etat.schema.id) {
     // On a supprimé le schéma ouvert : on en ouvre un autre (ou un nouveau).
     const restants = await listerSchemas();
@@ -926,7 +1157,7 @@ async function supprimerDepuisListe(s) {
     else { suivant = creerSchema('Nouveau schéma'); await enregistrerSchema(suivant); }
     ouvrirSchema(suivant);
   }
-  annoncer('Schéma supprimé.');
+  annoncer('Schéma mis à la corbeille (Mes schémas → Corbeille pour le récupérer).', 4000);
   await remplirListe();
 }
 

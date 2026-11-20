@@ -37,6 +37,9 @@ recadrage et la grille sont réunis dans le bouton **Vue**.
 en texte, recherche (loupe ou Ctrl+F), pointeur lumineux en présentation (aussi sur la fenêtre
 public en mode deux écrans).
 
+**Version 1.5.0** : sous-schémas (un bloc ouvre un autre schéma, aussi en présentation),
+47 pictogrammes embarqués, corbeille (un schéma supprimé reste récupérable 30 jours).
+
 ## Utilisation rapide
 
 | Je veux… | Au doigt | À la souris / au clavier |
@@ -62,6 +65,9 @@ public en mode deux écrans).
 | Créer des blocs depuis une liste | Menu → *Créer des blocs depuis une liste* (une ligne par bloc, les lignes décalées deviennent la suite) | idem, ou **Ctrl+V** d'une liste à puces |
 | Avoir le plan du schéma en texte | Menu → *Plan du schéma en texte* → *Copier le plan* | idem |
 | Rechercher un mot | loupe en haut | **Ctrl+F**, **Entrée** / **Maj+Entrée** pour suivant / précédent |
+| Mettre un pictogramme dans un bloc | **Style** → *Pictogramme* (47 dessins embarqués) | idem |
+| Relier un bloc à un sous-schéma | **Style** → *Relier à un schéma* (ou *Créer un nouveau sous-schéma*) ; *Ouvrir*, puis **Retour** en haut à gauche | **O** pour ouvrir |
+| Récupérer un schéma supprimé | *Mes schémas* → **Corbeille** (30 jours) | idem |
 | Repartir d'un de mes schémas | Menu → *Enregistrer comme modèle*, puis *Nouveau schéma* → *Mes modèles* | idem |
 | Changer le trait d'une flèche | toucher la flèche, puis **Trait** : droite, angle droit ou courbe ; plein ou pointillés ; une, deux ou aucune pointe | idem |
 | Créer un bloc relié | tirer le rond **+** vers le vide | **R** (à droite) / **Maj+R** (en dessous) |
@@ -82,6 +88,7 @@ public en mode deux écrans).
 | Étape précédente | toucher le tiers gauche, ou glisser vers la droite | **←**, **Retour arrière**, **Page précédente** |
 | Début / fin | — | **Début** / **Fin** |
 | Notes du présentateur | bouton **Notes** en bas à gauche | **N** |
+| Entrer dans un sous-schéma | toucher le bloc marqué ↗ ; à la fin (ou bouton **Retour**), on revient où on en était | **O** |
 | Pointeur lumineux | **appui long** sur le schéma, puis glisser | appui long à la souris, ou **L** (le point suit la souris) |
 | Quitter | croix en haut à droite, ou geste « retour » | **Échap** |
 
@@ -181,6 +188,7 @@ js/
   liste.js             blocs depuis une liste à retraits, plan en texte
   recherche.js         rechercher dans le schéma
   pointeur.js          pointeur lumineux en présentation
+  pictogrammes.js      les 47 pictogrammes (dessins au trait, embarqués)
   stockage.js          IndexedDB
   fichiers.js          export / import .json
   interface.js         menus, fenêtres, réglages, liste des schémas
@@ -201,13 +209,14 @@ Un schéma est un fichier JSON simple et lisible :
 ```json
 {
   "format": "omni-schema",
-  "version_format": 4,
+  "version_format": 5,
   "id": "s-…", "titre": "Mon schéma",
   "cree_le": "2026-11-18T09:00:00.000Z", "modifie_le": "…",
   "theme": "auto",
   "elements": [
     { "type": "bloc", "id": "b-…", "x": 0, "y": 0, "largeur": 160, "hauteur": 80,
-      "texte": "…", "forme": "arrondi", "couleur": "violet", "taille": "normal", "etape": 0, "note": "", "image": "" },
+      "texte": "…", "forme": "arrondi", "couleur": "violet", "taille": "normal", "etape": 0, "note": "", "image": "",
+      "picto": "", "lien": "" },
     { "type": "zone", "id": "z-…", "x": -40, "y": -60, "largeur": 480, "hauteur": 260,
       "titre": "Phase 1", "couleur": "vert", "etape": 0 },
     { "type": "fleche", "id": "f-…", "de": "b-…", "vers": "b-…",
@@ -218,6 +227,8 @@ Un schéma est un fichier JSON simple et lisible :
 
 - `forme` : `rectangle`, `arrondi`, `ovale`, `losange`, `texte` (sans cadre).
 - `taille` (format 4) : taille du texte d'un bloc, `petit`, `normal` ou `grand`.
+- `picto` (format 5) : identifiant d'un pictogramme de `js/pictogrammes.js` (ou `""`).
+- `lien` (format 5) : identifiant du schéma que le bloc ouvre (sous-schéma), ou `""`.
 - `zone` (format 4) : grand cadre titré dessiné derrière les blocs ; en présentation, il
   apparaît à son étape comme un bloc.
 - `couleur` : `neutre`, `violet`, `bleu`, `vert`, `jaune`, `rouge`.

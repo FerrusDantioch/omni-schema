@@ -4,9 +4,11 @@
 // =====================================================================
 
 const NOM_BASE = 'omni-schema';
-const VERSION_BASE = 2;         // 2 : ajout des modèles personnels
+const VERSION_BASE = 3;         // 2 : modèles personnels ; 3 : corbeille
 const MAGASIN = 'schemas';
 const MAGASIN_MODELES = 'modeles';
+const MAGASIN_CORBEILLE = 'corbeille';
+export const JOURS_CORBEILLE = 30;
 
 let promesseBase = null;
 
@@ -27,6 +29,9 @@ function ouvrirBase() {
         }
         if (!base.objectStoreNames.contains(MAGASIN_MODELES)) {
           base.createObjectStore(MAGASIN_MODELES, { keyPath: 'id' });
+        }
+        if (!base.objectStoreNames.contains(MAGASIN_CORBEILLE)) {
+          base.createObjectStore(MAGASIN_CORBEILLE, { keyPath: 'id' });
         }
       };
       let bloquee = false;
@@ -93,4 +98,49 @@ export function demanderStockagePersistant() {
   if (navigator.storage && navigator.storage.persist) {
     navigator.storage.persisted().then((deja) => { if (!deja) navigator.storage.persist(); }).catch(() => {});
   }
+}
+
+// ---------------------------------------------------------------------
+// Corbeille : un schéma supprimé y reste 30 jours avant d'être effacé.
+// ---------------------------------------------------------------------
+
+/** Schémas de la corbeille, du plus récemment supprimé au plus ancien. */
+export async function listerCorbeille() {
+  const tous = (await operation('readonly', (m) => m.getAll(), MAGASIN_CORBEILLE)) || [];
+  return tous.sort((a, b) => String(b.supprime_le).localeCompare(String(a.supprime_le)));
+}
+export const chargerDeCorbeille = (id) => operation('readonly', (m) => m.get(id), MAGASIN_CORBEILLE);
+export const supprimerDeCorbeille = (id) => operation('readwrite', (m) => m.delete(id), MAGASIN_CORBEILLE);
+export const viderCorbeille = () => operation('readwrite', (m) => m.clear(), MAGASIN_CORBEILLE);
+
+/** Met un schéma à la corbeille (copie, puis retrait de la liste). */
+export async function mettreALaCorbeille(id) {
+  const schema = await chargerSchema(id);
+  if (!schema) return;
+  await operation('readwrite', (m) => m.put({ ...schema, supprime_le: new Date().toISOString() }), MAGASIN_CORBEILLE);
+  await supprimerSchema(id);
+}
+
+/** Remet un schéma de la corbeille dans « Mes schémas ». Renvoie le schéma récupéré. */
+export async function recupererDeCorbeille(id) {
+  const brut = await chargerDeCorbeille(id);
+  if (!brut) return null;
+  const { supprime_le: _oubli, ...schema } = brut;
+  // Ne jamais écraser : si un schéma porte déjà cet identifiant, on en prend un autre.
+  if (await chargerSchema(schema.id)) schema.id = `${schema.id}-r${Date.now().toString(36)}`;
+  schema.modifie_le = new Date().toISOString();
+  await enregistrerSchema(schema);
+  await supprimerDeCorbeille(id);
+  return schema;
+}
+
+/** Efface pour de bon ce qui est dans la corbeille depuis plus de 30 jours. Renvoie le nombre effacé. */
+export async function purgerCorbeille(maintenant = Date.now()) {
+  const limite = maintenant - JOURS_CORBEILLE * 24 * 3600 * 1000;
+  let n = 0;
+  for (const s of await listerCorbeille()) {
+    const quand = new Date(s.supprime_le).getTime();
+    if (!Number.isFinite(quand) || quand < limite) { await supprimerDeCorbeille(s.id); n++; }
+  }
+  return n;
 }

@@ -26,7 +26,10 @@ function zoneInterieure(b) {
   };
 }
 
-// Part de la hauteur donnée à l'image quand le bloc a aussi du texte.
+/** Le bloc porte-t-il une image ou un pictogramme ? */
+export const aUnVisuel = (b) => !!(b.image || b.picto);
+
+// Part de la hauteur donnée à l'image (ou au pictogramme) quand le bloc a aussi du texte.
 const PART_IMAGE = 0.62;
 
 /**
@@ -34,7 +37,7 @@ const PART_IMAGE = 0.62;
  * du bloc s'il n'a pas de texte, sinon la partie haute.
  */
 export function zoneImage(b) {
-  if (!b.image) return null;
+  if (!aUnVisuel(b)) return null;
   const z = zoneInterieure(b);
   if (!String(b.texte || '').trim()) return z;
   return { x: z.x, y: z.y, largeur: z.largeur, hauteur: Math.max(10, z.hauteur * PART_IMAGE - 4) };
@@ -47,7 +50,7 @@ export function zoneImage(b) {
  */
 export function zoneTexte(b) {
   const z = zoneInterieure(b);
-  if (!b.image) return z;
+  if (!aUnVisuel(b)) return z;
   const haut = z.hauteur * PART_IMAGE;
   return { x: z.x, y: z.y + haut, largeur: z.largeur, hauteur: Math.max(10, z.hauteur - haut) };
 }
