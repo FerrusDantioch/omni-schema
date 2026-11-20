@@ -43,6 +43,10 @@ public en mode deux écrans).
 **Version 1.6.0** : ranger automatiquement (arbre ou grille), feutre en présentation (aussi sur la
 fenêtre public), sous-schémas dans la vue à deux écrans et dans la page HTML autonome.
 
+**Version 1.7.0** : six nouvelles formes (cercle, hexagone, parallélogramme, base de données,
+document, nuage), un schéma exporté en .json emporte ses sous-schémas, et « Ranger » fait suivre
+les zones.
+
 ## Utilisation rapide
 
 | Je veux… | Au doigt | À la souris / au clavier |
@@ -64,7 +68,8 @@ fenêtre public), sous-schémas dans la vue à deux écrans et dans la page HTML
 | Coller un texte ou une image venus d'ailleurs | — | **Ctrl+V** : un nouveau bloc est créé |
 | Regrouper des blocs dans une zone | bouton **Zone** (ou **Aligner** → *Entourer d'une zone* avec plusieurs blocs choisis) ; on déplace la zone par son titre, ses blocs suivent (ils sont entourés de pointillés quand la zone est choisie ; un bloc posé à cheval sur le bord agrandit la zone) ; toucher encore le titre pour le changer | **Z** ; **Entrée** pour le titre |
 | Aligner, répartir, même taille | plusieurs blocs choisis → **Aligner** | idem |
-| Ranger automatiquement | plusieurs blocs choisis → **Aligner** → *Ranger* ; ou **Vue** → *Ranger tout le schéma* (arbre →, arbre ↓, grille) | idem |
+| Ranger automatiquement | plusieurs blocs choisis → **Aligner** → *Ranger* ; ou **Vue** → *Ranger tout le schéma* (arbre →, arbre ↓, grille) ; les zones suivent leurs blocs et s'écartent l'une de l'autre | idem |
+| Partager un schéma et ses sous-schémas | Menu → *Exporter ce schéma (.json)* : les sous-schémas sont dans le fichier | idem |
 | Écrire un titre ou une légende libre | **Style** → forme *Sans cadre*, et *Taille du texte* | idem |
 | Créer des blocs depuis une liste | Menu → *Créer des blocs depuis une liste* (une ligne par bloc, les lignes décalées deviennent la suite) | idem, ou **Ctrl+V** d'une liste à puces |
 | Avoir le plan du schéma en texte | Menu → *Plan du schéma en texte* → *Copier le plan* | idem |
@@ -221,7 +226,7 @@ Un schéma est un fichier JSON simple et lisible :
 ```json
 {
   "format": "omni-schema",
-  "version_format": 5,
+  "version_format": 6,
   "id": "s-…", "titre": "Mon schéma",
   "cree_le": "2026-11-18T09:00:00.000Z", "modifie_le": "…",
   "theme": "auto",
@@ -237,7 +242,8 @@ Un schéma est un fichier JSON simple et lisible :
 }
 ```
 
-- `forme` : `rectangle`, `arrondi`, `ovale`, `losange`, `texte` (sans cadre).
+- `forme` : `rectangle`, `arrondi`, `ovale`, `losange`, `texte` (sans cadre) ; depuis le format 6 :
+  `cercle`, `hexagone`, `parallelogramme`, `cylindre` (base de données), `document`, `nuage`.
 - `taille` (format 4) : taille du texte d'un bloc, `petit`, `normal` ou `grand`.
 - `picto` (format 5) : identifiant d'un pictogramme de `js/pictogrammes.js` (ou `""`).
 - `lien` (format 5) : identifiant du schéma que le bloc ouvre (sous-schéma), ou `""`.
@@ -249,6 +255,8 @@ Un schéma est un fichier JSON simple et lisible :
 - `etape` : `0` = toujours visible ; sinon numéro d'apparition en présentation.
 - `images` (format 2) : les images des blocs, `{ "i-…": "data:image/webp;base64,…" }` ; un bloc
   y fait référence par son champ `image`. Elles sont réduites à 1200 pixels et compressées à l'import.
+- Un schéma exporté seul emporte ses sous-schémas dans `sous_schemas: [ … ]` (depuis la 1.7.0) ;
+  à l'import, ils sont recréés (jamais d'écrasement) et les liens des blocs sont rebranchés.
 - La sauvegarde de tous les schémas a la forme `{ "format": "omni-schema-sauvegarde", "schemas": [ … ], "modeles": [ … ] }`
   (`modeles` : les modèles personnels, rangés à part dans la base de l'appareil).
 

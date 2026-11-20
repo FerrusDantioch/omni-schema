@@ -6,12 +6,14 @@
 // - « grille » : en lignes et colonnes régulières, dans l'ordre de lecture.
 //
 // Les blocs gardent leur taille ; l'ensemble reste à peu près à sa place
-// (même coin haut gauche). Une seule action : un « Annuler » remet tout.
+// (même coin haut gauche). Les zones suivent : chacune est redimensionnée
+// pour entourer à nouveau ses blocs. Une seule action : un « Annuler »
+// remet tout.
 // =====================================================================
 
-import { GRILLE } from './config.js';
-import { listeBlocs } from './modele.js';
-import { englobant, surGrille } from './geometrie.js';
+import { GRILLE, BANDE_ZONE } from './config.js';
+import { listeBlocs, listeZones } from './modele.js';
+import { englobant, surGrille, contenuZone } from './geometrie.js';
 import { etat, valider, annoncer } from './noyau.js';
 
 const ECART_NIVEAU = 80; // entre deux niveaux de l'arbre
@@ -106,6 +108,71 @@ function positionsGrille(blocs) {
 }
 
 /**
+ * Après le rangement : chaque zone dont des blocs ont bougé est
+ * redimensionnée pour les entourer à nouveau (avec de la marge et la
+ * place du titre). Les petites zones d'abord : une grande zone qui en
+ * contient une petite l'entoure ensuite. Renvoie le nombre de zones ajustées.
+ */
+function suivreZones(zones, contenus, deplaces) {
+  const marge = 24;
+  const ajustees = new Set();
+  for (const z of zones) {
+    const contenu = contenus.get(z.id).filter((e) => e.type === 'bloc' || e.type === 'zone');
+    const aBouge = contenu.some((e) => deplaces.has(e.id) || ajustees.has(e.id));
+    if (!contenu.length || !aBouge) continue;
+    const boite = englobant(contenu);
+    let x1 = boite.x - marge;
+    let y1 = boite.y - marge - BANDE_ZONE;
+    let x2 = boite.x + boite.largeur + marge;
+    let y2 = boite.y + boite.hauteur + marge;
+    if (etat.reglages.grille) {
+      x1 = Math.floor(x1 / GRILLE) * GRILLE; y1 = Math.floor(y1 / GRILLE) * GRILLE;
+      x2 = Math.ceil(x2 / GRILLE) * GRILLE; y2 = Math.ceil(y2 / GRILLE) * GRILLE;
+    }
+    Object.assign(z, { x: x1, y: y1, largeur: x2 - x1, hauteur: y2 - y1 });
+    ajustees.add(z.id);
+  }
+  return ajustees;
+}
+
+/**
+ * Deux zones voisines (l'une n'est pas dans l'autre) qui se chevauchent
+ * après le rangement : on écarte la seconde, en poussant vers la droite
+ * (ou vers le bas, si c'est plus court) tout ce qui se trouve après elle.
+ * Les dispositions gardent ainsi leur forme, avec de l'air entre les zones.
+ */
+function separerZones(ajustees) {
+  const ecart = 16;
+  const dans = (a, b) => a.x >= b.x && a.y >= b.y && a.x + a.largeur <= b.x + b.largeur && a.y + a.hauteur <= b.y + b.hauteur;
+  for (let tour = 0; tour < 30; tour++) {
+    const zones = etat.schema.elements.filter((e) => e.type === 'zone');
+    let conflit = null;
+    for (const a of zones) {
+      for (const b of zones) {
+        if (a === b || (!ajustees.has(a.id) && !ajustees.has(b.id)) || dans(a, b) || dans(b, a)) continue;
+        const chevauche = a.x < b.x + b.largeur + ecart && a.x + a.largeur + ecart > b.x
+          && a.y < b.y + b.hauteur + ecart && a.y + a.hauteur + ecart > b.y;
+        // « b » est celle qui vient après (plus à droite, ou plus bas à égalité).
+        if (chevauche && (b.x > a.x || (b.x === a.x && b.y > a.y))) { conflit = { a, b }; break; }
+      }
+      if (conflit) break;
+    }
+    if (!conflit) return;
+    const { a, b } = conflit;
+    const versDroite = a.x + a.largeur + ecart - b.x;
+    const versBas = a.y + a.hauteur + ecart - b.y;
+    const horizontal = versBas <= 0 || (versDroite > 0 && versDroite <= versBas);
+    const seuil = horizontal ? b.x : b.y;
+    const decalage = Math.ceil((horizontal ? versDroite : versBas) / GRILLE) * GRILLE;
+    for (const e of etat.schema.elements) {
+      if (e.type !== 'bloc' && e.type !== 'zone') continue;
+      if (horizontal && e.x >= seuil) e.x += decalage;
+      if (!horizontal && e.y >= seuil) e.y += decalage;
+    }
+  }
+}
+
+/**
  * Range les blocs « ids » (ou tous les blocs du schéma si ids est vide).
  * Renvoie le nombre de blocs rangés.
  */
@@ -114,6 +181,9 @@ export function ranger(sens, ids = null) {
   const blocs = ids && ids.length ? tous.filter((b) => ids.includes(b.id)) : tous;
   if (blocs.length < 2) { annoncer('Il faut au moins deux blocs à ranger.'); return 0; }
   const origine = englobant(blocs);
+  // Ce que contient chaque zone AVANT de ranger (les blocs bougent ensuite).
+  const zones = listeZones(etat.schema).reverse(); // des plus petites aux plus grandes
+  const contenus = new Map(zones.map((z) => [z.id, contenuZone(z, etat.schema.elements)]));
   const positions = sens === 'grille' ? positionsGrille(blocs) : positionsArbre(foret(blocs), sens);
   let x0 = origine.x;
   let y0 = origine.y;
@@ -126,8 +196,12 @@ export function ranger(sens, ids = null) {
     b.x = x;
     b.y = y;
   }
+  const ajustees = suivreZones(zones, contenus, new Set(blocs.map((b) => b.id)));
+  separerZones(ajustees);
+  const zonesSuivies = ajustees.size;
   valider();
   const quoi = { droite: 'en arbre vers la droite', bas: 'en arbre vers le bas', grille: 'en grille' }[sens];
-  annoncer(`${blocs.length} blocs rangés ${quoi} (Annuler pour revenir)`);
+  const zonesTexte = zonesSuivies ? `, ${zonesSuivies} zone${zonesSuivies > 1 ? 's' : ''} ajustée${zonesSuivies > 1 ? 's' : ''}` : '';
+  annoncer(`${blocs.length} blocs rangés ${quoi}${zonesTexte} (Annuler pour revenir)`);
   return blocs.length;
 }

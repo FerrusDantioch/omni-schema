@@ -5,7 +5,7 @@
 // Un schéma est un simple objet JSON :
 // {
 //   format: 'omni-schema',      // pour reconnaître nos fichiers
-//   version_format: 5,          // version de la structure (voir migrer)
+//   version_format: 6,          // version de la structure (voir migrer)
 //   id, titre, cree_le, modifie_le,
 //   theme: 'auto',              // thème de présentation (auto = celui de l'app)
 //   elements: [ blocs et flèches ],
@@ -32,6 +32,12 @@ export const FORMES = [
   { id: 'arrondi', nom: 'Arrondi' },
   { id: 'ovale', nom: 'Ovale' },
   { id: 'losange', nom: 'Losange' },
+  { id: 'cercle', nom: 'Cercle' },
+  { id: 'hexagone', nom: 'Hexagone' },
+  { id: 'parallelogramme', nom: 'Parallélogramme' },
+  { id: 'cylindre', nom: 'Base de données' },
+  { id: 'document', nom: 'Document' },
+  { id: 'nuage', nom: 'Nuage' },
   { id: 'texte', nom: 'Sans cadre' },
 ];
 
@@ -203,6 +209,9 @@ const MIGRATIONS = {
     doc.version_format = 5;
     return doc;
   },
+  // 5 → 6 : nouvelles formes (cercle, hexagone…) ; rien à convertir, mais
+  // une ancienne version de l'app refusera ces fichiers au lieu de perdre les formes.
+  5: (doc) => { doc.version_format = 6; return doc; },
 };
 
 // Une image valide : une adresse « data: » d'image, de taille raisonnable.
