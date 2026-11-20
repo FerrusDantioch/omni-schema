@@ -5,7 +5,8 @@
 //     flèche droite, Espace, Entrée, Page suivante → étape suivante ;
 //   - toucher la partie gauche (ou glisser vers la droite), flèche
 //     gauche, Retour arrière, Page précédente → étape précédente ;
-//   - Début / Fin : première / dernière étape ; N : notes ; Échap : quitter.
+//   - Début / Fin : première / dernière étape ; N : notes ; Échap : quitter ;
+//   - appui long sur le schéma : pointeur lumineux ; L : pointeur qui suit la souris.
 // Les télécommandes de présentation envoient Page suivante / précédente :
 // elles fonctionnent donc aussi.
 // =====================================================================
@@ -15,6 +16,7 @@ import { arrets, nomElement } from './etapes.js';
 import { construireSvg, appliquerArret } from './schema-svg.js';
 import { couleursToile } from './couleurs.js';
 import { listeBlocs } from './modele.js';
+import { creerPoint, brancherPointeur } from './pointeur.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -65,6 +67,10 @@ export function creerPresentation({ apresFermeture }) {
   let verrouEcran = null;
   let depart = null;
 
+  // Pointeur lumineux (appui long, ou touche L).
+  const point = creerPoint(scene);
+  const pointeur = brancherPointeur(scene, point, { actif: () => etat.presentation && !racine.hidden });
+
   // ------------------------------------------------------------------
   async function ouvrir() {
     const schema = etat.schema;
@@ -74,7 +80,7 @@ export function creerPresentation({ apresFermeture }) {
     rendu.svg.setAttribute('width', '100%');
     rendu.svg.setAttribute('height', '100%');
     rendu.svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-    scene.replaceChildren(rendu.svg);
+    scene.replaceChildren(rendu.svg, point.element);
 
     racine.dataset.theme = theme; // les couleurs des boutons suivent le thème de présentation
     racine.style.background = couleursToile(theme).fond;
@@ -111,7 +117,8 @@ export function creerPresentation({ apresFermeture }) {
     if (!etat.presentation || racine.hidden) return;
     etat.presentation = false;
     racine.hidden = true;
-    scene.replaceChildren();
+    pointeur.reinitialiser();
+    scene.replaceChildren(point.element);
     rendu = null;
     if (pleinEcranActif && document.fullscreenElement) document.exitFullscreen().catch(() => {});
     pleinEcranActif = false;
@@ -210,6 +217,7 @@ export function creerPresentation({ apresFermeture }) {
   });
   scene.addEventListener('pointerup', (e) => {
     if (!depart) return;
+    if (pointeur.consomme()) { depart = null; return; } // c'était le pointeur, pas un changement d'étape
     const dx = e.clientX - depart.x;
     const dy = e.clientY - depart.y;
     depart = null;
@@ -248,6 +256,7 @@ export function creerPresentation({ apresFermeture }) {
       case 'End': allerA(liste.length - 1); break;
       case 'Escape': fermer(); break;
       case 'n': case 'N': basculerNotes(); break;
+      case 'l': case 'L': pointeur.basculerSouris(); break;
       case 'Tab': geree = false; break;
       default: geree = false;
     }

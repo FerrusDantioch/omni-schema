@@ -435,6 +435,26 @@ export function creerRendu(svg) {
       }
     }
 
+    // Résultats de la recherche : tous entourés, le résultat actuel plus nettement.
+    if (etat.recherche) {
+      for (const id of etat.recherche.ids) {
+        const e = trouver(schema, id);
+        if (!e) continue;
+        const actuel = id === etat.recherche.actuel;
+        const trait = { fill: 'none', stroke: T.guide, 'stroke-width': (actuel ? 4 : 2) / k, 'stroke-opacity': actuel ? 1 : 0.75, class: 'decor' };
+        if (e.type === 'fleche') {
+          const A = parId.get(e.de);
+          const B = parId.get(e.vers);
+          if (!A || !B) continue;
+          const points = traceFleche(e, A, B);
+          el('path', { d: `M${points.map((p) => `${arrondir(p.x)} ${arrondir(p.y)}`).join(' L')}`, ...trait, 'stroke-width': (actuel ? 14 : 10) / k, 'stroke-opacity': actuel ? 0.55 : 0.35, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, calquePoignees);
+        } else {
+          const m = (actuel ? 10 : 8) / k;
+          el('rect', { x: e.x - m, y: e.y - m, width: e.largeur + 2 * m, height: e.hauteur + 2 * m, rx: (e.type === 'zone' ? 18 : 8) + m, ...trait }, calquePoignees);
+        }
+      }
+    }
+
     // Rectangle de sélection en cours.
     if (etat.rectangle) {
       const r = etat.rectangle;

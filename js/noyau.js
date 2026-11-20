@@ -30,6 +30,7 @@ export const etat = {
   presentateur: false,   // vrai pendant la vue présentateur (deux écrans)
   groupe: null,          // sélection multiple : tableau d'ids de blocs (null = inactive)
   rectangle: null,       // rectangle de sélection en cours { x1, y1, x2, y2 }
+  recherche: null,       // résultats de la recherche { ids: Set, actuel } (null = pas de recherche)
 };
 
 const historique = creerHistorique();
@@ -251,6 +252,29 @@ export function recentrer() {
       y: hauteur / 2 - (boite.y + boite.hauteur / 2) * k,
     };
   }
+  demanderRendu();
+}
+
+/**
+ * Centre la vue sur un élément (résultat de recherche). Le zoom est
+ * gardé, sauf s'il est si petit que l'élément serait illisible.
+ */
+export function centrerSur(id) {
+  const e = trouver(etat.schema, id);
+  if (!e) return;
+  let c;
+  if (e.type === 'fleche') {
+    const A = trouver(etat.schema, e.de);
+    const B = trouver(etat.schema, e.vers);
+    if (!A || !B) return;
+    c = { x: (A.x + A.largeur / 2 + B.x + B.largeur / 2) / 2, y: (A.y + A.hauteur / 2 + B.y + B.hauteur / 2) / 2 };
+  } else {
+    c = { x: e.x + e.largeur / 2, y: e.y + e.hauteur / 2 };
+  }
+  const { largeur, hauteur } = tailleZone();
+  const k = etat.vue.k < 0.5 ? 1 : etat.vue.k;
+  // Un peu plus bas que le milieu : la barre de recherche occupe le haut.
+  etat.vue = { k, x: largeur / 2 - c.x * k, y: hauteur / 2 + 24 - c.y * k };
   demanderRendu();
 }
 

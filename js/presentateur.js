@@ -20,6 +20,7 @@ import { couleursToile } from './couleurs.js';
 import { listeBlocs, migrer } from './modele.js';
 import { chargerSchema } from './stockage.js';
 import { themePresentation, lireReprise, ecrireReprise, repriseUtile } from './presentation.js';
+import { creerPoint, brancherPointeur } from './pointeur.js';
 
 const CANAL = 'omni-schema-presentation';
 const $ = (id) => document.getElementById(id);
@@ -50,6 +51,23 @@ export function creerVuePresentateur({ apresFermeture, annoncer }) {
   let minuterie = null;
   let verrouEcran = null;
 
+  // Pointeur lumineux : on le promène sur l'aperçu « étape en cours », il
+  // apparaît au même endroit du schéma sur la fenêtre public.
+  const cadreActuel = $('pt-scene-actuelle');
+  const point = creerPoint(cadreActuel);
+  let positionAEnvoyer;
+  let envoiPrevu = false;
+  const envoyerPointeur = (pos) => {
+    positionAEnvoyer = pos;
+    if (envoiPrevu) return;
+    envoiPrevu = true;
+    requestAnimationFrame(() => { // au plus un message par image
+      envoiPrevu = false;
+      if (canal) canal.postMessage({ type: 'pointeur', id: schema.id, pos: positionAEnvoyer });
+    });
+  };
+  const pointeur = brancherPointeur(cadreActuel, point, { surPosition: envoyerPointeur, actif: () => etat.presentateur });
+
   function envoyer() {
     if (canal) canal.postMessage({ type: 'arret', id: schema.id, index });
   }
@@ -76,7 +94,7 @@ export function creerVuePresentateur({ apresFermeture, annoncer }) {
 
     actuel = construireSvg(schema, theme);
     suivantRendu = construireSvg(schema, theme);
-    $('pt-scene-actuelle').replaceChildren(svgAjuste(actuel));
+    $('pt-scene-actuelle').replaceChildren(svgAjuste(actuel), point.element);
     $('pt-scene-suivante').replaceChildren(svgAjuste(suivantRendu));
     const T = couleursToile(theme);
     $('pt-scene-actuelle').style.background = T.fond;
@@ -117,7 +135,8 @@ export function creerVuePresentateur({ apresFermeture, annoncer }) {
     etat.presentation = false;
     etat.presentateur = false;
     racine.hidden = true;
-    $('pt-scene-actuelle').replaceChildren();
+    pointeur.reinitialiser();
+    $('pt-scene-actuelle').replaceChildren(point.element);
     $('pt-scene-suivante').replaceChildren();
     apresFermeture();
   }
@@ -191,6 +210,9 @@ export function creerVuePresentateur({ apresFermeture, annoncer }) {
       case 'Home': allerA(0); break;
       case 'End': allerA(liste.length - 1); break;
       case 'Escape': fermer(); break;
+      case 'l': case 'L':
+        annoncer(pointeur.basculerSouris() ? 'Pointeur : promène la souris sur l\'étape en cours (L pour l\'enlever).' : 'Pointeur retiré.');
+        break;
       default: geree = false;
     }
     if (geree) { e.preventDefault(); e.stopImmediatePropagation(); }
@@ -228,6 +250,7 @@ export async function demarrerPublic(idSchema) {
 
   const rendu = construireSvg(schema, theme);
   scene.appendChild(svgAjuste(rendu));
+  const point = creerPoint(scene); // pointeur envoyé par la vue présentateur
   const liste = arrets(schema);
   let actuel = null;
   const reduire = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -247,6 +270,7 @@ export async function demarrerPublic(idSchema) {
     const d = m.data || {};
     if (d.id !== schema.id) return;
     if (d.type === 'arret') montrer(d.index);
+    if (d.type === 'pointeur') { if (d.pos) point.montrerSchema(d.pos.x, d.pos.y); else point.cacher(); }
     if (d.type === 'fin') {
       aide.hidden = false;
       aide.textContent = 'Présentation terminée. Tu peux fermer cette fenêtre.';

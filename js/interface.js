@@ -24,6 +24,7 @@ import { exporterHtml } from './export-html.js';
 import { themePresentation } from './presentation.js';
 import { preparerImage } from './images.js';
 import { copierDepuisBouton, coller, pressePapiersRempli } from './presse-papiers.js';
+import { analyserListe, creerDepuisListe, planEnTexte, MAX_ELEMENTS_LISTE } from './liste.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -223,6 +224,7 @@ export function installerInterface({ editeur, presentation, panneauEtapes }) {
   construireChoix();
   construireChoixTrait();
   construireChoixAligner();
+  installerListe();
   installerNouveau();
   installerExport();
   installerMenu();
@@ -543,6 +545,8 @@ function installerMenu() {
       case 'schemas': await afficherListe(); break;
       case 'nouveau': await nouveauSchema(); break;
       case 'modele': await enregistrerCommeModele(); break;
+      case 'liste': await ouvrirListe(); break;
+      case 'plan': afficherPlan(); break;
       case 'exporter-image': afficherExport(); break;
       case 'exporter':
         await sauvegarderMaintenant();
@@ -618,6 +622,68 @@ function installerNouveau() {
     champ.value = nomPropose;
   });
   $('dlg-nouveau').addEventListener('close', () => { nomPropose = 'Nouveau schéma'; });
+}
+
+// ---------------------------------------------------------------------
+// Créer des blocs depuis une liste ; plan du schéma en texte
+// ---------------------------------------------------------------------
+
+/**
+ * Ouvre la fenêtre « Créer des blocs depuis une liste ». Avec « texte »
+ * (un texte collé qui ressemble à une liste), la fenêtre est préremplie
+ * et propose aussi « Un seul bloc » : renvoie alors 'un' si c'est le choix.
+ */
+export async function ouvrirListe(texte = null) {
+  const d = $('dlg-liste');
+  const champ = $('liste-texte');
+  if (texte !== null) champ.value = texte;
+  $('liste-un-bloc').hidden = texte === null;
+  majCompteListe();
+  d.returnValue = 'non';
+  ouvrirFenetre(d);
+  champ.focus();
+  const choix = await new Promise((resoudre) => d.addEventListener('close', () => resoudre(d.returnValue), { once: true }));
+  if (choix !== 'oui') return choix;
+  const sens = (d.querySelector('input[name="liste-sens"]:checked') || {}).value || 'droite';
+  const n = creerDepuisListe(champ.value, { sens, etapes: $('liste-etapes-une-par-une').checked });
+  if (n) champ.value = '';
+  else annoncer('La liste est vide : écris une ligne par bloc.');
+  return 'oui';
+}
+
+function majCompteListe() {
+  const { nombre } = analyserListe($('liste-texte').value);
+  const plein = nombre >= MAX_ELEMENTS_LISTE ? ` (maximum ${MAX_ELEMENTS_LISTE})` : '';
+  $('liste-compte').textContent = nombre ? `${nombre} bloc${nombre > 1 ? 's' : ''} à créer${plein}.` : '';
+  $('liste-creer').disabled = !nombre;
+}
+
+function afficherPlan() {
+  const plan = planEnTexte(etat.schema);
+  $('plan-texte').value = plan || '(Le schéma ne contient aucun bloc.)';
+  ouvrirFenetre($('dlg-plan'));
+  $('plan-texte').focus();
+  $('plan-texte').select();
+}
+
+function installerListe() {
+  $('liste-texte').addEventListener('input', majCompteListe);
+  // Ctrl+Entrée = Créer (Entrée seule = nouvelle ligne).
+  $('liste-texte').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !$('liste-creer').disabled) { e.preventDefault(); $('dlg-liste').close('oui'); }
+  });
+  $('btn-copier-plan').addEventListener('click', async () => {
+    const champ = $('plan-texte');
+    try {
+      await navigator.clipboard.writeText(champ.value);
+      annoncer('Plan copié : colle-le où tu veux.');
+    } catch {
+      // Sans accès au presse-papiers : le texte est sélectionné, il reste à le copier.
+      champ.focus();
+      champ.select();
+      annoncer('Le texte est sélectionné : copie-le avec Ctrl+C (ou appui long → Copier).', 5000);
+    }
+  });
 }
 
 // ---------------------------------------------------------------------

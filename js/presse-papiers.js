@@ -21,6 +21,7 @@ import {
   etat, valider, blocsSelectionnes, supprimerSelection, ajouterBloc, centreVue, annoncer, notifier, rendreVisible,
 } from './noyau.js';
 import { preparerImage } from './images.js';
+import { ressembleAUneListe } from './liste.js';
 
 const CLE = 'omni-schema.presse-papiers';
 let memoire = null; // copie de secours si le stockage local est plein ou indisponible
@@ -191,7 +192,7 @@ async function collerImage(fichier) {
  * Branche Ctrl+C / Ctrl+X / Ctrl+V. « actif » dit si les raccourcis de
  * la toile sont permis en ce moment (pas de saisie, de fenêtre ouverte…).
  */
-export function installerPressePapiers({ actif }) {
+export function installerPressePapiers({ actif, proposerListe = null }) {
   const champ = (e) => {
     const c = e.target;
     return c && (c.tagName === 'INPUT' || c.tagName === 'TEXTAREA' || c.isContentEditable);
@@ -227,7 +228,15 @@ export function installerPressePapiers({ actif }) {
     // Le texte du système est celui de notre dernière copie (ou vide) :
     // on colle les blocs. Sinon, c'est un texte venu d'ailleurs.
     if (interne && (!texte.trim() || texte.trim() === (interne.texte || '').trim())) { coller(interne); return; }
-    if (texte.trim()) { collerTexte(texte); return; }
+    if (texte.trim()) {
+      // Une liste à puces ou à retraits : on propose d'en faire des blocs reliés.
+      if (proposerListe && ressembleAUneListe(texte)) {
+        proposerListe(texte).then((choix) => { if (choix === 'un') collerTexte(texte); });
+        return;
+      }
+      collerTexte(texte);
+      return;
+    }
     if (interne) coller(interne);
   });
 
