@@ -7,6 +7,8 @@
 //     gauche, Retour arrière, Page précédente → étape précédente ;
 //   - Début / Fin : première / dernière étape ; N : notes ; Échap : quitter ;
 //   - appui long sur le schéma : pointeur lumineux ; L : pointeur qui suit la souris ;
+//   - D : feutre (dessiner sur le schéma ; toucher ne change plus d'étape) ;
+//     E : effacer les traits (ils s'effacent aussi au changement d'étape) ;
 //   - toucher un bloc marqué ↗ (ou touche O) : entrer dans son sous-schéma ;
 //     à la fin du sous-schéma (ou avec « Retour »), on revient où on était.
 // Les télécommandes de présentation envoient Page suivante / précédente :
@@ -20,6 +22,7 @@ import { couleursToile } from './couleurs.js';
 import { listeBlocs, migrer } from './modele.js';
 import { chargerSchema, chargerDeCorbeille } from './stockage.js';
 import { creerPoint, brancherPointeur } from './pointeur.js';
+import { creerFeutre } from './feutre.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -75,7 +78,20 @@ export function creerPresentation({ apresFermeture }) {
 
   // Pointeur lumineux (appui long, ou touche L).
   const point = creerPoint(scene);
-  const pointeur = brancherPointeur(scene, point, { actif: () => etat.presentation && !racine.hidden });
+  const enCours = () => etat.presentation && !racine.hidden;
+  // Feutre : quand il est actif, toucher le schéma dessine (au lieu de changer d'étape).
+  const feutre = creerFeutre(scene, { peutDessiner: enCours, surTrait: () => majFeutre() });
+  const pointeur = brancherPointeur(scene, point, { actif: () => enCours() && !feutre.actif() });
+
+  function majFeutre() {
+    $('pres-feutre').setAttribute('aria-pressed', String(feutre.actif()));
+    $('pres-effacer').hidden = !feutre.actif() && !feutre.aDesTraits();
+  }
+  function basculerFeutre() {
+    const actif = feutre.basculer();
+    majFeutre();
+    montrerMessage(actif ? 'Feutre : dessine sur le schéma. Les flèches en bas (ou le clavier) changent d\'étape.' : 'Feutre rangé.');
+  }
 
   // ------------------------------------------------------------------
   /** Affiche un schéma (le principal ou un sous-schéma) à l'arrêt n° i. */
@@ -200,6 +216,8 @@ export function creerPresentation({ apresFermeture }) {
     pile = [];
     schemaCourant = null;
     $('pres-message').hidden = true;
+    feutre.reinitialiser();
+    majFeutre();
     if (pleinEcranActif && document.fullscreenElement) document.exitFullscreen().catch(() => {});
     pleinEcranActif = false;
     if (verrouEcran) { verrouEcran.release().catch(() => {}); verrouEcran = null; }
@@ -216,6 +234,8 @@ export function creerPresentation({ apresFermeture }) {
   // ------------------------------------------------------------------
   function afficher(arretPrecedent) {
     const arret = liste[index];
+    feutre.effacer(); // nouvelle étape : page blanche pour le feutre
+    majFeutre();
     const nouveaux = appliquerArret(rendu, arret, { surligner: true, precedent: arretPrecedent });
     // Fondu très léger (option), seulement en avançant.
     if (etat.reglages.fondu && arretPrecedent !== null) {
@@ -294,7 +314,7 @@ export function creerPresentation({ apresFermeture }) {
   // Toucher / clic sur la scène : droite = suivant, gauche = précédent.
   scene.addEventListener('pointerdown', (e) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
-    depart = { x: e.clientX, y: e.clientY };
+    depart = feutre.actif() ? null : { x: e.clientX, y: e.clientY }; // le feutre dessine, il ne navigue pas
   });
   scene.addEventListener('pointerup', (e) => {
     if (!depart) return;
@@ -322,6 +342,8 @@ export function creerPresentation({ apresFermeture }) {
   boutonNotes.addEventListener('click', basculerNotes);
   $('pres-quitter').addEventListener('click', fermer);
   $('pres-retour').addEventListener('click', revenir);
+  $('pres-feutre').addEventListener('click', basculerFeutre);
+  $('pres-effacer').addEventListener('click', () => { feutre.effacer(); majFeutre(); });
 
   // Clavier (prioritaire pendant la présentation).
   document.addEventListener('keydown', (e) => {
@@ -343,6 +365,8 @@ export function creerPresentation({ apresFermeture }) {
       case 'n': case 'N': basculerNotes(); break;
       case 'l': case 'L': pointeur.basculerSouris(); break;
       case 'o': case 'O': lienAuClavier(); break;
+      case 'd': case 'D': basculerFeutre(); break;
+      case 'e': case 'E': feutre.effacer(); majFeutre(); break;
       case 'Tab': geree = false; break;
       default: geree = false;
     }

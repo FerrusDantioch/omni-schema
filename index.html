@@ -44,6 +44,8 @@
     <symbol id="i-sous-schema" viewBox="0 0 24 24"><rect x="3" y="3" width="9" height="7" rx="1.5"/><rect x="12" y="14" width="9" height="7" rx="1.5"/><path d="M7.5 10v7.5H12"/></symbol>
     <symbol id="i-corbeille" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
     <symbol id="i-retour" viewBox="0 0 24 24"><path d="M10 6l-6 6 6 6M4 12h16"/></symbol>
+    <symbol id="i-feutre" viewBox="0 0 24 24"><path d="M4 20l1-4L16 5l3 3L8 19z M14 7l3 3 M4 20h6"/></symbol>
+    <symbol id="i-effacer" viewBox="0 0 24 24"><path d="M8 20h12 M5 16l9-9 5 5-6 6H9z M10 11l5 5"/></symbol>
     <symbol id="i-supprimer" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
     <symbol id="i-fermer" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
     <symbol id="i-etiquette" viewBox="0 0 24 24"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.5"/></symbol>
@@ -169,6 +171,8 @@
     <div class="options-choix" id="options-repartir"></div>
     <p class="etiquette-section">Même taille (la plus grande)</p>
     <div class="options-choix" id="options-taille-groupe"></div>
+    <p class="etiquette-section">Ranger automatiquement</p>
+    <div class="options-choix" id="options-ranger"></div>
     <p class="etiquette-section">Regrouper</p>
     <div class="boutons-etape">
       <button type="button" class="bouton" id="btn-zone-autour"><svg class="icone" aria-hidden="true"><use href="#i-zone"/></svg>Entourer d'une zone</button>
@@ -185,6 +189,8 @@
       <button type="button" class="bouton" id="btn-recentrer"><svg class="icone" aria-hidden="true"><use href="#i-recentrer"/></svg>Voir tout le schéma</button>
       <button type="button" class="bouton" id="btn-grille" aria-pressed="false"><svg class="icone" aria-hidden="true"><use href="#i-grille"/></svg>Grille magnétique</button>
     </div>
+    <p class="etiquette-section">Ranger tout le schéma</p>
+    <div class="options-choix" id="options-ranger-tout"></div>
   </div>
   <div class="choix" id="choix-etape" hidden role="group" aria-labelledby="titre-choix-etape">
     <p class="etiquette-section" id="titre-choix-etape">Apparition en présentation</p>
@@ -541,9 +547,17 @@
     <button type="button" class="pres-bouton pres-quitter" id="pres-quitter" aria-label="Quitter la présentation" title="Quitter (Échap)">
       <svg class="icone" aria-hidden="true"><use href="#i-fermer"/></svg>
     </button>
-    <button type="button" class="pres-bouton pres-ouvrir-notes" id="pres-notes" aria-expanded="false" aria-controls="pres-panneau-notes" title="Notes du présentateur (N)">
-      <svg class="icone" aria-hidden="true"><use href="#i-note"/></svg><span>Notes</span>
-    </button>
+    <div class="pres-outils">
+      <button type="button" class="pres-bouton" id="pres-notes" aria-expanded="false" aria-controls="pres-panneau-notes" title="Notes du présentateur (N)">
+        <svg class="icone" aria-hidden="true"><use href="#i-note"/></svg><span>Notes</span>
+      </button>
+      <button type="button" class="pres-bouton" id="pres-feutre" aria-pressed="false" title="Feutre : dessiner sur le schéma (D)">
+        <svg class="icone" aria-hidden="true"><use href="#i-feutre"/></svg><span>Feutre</span>
+      </button>
+      <button type="button" class="pres-bouton" id="pres-effacer" hidden title="Effacer les traits (E)">
+        <svg class="icone" aria-hidden="true"><use href="#i-effacer"/></svg><span>Effacer</span>
+      </button>
+    </div>
     <div class="pres-navigation">
       <button type="button" class="pres-bouton" id="pres-precedent" aria-label="Étape précédente"><svg class="icone" aria-hidden="true"><use href="#i-precedent"/></svg></button>
       <span class="pres-compteur" id="pres-compteur" role="status">1 / 1</span>
@@ -592,6 +606,11 @@
       </aside>
     </div>
     <footer class="pt-pied">
+      <button type="button" class="bouton" id="pt-feutre" aria-pressed="false" title="Feutre : dessiner sur « Ce que voit le public » (D)"><svg class="icone" aria-hidden="true"><use href="#i-feutre"/></svg>Feutre</button>
+      <button type="button" class="bouton" id="pt-effacer" hidden title="Effacer les traits (E)"><svg class="icone" aria-hidden="true"><use href="#i-effacer"/></svg>Effacer</button>
+      <span class="pt-espace"></span>
+      <button type="button" class="bouton" id="pt-retour" hidden><svg class="icone" aria-hidden="true"><use href="#i-retour"/></svg><span id="pt-retour-texte">Retour</span></button>
+      <button type="button" class="bouton" id="pt-entrer" hidden title="Entrer dans le sous-schéma (O)"><svg class="icone" aria-hidden="true"><use href="#i-sous-schema"/></svg><span id="pt-entrer-texte">Entrer</span></button>
       <button type="button" class="bouton" id="pt-reprise" hidden></button>
       <button type="button" class="bouton" id="pt-precedent"><svg class="icone" aria-hidden="true"><use href="#i-precedent"/></svg>Précédent</button>
       <button type="button" class="bouton principal" id="pt-suivant">Suivant<svg class="icone" aria-hidden="true"><use href="#i-suivant"/></svg></button>
@@ -621,7 +640,8 @@
       <dt>Copier, puis Coller</dt><dd>reprendre des blocs (avec leurs flèches et images) ici ou dans un autre schéma</dd>
       <dt>Trait (flèche choisie)</dt><dd>droite, angle droit ou courbe ; pointillés ; une, deux ou aucune pointe</dd>
       <dt>Zone</dt><dd>grand cadre titré derrière des blocs ; la saisir par son titre la déplace avec ses blocs (entourés de pointillés quand la zone est choisie) ; la toucher encore pour la renommer. Un bloc posé à cheval sur son bord l'agrandit.</dd>
-      <dt>Aligner (plusieurs blocs choisis)</dt><dd>aligner, répartir à intervalles égaux, même taille, entourer d'une zone</dd>
+      <dt>Aligner (plusieurs blocs choisis)</dt><dd>aligner, répartir à intervalles égaux, même taille, ranger automatiquement (arbre ou grille), entourer d'une zone</dd>
+      <dt>Vue → Ranger tout le schéma</dt><dd>en arbre vers la droite, vers le bas, ou en grille (Annuler pour revenir)</dd>
       <dt>Vue</dt><dd>zoom, voir tout le schéma, grille magnétique</dd>
       <dt>Style → Sans cadre, Taille du texte</dt><dd>titres, légendes et remarques libres</dd>
       <dt>Menu → Enregistrer comme modèle</dt><dd>repartir de ce schéma dans « Nouveau schéma »</dd>
@@ -660,6 +680,7 @@
       <dt><kbd>Début</kbd> · <kbd>Fin</kbd></dt><dd>première · dernière étape</dd>
       <dt><kbd>N</kbd></dt><dd>notes du présentateur</dd>
       <dt>Toucher un bloc marqué ↗ · <kbd>O</kbd></dt><dd>entrer dans son sous-schéma ; à la fin (ou « Retour »), on revient où on en était</dd>
+      <dt>Bouton Feutre · <kbd>D</kbd> · <kbd>E</kbd></dt><dd>dessiner sur le schéma · ranger le feutre · effacer (les traits s'effacent aussi à l'étape suivante)</dd>
       <dt>Appui long sur le schéma · <kbd>L</kbd></dt><dd>pointeur lumineux qui suit le doigt · qui suit la souris (aussi sur la fenêtre public, en mode deux écrans)</dd>
       <dt><kbd>Échap</kbd> ou geste « retour »</dt><dd>quitter</dd>
     </dl>
