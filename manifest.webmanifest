@@ -4,7 +4,7 @@
   "description": "Construis des schémas de blocs reliés par des flèches, puis présente-les étape par étape. Hors ligne, sans compte.",
   "lang": "fr",
   "dir": "ltr",
-  "id": "./",
+  "id": "/omni-schema/",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
