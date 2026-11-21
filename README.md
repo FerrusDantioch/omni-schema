@@ -47,6 +47,13 @@ fenêtre public), sous-schémas dans la vue à deux écrans et dans la page HTML
 document, nuage), un schéma exporté en .json emporte ses sous-schémas, et « Ranger » fait suivre
 les zones.
 
+**Version 1.7.1** : l'application a sa propre identité (`"id": "/omni-schema/"` dans
+`manifest.webmanifest`). Avant, elle avait la même que d'autres applications de Ferrus, et le
+navigateur pouvait les confondre. Installée avant la 1.7.1, elle continue de marcher ; pour
+profiter de la correction : **sauvegarde d'abord tous tes schémas** (Menu → *Sauvegarder tous mes
+schémas*), désinstalle, réinstalle, puis importe le fichier. Désinstaller peut effacer les schémas :
+ne saute pas la sauvegarde.
+
 ## Utilisation rapide
 
 | Je veux… | Au doigt | À la souris / au clavier |
