@@ -11,6 +11,8 @@
 // l'écran n'a pas la même taille.
 // =====================================================================
 
+import { etat } from './noyau.js';
+
 const DELAI_APPUI_LONG = 350; // millisecondes
 const TOLERANCE = 12;         // pixels de mouvement tolérés avant l'appui long
 
@@ -101,7 +103,7 @@ export function brancherPointeur(cadre, point, { surPosition = () => {}, actif =
       enCours = true;
       consomme = true;
       try { cadre.setPointerCapture(e.pointerId); } catch { /* sans importance */ }
-      if (navigator.vibrate) navigator.vibrate(10);
+      if (etat.reglages.vibrations !== false && navigator.vibrate) navigator.vibrate(10);
       surPosition(point.montrerEcran(appui.x, appui.y));
     }, DELAI_APPUI_LONG);
   });

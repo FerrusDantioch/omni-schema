@@ -2,11 +2,13 @@
 // Constantes partagées par toute l'application.
 // =====================================================================
 
+import './version.js';
+
 export const APP_NOM = 'omni-schema';
 
-// ⚠ Quand tu publies une nouvelle version, change ce numéro ET celui de
-// VERSION dans sw.js (les deux doivent être identiques).
-export const APP_VERSION = '1.7.1';
+// ⚠ Quand tu publies une nouvelle version, change OMNI_SCHEMA_VERSION
+// dans js/version.js (source unique partagée avec sw.js).
+export const APP_VERSION = globalThis.OMNI_SCHEMA_VERSION;
 
 // Version du format des fichiers de schéma. On l'augmente seulement si la
 // structure des données change ; modele.js sait alors convertir les anciens.

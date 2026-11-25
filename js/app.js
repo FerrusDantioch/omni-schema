@@ -99,8 +99,11 @@ async function demarrer() {
 /** Ouvre le dernier schéma utilisé, sinon le plus récent, sinon le schéma d'accueil. */
 async function ouvrirPremierSchema() {
   let schema = null;
+  let dernier = null;
   try {
-    const dernier = localStorage.getItem(CLE_DERNIER);
+    dernier = localStorage.getItem(CLE_DERNIER);
+  } catch { /* stockage local indisponible */ }
+  try {
     if (dernier) schema = await chargerSchema(dernier);
     if (!schema) schema = (await listerSchemas())[0] || null;
     if (schema) schema = migrer(schema);

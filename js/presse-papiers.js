@@ -25,6 +25,7 @@ import { ressembleAUneListe } from './liste.js';
 
 const CLE = 'omni-schema.presse-papiers';
 let memoire = null; // copie de secours si le stockage local est plein ou indisponible
+let stockageLocalOk = true;
 
 const pluriel = (n, mot) => `${n} ${mot}${n > 1 ? 's' : ''}`;
 
@@ -73,7 +74,9 @@ export function copierSelection() {
   rempli = true;
   try {
     localStorage.setItem(CLE, JSON.stringify(contenu));
+    stockageLocalOk = true;
   } catch {
+    stockageLocalOk = false;
     // Trop gros pour le stockage local (grandes images) : la copie reste
     // utilisable dans cet onglet, mais pas dans un autre.
     try { localStorage.removeItem(CLE); } catch { /* rien */ }
@@ -92,7 +95,11 @@ export function copierDepuisBouton() {
   try {
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(lirePressePapiers().texte || '').catch(() => {});
   } catch { /* pas grave : la copie interne suffit */ }
-  annoncer(`${pluriel(n, 'bloc')} copié${n > 1 ? 's' : ''}. Touche « Coller » dans ce schéma ou dans un autre.`, 3500);
+  if (stockageLocalOk) {
+    annoncer(`${pluriel(n, 'bloc')} copié${n > 1 ? 's' : ''}. Touche « Coller » dans ce schéma ou dans un autre.`, 3500);
+  } else {
+    annoncer(`${pluriel(n, 'bloc')} copié${n > 1 ? 's' : ''} dans cet onglet seulement (trop volumineux ou stockage indisponible).`, 5000);
+  }
 }
 
 /** Copie puis supprime (Ctrl+X). */

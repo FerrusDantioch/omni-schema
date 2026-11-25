@@ -14,6 +14,7 @@ export function installerMiseAJour({ bouton, avantRechargement }) {
   let rechargementDemande = false;
 
   const proposer = (travailleur) => {
+    bouton.disabled = false;
     bouton.hidden = false;
     bouton.onclick = async () => {
       bouton.disabled = true;
@@ -23,14 +24,17 @@ export function installerMiseAJour({ bouton, avantRechargement }) {
     };
   };
 
-  // La nouvelle version a pris la main : on recharge (seulement si on l'a demandé).
+  // La nouvelle version a pris la main : on cache le bouton partout et on
+  // recharge uniquement l'onglet qui a demandé la mise à jour.
   navigator.serviceWorker.addEventListener('controllerchange', () => {
+    bouton.hidden = true;
+    bouton.disabled = false;
     if (rechargementDemande) window.location.reload();
   });
 
   window.addEventListener('load', async () => {
     try {
-      const inscription = await navigator.serviceWorker.register('./sw.js');
+      const inscription = await navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' });
 
       // Une version attend déjà (téléchargée lors d'une visite précédente).
       if (inscription.waiting && navigator.serviceWorker.controller) proposer(inscription.waiting);

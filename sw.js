@@ -2,13 +2,15 @@
 // Service worker d'omni-schema : garde l'application sur l'appareil
 // pour qu'elle fonctionne hors ligne.
 //
-// ⚠ À CHAQUE PUBLICATION : change VERSION (et APP_VERSION dans
-// js/config.js). Le navigateur voit alors que ce fichier a changé,
-// télécharge la nouvelle version, et le bouton « Mettre à jour »
-// apparaît dans l'application.
+// ⚠ À CHAQUE PUBLICATION : change OMNI_SCHEMA_VERSION dans
+// js/version.js (source unique partagée avec js/config.js).
+// Le navigateur voit alors que la version a changé, télécharge la
+// nouvelle version, et le bouton « Mettre à jour » apparaît dans
+// l'application.
 // =====================================================================
 
-const VERSION = '1.7.1';
+importScripts('./js/version.js');
+const VERSION = globalThis.OMNI_SCHEMA_VERSION;
 const CACHE = `omni-schema-${VERSION}`;
 
 // Tous les fichiers de l'application (chemins relatifs : fonctionne dans
@@ -52,9 +54,11 @@ const FICHIERS = [
   './js/stockage.js',
   './js/texte.js',
   './js/theme-init.js',
+  './js/version.js',
   './icons/icon.svg',
   './icons/icon-192.png',
   './icons/icon-512.png',
+  './icons/icon-maskable-192.png',
   './icons/icon-maskable-512.png',
   './icons/apple-touch-icon.png',
   './assets/logo-omni-systeme.webp',
@@ -62,6 +66,7 @@ const FICHIERS = [
   './polices/literata.woff2',
   './polices/literata-italique.woff2',
   './polices/jetbrains-mono.woff2',
+  './polices/LICENCES.txt',
 ];
 
 // Installation : on télécharge tout. « cache: 'reload' » évite de
@@ -94,19 +99,30 @@ self.addEventListener('fetch', (evenement) => {
   if (requete.method !== 'GET') return;
   const url = new URL(requete.url);
   if (url.origin !== self.location.origin) return; // rien d'extérieur
+  if (!url.href.startsWith(self.registration.scope)) return; // hors périmètre
 
   evenement.respondWith((async () => {
-    const cache = await caches.open(CACHE);
-    // Navigation (ouverture de l'app) : toujours la page principale en cache.
-    if (requete.mode === 'navigate') {
-      const page = await cache.match('./index.html');
-      if (page) return page;
-    }
-    const enCache = await cache.match(requete, { ignoreSearch: true });
-    if (enCache) return enCache;
+    let cache = null;
     try {
-      return await fetch(requete);
+      cache = await caches.open(CACHE);
+    } catch { /* stockage indisponible */ }
+    // On cherche d'abord la ressource exacte en cache (ex. polices/LICENCES.txt)
+    // avant tout repli vers index.html.
+    if (cache) {
+      const enCache = await cache.match(requete, { ignoreSearch: true });
+      if (enCache) return enCache;
+    }
+    try {
+      const reponse = await fetch(requete);
+      if (cache && reponse && reponse.ok && reponse.type === 'basic') {
+        cache.put(requete, reponse.clone()).catch(() => {});
+      }
+      return reponse;
     } catch {
+      if (cache && requete.mode === 'navigate') {
+        const page = await cache.match('./index.html');
+        if (page) return page;
+      }
       return new Response('Hors ligne', { status: 503, statusText: 'Hors ligne' });
     }
   })());
