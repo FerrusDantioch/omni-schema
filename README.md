@@ -54,6 +54,13 @@ profiter de la correction : **sauvegarde d'abord tous tes schémas** (Menu → *
 schémas*), désinstalle, réinstalle, puis importe le fichier. Désinstaller peut effacer les schémas :
 ne saute pas la sauvegarde.
 
+**Version 1.7.2** :
+- source unique de version (`js/version.js`) partagée entre `sw.js` et `js/config.js`, vérifications de périmètre et mise à jour hors ligne fiable (y compris `polices/LICENCES.txt` servi directement depuis le cache, `updateViaCache: 'none'`, et masquage du bouton « Mettre à jour » sur tous les onglets après activation) ;
+- réglage **Vibrations** dans les réglages (activé par défaut, respecté en édition et en présentation) ;
+- « À propos » complété (lien vers `polices/LICENCES.txt` et note d'installation Chrome Android / Brave) ;
+- accessibilité et sécurité : `<h1>` unique, cibles tactiles ≥ 44×44 px jusqu'à 320 px de large, CSP complétée (`manifest-src`, `worker-src`, `base-uri 'none'`), résilience `localStorage` plein ou bloqué, icônes PNG compressées et `icon-maskable-192.png` ajoutée ;
+- suite de tests automatisés (`npm test`) et CI GitHub Actions.
+
 ## Utilisation rapide
 
 | Je veux… | Au doigt | À la souris / au clavier |
@@ -219,11 +226,13 @@ js/
   clavier.js           raccourcis clavier
   mise-a-jour.js       bouton « Mettre à jour »
   couleurs.js          palettes de couleurs par thème
-  config.js            version et constantes
+  config.js            constantes partagées (lit la version depuis version.js)
+  version.js           source unique du numéro de version (partagée avec sw.js)
   theme-init.js        applique le thème avant l'affichage
 icons/                 icônes de l'application
 polices/               polices embarquées (Oxanium, Literata, JetBrains Mono) et leurs licences
 assets/logo-omni-systeme.webp   logo de l'Omni-système (le même que sur le portfolio)
+tests/                 tests automatisés (statiques + Playwright)
 ```
 
 ## Format des données
@@ -271,12 +280,22 @@ Si la structure change un jour, `version_format` augmente et `js/modele.js` conv
 
 ## Publier une nouvelle version
 
-1. Change le numéro de version **à deux endroits identiques** :
-   `APP_VERSION` dans `js/config.js` et `VERSION` dans `sw.js`.
+1. Change le numéro de version **à un seul endroit** :
+   `OMNI_SCHEMA_VERSION` dans `js/version.js` (lu automatiquement par `js/config.js` et `sw.js`).
 2. Si tu as ajouté un fichier, ajoute-le à la liste `FICHIERS` de `sw.js`.
 3. Publie. À la prochaine ouverture, l'application télécharge la nouvelle
    version en arrière-plan et affiche le bouton **« Mettre à jour »**.
    Rien ne change tant que tu n'appuies pas dessus.
+
+## Tests automatisés
+
+Le dépôt inclut des tests statiques (Node.js) et des tests navigateur (Playwright + Chromium) :
+
+```bash
+npm run test:static   # vérifications statiques (LICENSE, version, SW, CSP, icônes)
+npm run test:e2e      # tests E2E Playwright (hors ligne, a11y, vibrations, stockage)
+npm test              # les deux suites
+```
 
 ## Publication sur GitHub Pages
 

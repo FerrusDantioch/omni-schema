@@ -1,0 +1,7 @@
+# Uniformise les fins de ligne entre Windows, macOS et Linux.
+* text=auto eol=lf
+
+# Fichiers binaires : Git ne doit surtout pas y toucher.
+*.png binary
+*.webp binary
+*.woff2 binary

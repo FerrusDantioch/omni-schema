@@ -125,7 +125,7 @@ export function installerGestes(svg, { editerTexte, editerEtiquette, editerTitre
   function armerAppuiLong(g) {
     g.minuterie = setTimeout(() => {
       if (geste !== g || g.bouge || pointeurs.size !== 1) return;
-      if (navigator.vibrate) navigator.vibrate(15); // petit retour tactile, si l'appareil le permet
+      if (etat.reglages.vibrations !== false && navigator.vibrate) navigator.vibrate(15); // petit retour tactile, si l'appareil le permet, selon le réglage
       if (g.mode === 'bloc') {
         basculerDansGroupe(g.idBloc);
         geste = demarrerGroupe(g, g.idBloc, true);

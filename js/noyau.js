@@ -41,7 +41,7 @@ const ecouteurs = new Set();
 const apresRendu = new Set();
 
 function lireReglages() {
-  const defaut = { theme: 'auto', taille: 100, grille: true, guides: true, pastilles: true, fondu: false };
+  const defaut = { theme: 'auto', taille: 100, grille: true, guides: true, pastilles: true, fondu: false, vibrations: true };
   try {
     return { ...defaut, ...(JSON.parse(localStorage.getItem(CLE_REGLAGES) || '{}') || {}) };
   } catch {
@@ -50,7 +50,11 @@ function lireReglages() {
 }
 
 export function enregistrerReglages() {
-  try { localStorage.setItem(CLE_REGLAGES, JSON.stringify(etat.reglages)); } catch { /* stockage indisponible */ }
+  try {
+    localStorage.setItem(CLE_REGLAGES, JSON.stringify(etat.reglages));
+  } catch {
+    annoncer('Impossible d\'enregistrer les réglages sur cet appareil.', 5000);
+  }
 }
 
 /** Branche le moteur de rendu. */

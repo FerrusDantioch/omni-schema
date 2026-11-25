@@ -4,14 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
   <!-- Sécurité : interdit tout chargement depuis internet. Seuls les fichiers de l'application sont autorisés. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'; worker-src 'self'">
   <title>omni-schema</title>
   <meta name="description" content="Construis des schémas de blocs reliés par des flèches, puis présente-les étape par étape. Hors ligne, sans compte.">
   <meta name="theme-color" content="#14121e">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" sizes="180x180">
   <link rel="stylesheet" href="css/style.css">
   <!-- Applique le thème et la taille du texte AVANT l'affichage (évite un flash de mauvaise couleur). -->
   <script src="js/theme-init.js"></script>
@@ -99,6 +99,7 @@
 
   <!-- ===== Zone de dessin ===== -->
   <main class="zone" id="zone">
+    <h1 class="lecteur-seul">omni-schema</h1>
     <button type="button" class="bouton retour-parent" id="btn-retour-parent" hidden><svg class="icone" aria-hidden="true"><use href="#i-retour"/></svg><span id="libelle-retour-parent">Retour</span></button>
     <div class="barre-recherche" id="barre-recherche" role="search" hidden>
       <label for="champ-recherche" class="lecteur-seul">Rechercher dans le schéma</label>
@@ -358,6 +359,10 @@
       <label><input type="checkbox" name="fondu"> Fondu très léger quand une étape apparaît</label>
       <p class="aide-reglage" id="aide-fondu">Désactivé automatiquement si ton appareil demande de réduire les animations.</p>
     </fieldset>
+    <fieldset class="groupe-choix cases">
+      <legend class="etiquette-section">Retour tactile</legend>
+      <label><input type="checkbox" name="vibrations"> Vibrations discrètes lors d'un appui long</label>
+    </fieldset>
   </dialog>
 
   <!-- ===== À propos ===== -->
@@ -376,6 +381,8 @@
     <p>Une idée, une remarque, un souci ? Tes retours sont les bienvenus<br>
       <a href="mailto:omni-systeme.choking513@passmail.net">omni-systeme.choking513@passmail.net</a></p>
     <p><a class="lien-omni" href="https://ferrusdantioch.github.io/omni-systeme/" target="_blank" rel="noopener noreferrer">Découvrir l'Omni-système</a></p>
+    <p><a href="polices/LICENCES.txt" target="_blank" rel="noopener noreferrer">Licences des polices embarquées (SIL OFL 1.1)</a></p>
+    <p class="note-installation"><strong>Installation sur Android :</strong> si Chrome indique « Cette appli est déjà installée » alors qu'omni-schema ne l'est pas, c'est une limite de Chrome lorsqu'une autre application de ce site est déjà installée. Utilise un autre navigateur (Brave, par exemple), ou choisis « Créer un raccourci ».</p>
     <p class="signature">Ferrus Dantioch</p>
     </div>
   </dialog>

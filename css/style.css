@@ -133,6 +133,7 @@ html, body {
 body {
   display: grid;
   grid-template-rows: auto 1fr auto;
+  grid-template-columns: minmax(0, 1fr);
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
@@ -284,12 +285,14 @@ a { color: var(--accent); text-underline-offset: 0.18em; }
 .bouton-presenter .icone { width: 1.25rem; height: 1.25rem; fill: currentColor; }
 .bouton-presenter:hover { filter: brightness(1.08); }
 @media (max-width: 440px) {
-  .bouton-presenter { padding: 0.4rem 0.75rem; }
+  .bouton-presenter { min-width: 44px; padding: 0.4rem; }
   .bouton-presenter span { display: none; }
+  .bouton-maj { min-width: 44px; padding: 0.4rem; }
+  .bouton-maj span { display: none; }
   /* Téléphone : un peu plus de place pour le nom du schéma. */
-  .barre-haut { gap: 0.1rem; padding-left: max(0.25rem, env(safe-area-inset-left)); padding-right: max(0.25rem, env(safe-area-inset-right)); }
-  .barre-haut .bouton-icone { min-width: 44px; padding: 0.4rem; }
-  .titre-schema { padding: 0 0.35rem; }
+  .barre-haut { gap: 0; padding-left: max(2px, env(safe-area-inset-left)); padding-right: max(2px, env(safe-area-inset-right)); }
+  .barre-haut .bouton-icone { min-width: 44px; padding: 0.25rem; }
+  .titre-schema { min-width: 44px; padding: 0 0.25rem; }
   .titre-schema .icone.petite { display: none; }
 }
 
@@ -399,6 +402,7 @@ a { color: var(--accent); text-underline-offset: 0.18em; }
   padding-bottom: max(0.3rem, env(safe-area-inset-bottom));
   padding-left: max(0.25rem, env(safe-area-inset-left));
   padding-right: max(0.25rem, env(safe-area-inset-right));
+  min-width: 0;
 }
 
 .groupe-outils {
@@ -720,10 +724,23 @@ dialog::backdrop { background: var(--voile); }
 .apropos h2 { font-size: 1.7rem; font-weight: 800; letter-spacing: -0.01em; }
 .apropos .version { margin-top: 0.3rem; font-size: 0.9rem; }
 .apropos .texte-lecture p { margin: 0.8rem 0; font-family: var(--police-lecture); font-size: 1.05rem; line-height: 1.6; }
-/* Liens : zone de toucher agrandie (padding) sans les isoler sur leur ligne. */
-.apropos a { padding: 0.7rem 0.15rem; overflow-wrap: anywhere; }
+/* Liens : zone de toucher >= 44×44 px sans déborder sur petit écran. */
+.apropos a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0.4rem 0.5rem;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
 .apropos .lien-omni { font-family: var(--police-ui); font-weight: 650; }
 .apropos a[href^="mailto:"] { font-family: var(--police-ui); font-size: 0.92rem; }
+.apropos .note-installation { margin-top: 1rem; font-size: 0.9rem; color: var(--texte-doux); }
+@media not all and (display-mode: browser) {
+  .note-installation { display: none; }
+}
 /* Signature en italique discrète, comme « Conçu et réalisé par Ferrus Dantioch ». */
 .apropos .signature { margin-top: 1.25rem; font-family: var(--police-lecture); font-style: italic; color: var(--texte-doux); }
 
@@ -812,12 +829,13 @@ kbd {
 
 /* Nouveau schéma : cartes des modèles */
 #nouveau-titre { margin-bottom: 1.25rem; }
-.liste-modeles { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 0.5rem; }
+.liste-modeles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(12rem, 100%), 1fr)); gap: 0.5rem; }
 .carte-modele {
   position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
+  min-width: 0;
   min-height: 64px;
   padding: 0.7rem 0.85rem;
   border: 1px solid var(--filet);
@@ -829,11 +847,11 @@ kbd {
 .carte-modele input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
 .carte-modele:has(input:checked) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 .carte-modele:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 2px; }
-.nom-modele { font-weight: 700; }
+.nom-modele { font-weight: 700; min-width: 0; overflow-wrap: anywhere; }
 /* Mes modèles : bouton « supprimer » au bout de la carte, au-dessus du choix. */
 .carte-modele.avec-action { padding-right: 3.6rem; }
 .carte-modele .petit-bouton { position: absolute; top: 50%; right: 0.35rem; transform: translateY(-50%); z-index: 1; }
-.desc-modele { font-size: 0.88rem; color: var(--texte-doux); }
+.desc-modele { font-size: 0.88rem; color: var(--texte-doux); min-width: 0; overflow-wrap: anywhere; }
 
 /* Export */
 .boutons-export { display: flex; flex-wrap: wrap; gap: 0.5rem; }
@@ -1141,15 +1159,36 @@ body.mode-public { display: block; }
    une forme courte (data-court) ; le nom complet reste dans aria-label
    pour les lecteurs d'écran. */
 @media (max-width: 440px) {
-  .groupe-outils { gap: 0.1rem; }
+  .barre-bas {
+    padding-left: max(2px, env(safe-area-inset-left));
+    padding-right: max(2px, env(safe-area-inset-right));
+  }
+  .groupe-outils { gap: 0; }
   .outil { font-size: 0.68rem; padding-inline: 0; min-width: 44px; }
   /* Le nombre de blocs passe dans le bouton « OK (3) » ; le compteur reste lu par les lecteurs d'écran. */
   .compte-groupe { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .outil span[data-court] { font-size: 0; }
   .outil span[data-court]::after { content: attr(data-court); font-size: 0.68rem; }
-}
-@media (max-width: 380px) {
-  .bouton-maj span { display: none; }
+  .pres-outils {
+    left: max(2px, env(safe-area-inset-left));
+    bottom: max(0.5rem, env(safe-area-inset-bottom));
+    gap: 0;
+  }
+  .pres-navigation {
+    right: max(2px, env(safe-area-inset-right));
+    bottom: max(0.5rem, env(safe-area-inset-bottom));
+    gap: 0;
+  }
+  .pres-bouton {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0.25rem;
+  }
+  .pres-compteur {
+    min-width: 2.6rem;
+    font-size: 0.85rem;
+    white-space: nowrap;
+  }
 }
 
 /* ---------- Contraste renforcé demandé par l'appareil ---------- */

@@ -1193,6 +1193,7 @@ function afficherReglages() {
   d.querySelector('input[name="grille"]').checked = !!etat.reglages.grille;
   d.querySelector('input[name="guides"]').checked = !!etat.reglages.guides;
   d.querySelector('input[name="pastilles"]').checked = !!etat.reglages.pastilles;
+  d.querySelector('input[name="vibrations"]').checked = etat.reglages.vibrations !== false;
   const fondu = d.querySelector('input[name="fondu"]');
   fondu.checked = !!etat.reglages.fondu && !reduireAnimations.matches;
   fondu.disabled = reduireAnimations.matches;
@@ -1209,6 +1210,7 @@ function installerReglages() {
     else if (champ.name === 'grille') etat.reglages.grille = champ.checked;
     else if (champ.name === 'guides') etat.reglages.guides = champ.checked;
     else if (champ.name === 'pastilles') etat.reglages.pastilles = champ.checked;
+    else if (champ.name === 'vibrations') etat.reglages.vibrations = champ.checked;
     else if (champ.name === 'fondu') etat.reglages.fondu = champ.checked;
     enregistrerReglages();
     appliquerTheme();
